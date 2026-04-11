@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
 import { buildSystemPrompt } from '../services/promptBuilder.js';
 import { sendToGemini } from '../services/geminiService.js';
@@ -13,6 +13,10 @@ export function useChat() {
 
   const { speak, stopSpeaking } = useVoice();
   const idCounter = useRef(0);
+  const messagesRef = useRef([]);
+
+  // Keep ref in sync with state
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const generateId = () => {
     idCounter.current += 1;
@@ -23,7 +27,7 @@ export function useChat() {
     if (!text.trim() || isLoading) return;
 
     // Stop any ongoing TTS when user sends a new message
-    stopVoice();
+    stopSpeaking();
 
     const userMessage = {
       id: generateId(),
@@ -48,7 +52,7 @@ export function useChat() {
       const systemPrompt = buildSystemPrompt(currentLanguage);
 
       // Get all messages including the new user message
-      const allMessages = [...messages, userMessage];
+      const allMessages = [...messagesRef.current, userMessage];
 
       // Call Gemini service
       const response = await sendToGemini(allMessages, systemPrompt);
@@ -85,7 +89,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, language, isLanguageManual, messages, isMuted, stopVoice, speak]);
+  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak]);
 
   const setLanguageManual = useCallback((code) => {
     setLanguage(code);
