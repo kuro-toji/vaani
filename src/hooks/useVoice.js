@@ -95,14 +95,14 @@ export const useVoice = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = getLanguageCode(language);
 
     recognition.onresult = (event) => {
       let transcript = '';
       let isFinal = false;
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
         isFinal = event.results[i].isFinal;
       }
