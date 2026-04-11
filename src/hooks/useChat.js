@@ -9,7 +9,7 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState('hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setMuted] = useState(false);
 
   const { speak, stop: stopVoice } = useVoice();
   const idCounter = useRef(0);
