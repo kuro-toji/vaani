@@ -81,7 +81,7 @@ export function useVoice() {
       if (e.error === 'network') {
         // Self-heal: mark this language as whisper-only for rest of session
         whisperOnlyRef.current.add(language)
-        setSttError('Network error — switched to offline mode. Try again.')
+        setSttError('Switched to offline mode. Click mic again to try.')
       } else if (e.error === 'not-allowed') {
         setSttError('Microphone permission denied.')
       } else if (e.error === 'no-speech') {
