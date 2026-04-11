@@ -5,9 +5,10 @@ import TypingIndicator from './TypingIndicator.jsx';
 import SuggestionChips from './SuggestionChips.jsx';
 import LanguageSelector from './LanguageSelector.jsx';
 import ChatInput from './ChatInput.jsx';
+import { Volume2, VolumeX } from 'lucide-react';
 
 export default function ChatWindow() {
-  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual } = useChat();
+  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom when messages change
@@ -20,11 +21,24 @@ export default function ChatWindow() {
       {/* Header */}
       <header className="h-14 bg-white border-b border-[#E5E7EB] px-4 flex items-center justify-between shrink-0">
         <span className="text-[20px] font-semibold text-[#0F6E56]">Vaani</span>
-        <LanguageSelector
-          language={language}
-          onSelect={setLanguageManual}
-          isManual={isLanguageManual}
-        />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMuted(!isMuted)}
+            className="p-2 rounded-full hover:bg-[#F3F4F6] transition-colors"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? (
+              <VolumeX size={20} color="#9CA3AF" />
+            ) : (
+              <Volume2 size={20} color="#0F6E56" />
+            )}
+          </button>
+          <LanguageSelector
+            language={language}
+            onSelect={setLanguageManual}
+            isManual={isLanguageManual}
+          />
+        </div>
       </header>
 
       {/* Messages */}
@@ -43,7 +57,7 @@ export default function ChatWindow() {
 
       {/* Input */}
       <div className="bg-white border-t border-[#E5E7EB] px-4 py-3">
-        <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} />
+        <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
       </div>
     </div>
   );
