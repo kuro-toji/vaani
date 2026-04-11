@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff } from 'lucide-react';
+import useVoice from '../hooks/useVoice.js';
 
 const placeholders = [
   "Vaani से बात करें...",
@@ -12,6 +14,7 @@ export default function ChatInput({ onSend, isLoading, language }) {
   const [message, setMessage] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const textareaRef = useRef(null);
+  const { isListening, startListening, stopListening, stopSpeaking } = useVoice();
 
   // Placeholder rotation every 3 seconds
   useEffect(() => {
@@ -49,6 +52,21 @@ export default function ChatInput({ onSend, isLoading, language }) {
     }
   };
 
+  const handleMicClick = () => {
+    if (isLoading) return;
+    
+    if (isListening) {
+      stopListening();
+    } else {
+      stopSpeaking();
+      startListening(
+        (transcript) => setMessage(transcript),
+        (error) => console.error('Speech recognition error:', error),
+        language
+      );
+    }
+  };
+
   return (
     <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 flex row items-end gap-2">
       <textarea
@@ -62,6 +80,21 @@ export default function ChatInput({ onSend, isLoading, language }) {
         className="flex-1 bg-transparent text-[15px] resize-none outline-none border-none no-scrollbar"
         style={{ minHeight: '24px' }}
       />
+      <button
+        onClick={handleMicClick}
+        disabled={isLoading}
+        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+          isListening
+            ? 'bg-[#EF4444] animate-pulse'
+            : 'bg-[#1D9E75]'
+        } disabled:opacity-40 disabled:cursor-not-allowed`}
+      >
+        {isListening ? (
+          <MicOff size={18} color="white" />
+        ) : (
+          <Mic size={18} color="white" />
+        )}
+      </button>
       <button
         onClick={handleSend}
         disabled={!message.trim() || isLoading}
