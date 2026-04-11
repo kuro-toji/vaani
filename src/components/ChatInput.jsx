@@ -10,7 +10,7 @@ const placeholders = [
   "Chat with Vaani..."
 ];
 
-export default function ChatInput({ onSend, isLoading, language }) {
+export default function ChatInput({ onSend, isLoading, language, isMuted = false }) {
   const [message, setMessage] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const textareaRef = useRef(null);
@@ -55,12 +55,14 @@ export default function ChatInput({ onSend, isLoading, language }) {
   const handleMicClick = () => {
     if (isLoading) return;
     
+    if (isMuted) return;
+    
     if (isListening) {
       stopListening();
     } else {
       stopSpeaking();
       startListening(
-        (transcript) => setMessage(transcript),
+        (transcript, isFinal) => setMessage(transcript),
         (error) => console.error('Speech recognition error:', error),
         language
       );
@@ -68,7 +70,7 @@ export default function ChatInput({ onSend, isLoading, language }) {
   };
 
   return (
-    <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 flex row items-end gap-2">
+    <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 flex items-end gap-2">
       <textarea
         ref={textareaRef}
         dir="auto"
@@ -82,10 +84,12 @@ export default function ChatInput({ onSend, isLoading, language }) {
       />
       <button
         onClick={handleMicClick}
-        disabled={isLoading}
+        disabled={isLoading || isMuted}
         className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
           isListening
             ? 'bg-[#EF4444] animate-pulse'
+            : isMuted
+            ? 'bg-[#9CA3AF] opacity-60'
             : 'bg-[#1D9E75]'
         } disabled:opacity-40 disabled:cursor-not-allowed`}
       >
