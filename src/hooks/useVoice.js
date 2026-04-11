@@ -95,7 +95,7 @@ export const useVoice = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = getLanguageCode(language);
 
