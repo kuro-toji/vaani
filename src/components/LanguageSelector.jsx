@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { languages } from '../data/languages.js';
 
-const MAJOR_LANGUAGES = ['hi', 'bn', 'te', 'ta', 'mr', 'ur', 'gu', 'kn', 'ml', 'pa', 'or', 'ne'];
+const MAJOR_LANGUAGES = [
+  'hi', 'bn', 'te', 'mr', 'ta', 'ur', 'gu', 'kn', 'or', 'pa', 'ml', 
+  'as', 'mai', 'sa', 'sd', 'kok', 'ne', 'brx', 'sat', 'dgo', 'mni', 'ks'
+];
 
 export default function LanguageSelector({ language, onSelect, isManual }) {
   const [isOpen, setIsOpen] = useState(false);

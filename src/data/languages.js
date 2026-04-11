@@ -245,6 +245,17 @@ const hindiChips = [
 ];
 
 export const languageChips = {
+  ne: hindiChips,
+  as: hindiChips,
+  mai: hindiChips,
+  sa: hindiChips,
+  sd: hindiChips,
+  kok: hindiChips,
+  brx: hindiChips,
+  sat: hindiChips,
+  dgo: hindiChips,
+  mni: hindiChips,
+  ks: hindiChips,
   hi: hindiChips,
   bn: [
     "১ লক্ষ টাকা বিনিয়োগ কোথায় করব?",

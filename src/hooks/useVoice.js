@@ -75,12 +75,14 @@ const getTTSLanguageCode = (lang) => {
 export const useVoice = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [sttError, setSttError] = useState(false);
   const [voices, setVoices] = useState([]);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
   const isSpeakingRef = useRef(false);
 
   const startListening = useCallback((onResult, onError, language = 'hi') => {
+    setSttError(false);
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
@@ -108,6 +110,11 @@ export const useVoice = () => {
     };
 
     recognition.onerror = (event) => {
+      if (event.error === 'language-not-supported' || event.error === 'not-allowed' || event.error === 'no-speech') {
+        console.warn('Language not supported or speech blocked for STT:', language);
+        setSttError(true);
+      }
+      setIsListening(false);
       onError?.(event.error);
     };
 
@@ -198,6 +205,8 @@ export const useVoice = () => {
   return {
     isListening,
     isSpeaking,
+    sttError,
+    setSttError,
     startListening,
     stopListening,
     speak,

@@ -14,7 +14,12 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [message, setMessage] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const textareaRef = useRef(null);
-  const { isListening, startListening, stopListening, stopSpeaking } = useVoice();
+  const { isListening, sttError, setSttError, startListening, stopListening, stopSpeaking } = useVoice();
+
+  // Reset sttError when language changes
+  useEffect(() => {
+    setSttError(false);
+  }, [language, setSttError]);
 
   // Placeholder rotation every 3 seconds
   useEffect(() => {
@@ -55,7 +60,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const handleMicClick = () => {
     if (isLoading) return;
     
-    if (isMuted) return;
+    if (isMuted || sttError) return;
     
     if (isListening) {
       stopListening();
@@ -63,7 +68,9 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       stopSpeaking();
       startListening(
         (transcript, isFinal) => setMessage(transcript),
-        (error) => console.error('Speech recognition error:', error),
+        (error) => {
+          console.error('Speech recognition error:', error);
+        },
         language
       );
     }
@@ -84,11 +91,12 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       />
       <button
         onClick={handleMicClick}
-        disabled={isLoading || isMuted}
+        disabled={isLoading || isMuted || sttError}
+        title={sttError ? "Voice input unsupported for this language" : ""}
         className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
           isListening
             ? 'bg-[#EF4444] animate-pulse'
-            : isMuted
+            : isMuted || sttError
             ? 'bg-[#9CA3AF] opacity-60'
             : 'bg-[#1D9E75]'
         } disabled:opacity-40 disabled:cursor-not-allowed`}

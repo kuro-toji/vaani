@@ -5,7 +5,20 @@ import { sendToGemini } from '../services/geminiService.js';
 import { useVoice } from '../hooks/useVoice.js';
 
 export function useChat() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    {
+      id: 'greeting_user',
+      role: 'user',
+      content: 'helo',
+      timestamp: new Date(),
+    },
+    {
+      id: 'greeting_assistant',
+      role: 'assistant',
+      content: 'नमस्ते! कैसे हैं आप? बताइए, मैं आपकी क्या मदद कर सकती हूँ? किसी भी पैसे से जुड़ी बात पर हम दोस्त की तरह बात कर सकते हैं।',
+      timestamp: new Date(),
+    }
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState('hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);

@@ -1,4 +1,4 @@
-import { languageChips, getLanguageChips } from '../data/languages.js';
+import { getLanguageChips } from '../data/languages.js';
 
 const SuggestionChips = ({ language, onSend }) => {
   const chips = getLanguageChips(language);
