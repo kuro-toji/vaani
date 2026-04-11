@@ -73,6 +73,7 @@ const getTTSLanguageCode = (lang) => {
 export const useVoice = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voices, setVoices] = useState([]);
   const recognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
   const isSpeakingRef = useRef(false);
@@ -96,10 +97,12 @@ export const useVoice = () => {
 
     recognition.onresult = (event) => {
       let transcript = '';
+      let isFinal = false;
       for (let i = event.resultIndex; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
+        isFinal = event.results[i].isFinal;
       }
-      onResult?.(transcript);
+      onResult?.(transcript, isFinal);
     };
 
     recognition.onerror = (event) => {
@@ -134,7 +137,6 @@ export const useVoice = () => {
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
 
-    const voices = window.speechSynthesis.getVoices();
     const langCode = getTTSLanguageCode(language);
     const matchingVoice = voices.find(
       (voice) => voice.lang.startsWith(langCode.split('-')[0])
@@ -161,7 +163,7 @@ export const useVoice = () => {
     speechSynthesisRef.current = utterance;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [voices]);
 
   const stopSpeaking = useCallback(() => {
     if ('speechSynthesis' in window) {
@@ -174,7 +176,8 @@ export const useVoice = () => {
   useEffect(() => {
     if ('speechSynthesis' in window) {
       const loadVoices = () => {
-        window.speechSynthesis.getVoices();
+        const v = window.speechSynthesis.getVoices();
+        if (v.length > 0) setVoices(v);
       };
       loadVoices();
       window.speechSynthesis.onvoiceschanged = loadVoices;
