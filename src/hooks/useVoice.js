@@ -29,6 +29,7 @@ const LANGUAGE_CODE_MAP = {
   tcy: 'tcy-IN',
   bgc: 'bgc-IN',
   mag: 'mag-IN',
+  en: 'en-US',
 };
 
 const TTS_LANGUAGE_CODE_MAP = {
@@ -60,6 +61,7 @@ const TTS_LANGUAGE_CODE_MAP = {
   tcy: 'tcy-IN',
   bgc: 'bgc-IN',
   mag: 'mag-IN',
+  en: 'en-US',
 };
 
 const getLanguageCode = (lang) => {

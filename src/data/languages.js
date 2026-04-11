@@ -226,6 +226,14 @@ export const languages = [
     script: "devanagari",
     direction: "ltr",
   },
+  {
+    code: "en",
+    francCode: "eng",
+    name: "English",
+    nativeName: "English",
+    script: "latin",
+    direction: "ltr",
+  },
 ];
 
 // Suggestion chips for languages - falls back to Hindi for unsupported languages

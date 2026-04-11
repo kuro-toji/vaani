@@ -79,7 +79,8 @@ async function geminiFallback(text) {
     const languageCode = candidate?.content?.parts?.[0]?.text?.trim().toLowerCase();
 
     // Validate that the returned code is one of our supported codes
-    const isValidCode = languages.some(lang => lang.code === languageCode);
+    const INDIAN_AND_COMMON_CODES = ['hi', 'bn', 'te', 'ta', 'mr', 'ur', 'gu', 'kn', 'ml', 'pa', 'or', 'ne', 'as', 'mai', 'sat', 'ks', 'sd', 'kok', 'dgo', 'brx', 'mni', 'sa', 'bho', 'raj', 'hne', 'tcy', 'bgc', 'mag', 'en', 'eng'];
+    const isValidCode = INDIAN_AND_COMMON_CODES.includes(languageCode);
     
     if (isValidCode) {
       return languageCode;
