@@ -2,13 +2,16 @@ import { useState, useCallback, useRef } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
 import { buildSystemPrompt } from '../services/promptBuilder.js';
 import { sendToGemini } from '../services/geminiService.js';
+import { useVoice } from '../hooks/useVoice.js';
 
 export function useChat() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState('hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
+  const { speak, stop: stopVoice } = useVoice();
   const idCounter = useRef(0);
 
   const generateId = () => {
@@ -18,6 +21,9 @@ export function useChat() {
 
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || isLoading) return;
+
+    // Stop any ongoing TTS when user sends a new message
+    stopVoice();
 
     const userMessage = {
       id: generateId(),
@@ -55,6 +61,11 @@ export function useChat() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Speak AI response aloud (non-blocking)
+      if (!isMuted) {
+        speak(response, currentLanguage);
+      }
     } catch (error) {
       // Add error message in the detected language
       const errorContent =
@@ -74,7 +85,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, language, isLanguageManual, messages]);
+  }, [isLoading, language, isLanguageManual, messages, isMuted, stopVoice, speak]);
 
   const setLanguageManual = useCallback((code) => {
     setLanguage(code);
@@ -93,5 +104,7 @@ export function useChat() {
     sendMessage,
     setLanguageManual,
     resetLanguageToAuto,
+    setMuted,
+    isMuted,
   };
 }
