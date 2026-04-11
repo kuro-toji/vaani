@@ -66,8 +66,11 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       stopListening();
     } else {
       stopSpeaking();
+      const currentMessage = message.trim();
       startListening(
-        (transcript, isFinal) => setMessage(transcript),
+        (transcript, isFinal) => {
+          setMessage(currentMessage ? `${currentMessage} ${transcript}` : transcript);
+        },
         (error) => {
           console.error('Speech recognition error:', error);
         },
