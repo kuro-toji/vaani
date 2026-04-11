@@ -14,12 +14,12 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [message, setMessage] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const textareaRef = useRef(null);
-  const { isListening, sttError, setSttError, startListening, stopListening, stopSpeaking } = useVoice();
+  const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
 
-  // Reset sttError when language changes
+  // Reset message when language changes
   useEffect(() => {
-    setSttError(false);
-  }, [language, setSttError]);
+    setMessage('');
+  }, [language]);
 
   // Placeholder rotation every 3 seconds
   useEffect(() => {
@@ -57,29 +57,10 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
     }
   };
 
-  const handleMicClick = () => {
-    if (isLoading) return;
-    
-    if (isMuted || sttError) return;
-    
-    if (isListening) {
-      stopListening();
-    } else {
-      stopSpeaking();
-      const currentMessage = message.trim();
-      startListening(
-        (transcript, isFinal) => {
-          setMessage(currentMessage ? `${currentMessage} ${transcript}` : transcript);
-        },
-        (error) => {
-          console.error('Speech recognition error:', error);
-        },
-        language
-      );
-    }
-  };
+
 
   return (
+    <>
     <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 flex items-end gap-2">
       <textarea
         ref={textareaRef}
@@ -93,18 +74,24 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         style={{ minHeight: '24px' }}
       />
       <button
-        onClick={handleMicClick}
-        disabled={isLoading || isMuted || sttError}
-        title={sttError ? "Voice input unsupported for this language" : ""}
-        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+        onClick={isListening ? stopListening : () => startListening(
+          (transcript, isFinal) => setMessage(transcript),
+          (error) => console.error('Speech recognition error:', error),
+          language
+        )}
+        disabled={isLoading || isMuted || isModelLoading}
+        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
           isListening
             ? 'bg-[#EF4444] animate-pulse'
-            : isMuted || sttError
+            : isMuted
             ? 'bg-[#9CA3AF] opacity-60'
             : 'bg-[#1D9E75]'
-        } disabled:opacity-40 disabled:cursor-not-allowed`}
+        } ${isModelLoading ? 'opacity-50 cursor-wait' : ''}`}
+        title={isModelLoading ? 'Loading model...' : isListening ? 'Stop' : 'Speak'}
       >
-        {isListening ? (
+        {isModelLoading ? (
+          <span className="text-white text-xs">...</span>
+        ) : isListening ? (
           <MicOff size={18} color="white" />
         ) : (
           <Mic size={18} color="white" />
@@ -130,5 +117,9 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         </svg>
       </button>
     </div>
+    {sttError && (
+      <p className="text-xs text-red-500 px-4 py-1">{sttError}</p>
+    )}
+    </>
   );
 }
