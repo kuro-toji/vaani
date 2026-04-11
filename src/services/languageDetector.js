@@ -53,7 +53,7 @@ async function geminiFallback(text) {
     const prompt = `What Indian language is this text written in? Consider Hinglish and romanized Indian languages. Reply with ONLY the ISO 639-1 two-letter language code, nothing else. Text: "${text}"`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
