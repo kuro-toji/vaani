@@ -11,7 +11,7 @@ export function useChat() {
   const [isLanguageManual, setIsLanguageManual] = useState(false);
   const [isMuted, setMuted] = useState(false);
 
-  const { speak, stop: stopVoice } = useVoice();
+  const { speak, stopSpeaking } = useVoice();
   const idCounter = useRef(0);
 
   const generateId = () => {
