@@ -1,4 +1,4 @@
-import franc from 'franc-min';
+import { franc } from 'franc-min';
 import { languages } from '../data/languages.js';
 
 // Build franc-to-code mapping (francCode -> code)
