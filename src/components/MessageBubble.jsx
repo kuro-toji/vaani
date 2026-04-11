@@ -48,10 +48,10 @@ function MessageBubble({ message, language }) {
     : 'bg-white border border-[#E5E7EB] text-[#111827] rounded-[18px_18px_18px_4px]';
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex overscroll-contain ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div 
         dir="auto" 
-        className={`max-w-[${isUser ? '75%' : '85%'}] ${bubbleClasses} px-4 py-3`}
+        className={`${isUser ? 'max-w-[75%]' : 'max-w-[85%]'} ${bubbleClasses} px-4 py-3`}
       >
         <p className="whitespace-pre-wrap">
           {parseContent(message.content)}

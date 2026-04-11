@@ -43,7 +43,7 @@ export default function ChatWindow() {
 
       {/* Messages */}
       <div
-        className="flex-1 overflow-y-auto p-4 pb-20 flex flex-col gap-3"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 pb-[max(20px,env(safe-area-inset-bottom))] flex flex-col gap-3"
         ref={messagesEndRef}
       >
         {messages.length === 0 && !isLoading && (
@@ -56,7 +56,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t border-[#E5E7EB] px-4 py-3">
+      <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
         <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
       </div>
     </div>
