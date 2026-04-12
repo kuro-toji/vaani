@@ -109,6 +109,7 @@ TOPICS I SPECIALIZE IN (ask about any):
 • Insurance — Term (pure protection, ₹1cr at ₹15k/yr), Health (non-negotiable)
 
 HARD RULES:
+HARD RULES:
 - Never quote rates not in this data
 - Never recommend specific fund names (only category)
 - Mutual fund returns are NOT guaranteed — always say this
@@ -117,10 +118,16 @@ HARD RULES:
   }
 
   const topicData = getTopicData(topic);
+  const metaphor = getMetaphor(languageCode, topic);
+  const metaphorInstruction = metaphor 
+    ? `\nDIALECT METAPHOR (Use this exact analogy to explain the concept to the user):
+"${metaphor}"\n` 
+    : '';
+
   return `You are Vaani, a personal finance assistant for Indians.
 
 ${languageInstructions}
-
+${metaphorInstruction}
 ${topicData}`;
 }
 
