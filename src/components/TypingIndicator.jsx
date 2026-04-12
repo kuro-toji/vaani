@@ -13,7 +13,11 @@ const TypingIndicator = () => {
           }
         `}
       </style>
-      <div className="inline-flex items-center px-4 py-3 bg-white border border-[#E5E7EB] rounded-[18px_18px_18px_4px]">
+      <div 
+        aria-live="polite" 
+        aria-label="Vaani टाइप कर रहा है"
+        className="inline-flex items-center px-4 py-3 bg-white border border-[#E5E7EB] rounded-[18px_18px_18px_4px]"
+      >
         {[0, 1, 2].map(i => (
           <div 
             key={i}

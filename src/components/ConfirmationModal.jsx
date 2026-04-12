@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Volume2, Check, X, Mic } from 'lucide-react'
+import { Volume2, Check, X } from 'lucide-react'
 import useVoice from '../hooks/useVoice.js'
 
 export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, language = 'hi' }) {
@@ -19,22 +19,28 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '90px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-      padding: '16px',
-      maxWidth: '90vw',
-      width: '380px',
-      zIndex: 100,
-      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
-    }}>
+    <div 
+      role="dialog" 
+      aria-modal="true" 
+      aria-labelledby="confirmation-title"
+      style={{
+        position: 'fixed',
+        bottom: '90px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+        padding: '16px',
+        maxWidth: '90vw',
+        width: '380px',
+        zIndex: 100,
+        fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      }}
+    >
       <button
         onClick={onCancel}
+        aria-label="रद्द करें"
         style={{
           position: 'absolute',
           top: '8px',
@@ -42,17 +48,25 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          padding: '4px',
+          padding: '8px',
+          minWidth: '56px',
+          minHeight: '56px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <X size={16} color="#9CA3AF" />
       </button>
-      <p style={{
-        fontSize: '12px',
-        color: '#6B7280',
-        marginBottom: '8px',
-        textAlign: 'center',
-      }}>
+      <p 
+        id="confirmation-title"
+        style={{
+          fontSize: '12px',
+          color: '#6B7280',
+          marginBottom: '8px',
+          textAlign: 'center',
+        }}
+      >
         क्या आपने यह कहा?
       </p>
       <p style={{
@@ -74,9 +88,10 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
         {/* Play button */}
         <button
           onClick={handlePlay}
+          aria-label="संदेश सुनें"
           style={{
-            width: '48px',
-            height: '48px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: isPlaying ? '#0F6E56' : '#F3F4F6',
             border: 'none',
@@ -95,9 +110,10 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
         {/* Retry button */}
         <button
           onClick={onRetry}
+          aria-label="फिर से रिकॉर्ड करें"
           style={{
-            width: '48px',
-            height: '48px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: '#FEE2E2',
             border: 'none',
@@ -116,9 +132,10 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
         {/* Confirm button */}
         <button
           onClick={onConfirm}
+          aria-label="संदेश भेजें"
           style={{
-            width: '48px',
-            height: '48px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             backgroundColor: '#0F6E56',
             border: 'none',
@@ -151,6 +168,7 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
       }}>
         <button
           onClick={onCancel}
+          aria-label="रद्द करें"
           style={{
             background: 'transparent',
             border: 'none',
@@ -158,6 +176,8 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, 
             fontSize: '12px',
             color: '#9CA3AF',
             padding: '8px 16px',
+            minWidth: '56px',
+            minHeight: '44px',
           }}
         >
           Cancel

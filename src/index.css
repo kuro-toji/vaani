@@ -20,3 +20,79 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* CSS Custom Properties for Accessibility Modes */
+:root {
+  --vaani-bg: #FAFAF8;
+  --vaani-text: #374151;
+  --vaani-user-bubble: #1D9E75;
+  --vaani-ai-bubble-bg: #FFFFFF;
+  --vaani-ai-bubble-text: #111827;
+  --vaani-border: #E5E7EB;
+  --vaani-input-bg: #FFFFFF;
+  --vaani-base-font-size: 15px;
+  --vaani-bubble-padding: 12px;
+}
+
+/* Large Text Mode */
+.vaani-large-text {
+  --vaani-base-font-size: 20px;
+  --vaani-bubble-padding: 16px;
+}
+
+/* High Contrast Mode */
+.vaani-high-contrast {
+  --vaani-bg: #FFFFFF;
+  --vaani-text: #000000;
+  --vaani-user-bubble: #1E3A5F;
+  --vaani-ai-bubble-bg: #F0F0F0;
+  --vaani-ai-bubble-text: #000000;
+  --vaani-border: #333333;
+  --vaani-input-bg: #FFFFFF;
+}
+
+.vaani-large-text.vaani-high-contrast {
+  --vaani-base-font-size: 20px;
+  --vaani-bubble-padding: 16px;
+}
+
+/* Apply CSS variables to root elements */
+.vaani-large-text body,
+.vaani-large-text #root {
+  font-size: var(--vaani-base-font-size);
+}
+
+.vaani-high-contrast body {
+  background-color: var(--vaani-bg);
+}
+
+.vaani-high-contrast #root {
+  background-color: var(--vaani-bg);
+}
+
+/* Touch target minimum size */
+.vaani-touch-target {
+  min-width: 56px;
+  min-height: 56px;
+}
+
+/* Ensure all clickable elements meet 56px touch target */
+button, 
+[role="button"],
+a,
+input[type="checkbox"],
+input[type="radio"],
+select,
+label[for] {
+  min-touch-target: 56px;
+}
+
+/* Accessible focus styles */
+:focus-visible {
+  outline: 2px solid #1D9E75;
+  outline-offset: 2px;
+}
+
+.vaani-high-contrast :focus-visible {
+  outline-color: #000000;
+}

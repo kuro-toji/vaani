@@ -51,12 +51,17 @@ function MessageBubble({ message, language }) {
     <div className={`flex overscroll-contain ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div 
         dir="auto" 
+        role="region"
+        aria-label={isUser ? 'आपका संदेश' : 'Vaani का जवाब'}
         className={`${isUser ? 'max-w-[75%]' : 'max-w-[85%]'} ${bubbleClasses} px-4 py-3`}
       >
         <p className="whitespace-pre-wrap">
           {parseContent(message.content)}
         </p>
-        <span className="text-[11px] text-[#9CA3AF] mt-1 block">
+        <span 
+          className="text-[11px] text-[#9CA3AF] mt-1 block"
+          aria-label={formatTime(message.timestamp)}
+        >
           {formatTime(message.timestamp)}
         </span>
       </div>

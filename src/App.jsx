@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { AccessibilityProvider } from './context/AccessibilityContext'
 import ChatWindow from './components/ChatWindow'
 
 class ErrorBoundary extends Component {
@@ -71,7 +72,11 @@ class ErrorBoundary extends Component {
 }
 
 function App() {
-  return <ErrorBoundary />
+  return (
+    <AccessibilityProvider>
+      <ErrorBoundary />
+    </AccessibilityProvider>
+  )
 }
 
 export default App

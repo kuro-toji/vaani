@@ -4,7 +4,8 @@ import { sendToGemini } from '../services/geminiService.js';
 import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
-import { useVoice } from '../hooks/useVoice.js';
+import { useVoice } from './useVoice.js';
+import { useVibration } from './useVibration.js';
 
 export function useChat() {
   const [messages, setMessages] = useState([
@@ -27,6 +28,7 @@ export function useChat() {
   const [isMuted, setMuted] = useState(false);
 
   const { speak, stopSpeaking } = useVoice();
+  const { vibrateOnAIResponse, vibrateOnRecordingStart } = useVibration();
   const idCounter = useRef(0);
   const messagesRef = useRef([]);
 
@@ -131,6 +133,11 @@ export function useChat() {
       };
       setMessages((prev) => [...prev, aiMessage]);
 
+      // Vibration feedback for AI response (only when not muted)
+      if (!isMuted) {
+        vibrateOnAIResponse();
+      }
+
       // Speak AI response aloud (non-blocking)
       if (!isMuted) {
         speak(response, currentLanguage);
@@ -162,6 +169,11 @@ export function useChat() {
         };
         setMessages((prev) => [...prev, aiMessage]);
         
+        // Vibration feedback for AI response (only when not muted)
+        if (!isMuted) {
+          vibrateOnAIResponse();
+        }
+        
         // Speak AI response aloud (non-blocking)
         if (!isMuted) {
           speak(response, currentLanguage);
@@ -182,11 +194,16 @@ export function useChat() {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
+
+        // Vibration feedback for error message (only when not muted)
+        if (!isMuted) {
+          vibrateOnAIResponse();
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak]);
+  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse]);
 
   const setLanguageManual = useCallback((code) => {
     setLanguage(code);
@@ -196,6 +213,11 @@ export function useChat() {
   const resetLanguageToAuto = useCallback(() => {
     setIsLanguageManual(false);
   }, []);
+
+  // Expose vibration trigger for STT recording start (called from ChatInput)
+  const triggerRecordingVibration = useCallback(() => {
+    vibrateOnRecordingStart();
+  }, [vibrateOnRecordingStart]);
 
   return {
     messages,
@@ -207,5 +229,6 @@ export function useChat() {
     resetLanguageToAuto,
     setMuted,
     isMuted,
+    triggerRecordingVibration,
   };
 }

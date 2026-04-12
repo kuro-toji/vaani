@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import useVoice from '../hooks/useVoice.js';
+import useVibration from '../hooks/useVibration.js';
 import ConfirmationModal from './ConfirmationModal.jsx';
 
 const placeholders = [
@@ -18,6 +19,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [transcribedText, setTranscribedText] = useState('');
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
+  const { vibrateOnRecordingStart } = useVibration();
 
   // Reset message when language changes
   useEffect(() => {
@@ -60,7 +62,19 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
     }
   };
 
-
+  const handleStartListening = () => {
+    vibrateOnRecordingStart();
+    startListening(
+      (transcript, isFinal) => {
+        if (isFinal) {
+          setTranscribedText(transcript)
+          setShowConfirmation(true)
+        }
+      },
+      (error) => console.error('Speech recognition error:', error),
+      language
+    )
+  };
 
   return (
     <>
@@ -75,40 +89,35 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         disabled={isLoading}
         className="flex-1 bg-transparent text-[15px] resize-none outline-none border-none no-scrollbar"
         style={{ minHeight: '24px' }}
+        aria-label="अपना संदेश लिखें"
+        aria-placeholder={placeholders[placeholderIndex]}
       />
       <button
-        onClick={isListening ? stopListening : () => startListening(
-          (transcript, isFinal) => {
-            if (isFinal) {
-              setTranscribedText(transcript)
-              setShowConfirmation(true)
-            }
-          },
-          (error) => console.error('Speech recognition error:', error),
-          language
-        )}
+        onClick={isListening ? stopListening : handleStartListening}
         disabled={isLoading || isMuted || isModelLoading}
-        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+        className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 transition-colors vaani-touch-target ${
           isListening
             ? 'bg-[#EF4444] animate-pulse'
             : isMuted
             ? 'bg-[#9CA3AF] opacity-60'
             : 'bg-[#1D9E75]'
         } ${isModelLoading ? 'opacity-50 cursor-wait' : ''}`}
-        title={isModelLoading ? 'Loading model...' : isListening ? 'Stop' : 'Speak'}
+        aria-label={isModelLoading ? 'मॉडल लोड हो रहा है...' : isListening ? 'रिकॉर्डिंग बंद करें' : 'बोलें'}
+        aria-pressed={isListening}
       >
         {isModelLoading ? (
           <span className="text-white text-xs">...</span>
         ) : isListening ? (
-          <MicOff size={18} color="white" />
+          <MicOff size={20} color="white" />
         ) : (
-          <Mic size={18} color="white" />
+          <Mic size={20} color="white" />
         )}
       </button>
       <button
         onClick={handleSend}
         disabled={!message.trim() || isLoading}
-        className="bg-[#1D9E75] text-white w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+        className="bg-[#1D9E75] text-white w-14 h-14 rounded-full flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0 vaani-touch-target"
+        aria-label="संदेश भेजें"
       >
         <svg
           width="18"
@@ -130,13 +139,15 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         <p className="text-xs text-red-500">{sttError}</p>
         <button
           onClick={() => {
+            vibrateOnRecordingStart();
             startListening(
               (transcript, isFinal) => setMessage(transcript),
               (error) => console.error('Speech recognition error:', error),
               language
             );
           }}
-          className="text-xs text-[#0F6E56] font-medium underline"
+          className="text-xs text-[#0F6E56] font-medium underline vaani-touch-target px-4 py-2"
+          aria-label="फिर से कोशिश करें"
         >
           Try Again
         </button>
@@ -160,6 +171,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
           setTranscribedText('')
           // Auto-open mic again after retry
           setTimeout(() => {
+            vibrateOnRecordingStart();
             startListening(
               (transcript, isFinal) => {
                 if (isFinal) {
