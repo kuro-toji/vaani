@@ -178,8 +178,20 @@ export function useVoice() {
 
           if (response.ok) {
             const data = await response.json()
-            onResult?.(data.text.trim(), true)
-            return
+            const text = data.text?.trim() || '';
+            
+            // If text is too short or looks like gibberish, retry once
+            const isLowConfidence = text.length < 3 || 
+              (text.length < 10 && /^[a-zA-Z\s]*$/.test(text) && !/[ऀ-ॿ০-৯]/.test(text));
+            
+            if (isLowConfidence) {
+              // Silently retry - try local Whisper instead
+              console.log('Low confidence STT, retrying with local Whisper');
+              // Fall through to local Whisper
+            } else {
+              onResult?.(text, true);
+              return;
+            }
           }
         } catch {
           // Groq failed, fall through to local Whisper
