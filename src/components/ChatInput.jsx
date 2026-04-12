@@ -91,58 +91,82 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
 
   return (
     <>
-    <div className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] px-4 py-3 flex items-end gap-2">
-      <textarea
-        ref={textareaRef}
-        dir="auto"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholders[placeholderIndex]}
-        disabled={isLoading}
-        maxLength={5000}
-        className="flex-1 bg-transparent text-[15px] resize-none outline-none border-none no-scrollbar"
-        style={{ minHeight: '24px' }}
-        aria-label="अपना संदेश लिखें"
-        aria-placeholder={placeholders[placeholderIndex]}
-      />
+    <div style={{
+      display: 'flex', alignItems: 'flex-end', gap: '10px',
+      padding: '12px 16px',
+      background: 'var(--vaani-bg)',
+    }}>
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'flex-end',
+        background: '#F3F4F6', borderRadius: '24px',
+        padding: '4px 16px', minHeight: '48px',
+        border: '1px solid transparent',
+        transition: 'border-color 0.2s ease',
+      }}
+        onFocus={e => e.currentTarget.style.borderColor = '#0F6E56'}
+        onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
+      >
+        <textarea
+          ref={textareaRef}
+          dir="auto"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholders[placeholderIndex]}
+          disabled={isLoading}
+          maxLength={5000}
+          style={{
+            flex: 1, background: 'transparent', fontSize: '15px',
+            resize: 'none', outline: 'none', border: 'none',
+            minHeight: '24px', padding: '10px 0', lineHeight: '24px',
+            fontFamily: 'inherit', color: 'var(--vaani-text)',
+          }}
+          aria-label="अपना संदेश लिखें"
+        />
+      </div>
+
+      {/* Mic Button */}
       <button
         onClick={isListening ? stopListening : handleStartListening}
         disabled={isLoading || isMuted || isModelLoading}
-        className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 transition-colors vaani-touch-target ${
-          isListening
-            ? 'bg-[#EF4444] animate-pulse'
-            : isMuted
-            ? 'bg-[#9CA3AF] opacity-60'
-            : 'bg-[#1D9E75]'
-        } ${isModelLoading ? 'opacity-50 cursor-wait' : ''}`}
+        style={{
+          width: '48px', height: '48px', borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, border: 'none', cursor: 'pointer',
+          background: isListening ? '#EF4444' : isMuted ? '#9CA3AF' : 'linear-gradient(135deg, #0F6E56, #10B981)',
+          boxShadow: isListening ? '0 0 0 4px rgba(239, 68, 68, 0.2)' : '0 2px 8px rgba(15, 110, 86, 0.3)',
+          transition: 'all 0.2s ease',
+          opacity: isModelLoading ? 0.5 : 1,
+          animation: isListening ? 'pulse 1.5s ease-in-out infinite' : 'none',
+        }}
         aria-label={isModelLoading ? 'मॉडल लोड हो रहा है...' : isListening ? 'रिकॉर्डिंग बंद करें' : 'बोलें'}
         aria-pressed={isListening}
       >
         {isModelLoading ? (
-          <span className="text-white text-xs">...</span>
+          <span style={{ color: 'white', fontSize: '12px' }}>...</span>
         ) : isListening ? (
           <MicOff size={20} color="white" />
         ) : (
           <Mic size={20} color="white" />
         )}
       </button>
+
+      {/* Send Button */}
       <button
         onClick={handleSend}
         disabled={!message.trim() || isLoading}
-        className="bg-[#1D9E75] text-white w-14 h-14 rounded-full flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0 vaani-touch-target"
+        style={{
+          width: '48px', height: '48px', borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, border: 'none', cursor: 'pointer',
+          background: message.trim() ? 'linear-gradient(135deg, #0F6E56, #10B981)' : '#E5E7EB',
+          boxShadow: message.trim() ? '0 2px 8px rgba(15, 110, 86, 0.3)' : 'none',
+          transition: 'all 0.2s ease',
+          opacity: (!message.trim() || isLoading) ? 0.4 : 1,
+        }}
         aria-label="संदेश भेजें"
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="22" y1="2" x2="11" y2="13" />
           <polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>

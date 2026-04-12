@@ -1,5 +1,5 @@
 /**
- * MessageBubble - Renders a single chat message bubble
+ * MessageBubble — Premium chat message bubble with smooth animations.
  * @param {Object} props
  * @param {Object} props.message - Message object with { id, role, content, timestamp }
  * @param {string} props.language - Language code for potential i18n
@@ -7,7 +7,6 @@
 function MessageBubble({ message, language }) {
   const isUser = message.role === 'user';
   
-  // Format timestamp to HH:MM
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -18,22 +17,18 @@ function MessageBubble({ message, language }) {
     });
   };
 
-  // Parse content: handle **bold** and newlines
   const parseContent = (content) => {
     if (!content) return [];
-    
-    // Split by newlines to create paragraphs
     const paragraphs = content.split('\n');
     
     return paragraphs.map((paragraph, pIndex) => {
-      // Replace **text** with <strong>text</strong> using regex
       const parts = paragraph.split(/(\*\*.*?\*\*)/g);
       
       return (
         <span key={pIndex}>
           {parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-              return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+              return <strong key={i} style={{ fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
             }
             return part;
           })}
@@ -43,28 +38,77 @@ function MessageBubble({ message, language }) {
     });
   };
 
-  const bubbleClasses = isUser
-    ? 'bg-[#1D9E75] text-white rounded-[18px_18px_4px_18px]'
-    : 'bg-white border border-[#E5E7EB] text-[#111827] rounded-[18px_18px_18px_4px]';
-
   return (
-    <div className={`flex overscroll-contain ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div style={{
+      display: 'flex',
+      justifyContent: isUser ? 'flex-end' : 'flex-start',
+      animation: 'messageSlideIn 0.3s ease forwards',
+      opacity: 0,
+    }}>
+      {/* Avatar for AI */}
+      {!isUser && (
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #0F6E56, #10B981)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '14px', color: 'white', flexShrink: 0,
+          marginRight: '8px', marginTop: '4px',
+          boxShadow: '0 2px 8px rgba(15, 110, 86, 0.3)',
+        }}>🔊</div>
+      )}
+
       <div 
         dir="auto" 
         role="region"
         aria-label={isUser ? 'आपका संदेश' : 'Vaani का जवाब'}
-        className={`${isUser ? 'max-w-[75%]' : 'max-w-[85%]'} ${bubbleClasses} px-4 py-3`}
+        style={{
+          maxWidth: isUser ? '75%' : '80%',
+          padding: '12px 16px',
+          borderRadius: isUser ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+          backgroundColor: isUser ? '#0F6E56' : 'white',
+          color: isUser ? 'white' : '#111827',
+          border: isUser ? 'none' : '1px solid #E5E7EB',
+          boxShadow: isUser
+            ? '0 2px 12px rgba(15, 110, 86, 0.25)'
+            : '0 1px 4px rgba(0, 0, 0, 0.06)',
+          lineHeight: 1.6,
+          fontSize: '15px',
+        }}
       >
-        <p className="whitespace-pre-wrap">
+        <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
           {parseContent(message.content)}
         </p>
         <span 
-          className="text-[11px] text-[#9CA3AF] mt-1 block"
+          style={{
+            fontSize: '11px',
+            color: isUser ? 'rgba(255,255,255,0.6)' : '#9CA3AF',
+            marginTop: '4px',
+            display: 'block',
+          }}
           aria-label={formatTime(message.timestamp)}
         >
           {formatTime(message.timestamp)}
         </span>
       </div>
+
+      {/* Avatar for User */}
+      {isUser && (
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '14px', color: 'white', flexShrink: 0,
+          marginLeft: '8px', marginTop: '4px',
+          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+        }}>👤</div>
+      )}
+
+      <style>{`
+        @keyframes messageSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
