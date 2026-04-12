@@ -8,4 +8,9 @@ export default {
     extend: {},
   },
   plugins: [],
+  safelist: [
+    'vaani-large-text',
+    'vaani-high-contrast',
+    { pattern: /vaani-/ },
+  ],
 }
