@@ -54,7 +54,8 @@ export default function ChatWindow() {
     'h-screen',
     'flex',
     'flex-col',
-    'bg-[#FAFAF8]',
+    'bg-[var(--vaani-bg)]',
+    'text-[var(--vaani-text)]',
     largeText ? 'vaani-large-text' : '',
     highContrast ? 'vaani-high-contrast' : '',
   ].filter(Boolean).join(' ');
@@ -104,10 +105,10 @@ export default function ChatWindow() {
             onClick={toggleHighContrast}
             aria-pressed={highContrast}
             aria-label="हाई कॉन्ट्रास्ट मोड"
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--vaani-border)] vaani-touch-target"
             title="हाई कॉन्ट्रास्ट"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--vaani-user-bubble)]">
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 2v20"/>
               <path d="M12 2a10 10 0 0 1 0 20"/>
@@ -122,7 +123,7 @@ export default function ChatWindow() {
             {isMuted ? (
               <VolumeX size={20} color="#9CA3AF" />
             ) : (
-              <Volume2 size={20} color="#0F6E56" />
+              <Volume2 size={20} color="var(--vaani-user-bubble)" />
             )}
           </button>
           <LanguageSelector
@@ -151,7 +152,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Input */}
-      <div role="form" aria-label="संदेश भेजें" className="bg-white border-t border-[#E5E7EB] px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div role="form" aria-label="संदेश भेजें" className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
         <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
       </div>
     </div>

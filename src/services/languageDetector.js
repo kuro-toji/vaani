@@ -13,8 +13,52 @@ const ambiguousCodes = new Set(['urd', 'pan', 'ben', 'hin']);
 
 export async function detectLanguage(text) {
   // Return 'hi' for empty or very short text
-  if (!text || text.length < 3) {
+  if (!text || text.length < 2) {
     return 'hi';
+  }
+
+  // Fast path: check for common English words FIRST
+  // This prevents franc-min from misdetecting short English as Somali/Hindi
+  const englishPatterns = [
+    /^(hi|hello|hey|yes|no|ok|okay|hmm|ah|oh|yo|sup|yo)$/i,
+    /^(what|who|where|when|why|how|is|are|was|were|do|does|did|can|could|will|would|should|may|might)$/i,
+    /^(i|me|my|we|us|our|you|your|he|she|it|they|them|their)$/i,
+    /^(fd|sip|loan|emi|npa|roi|bank|card|pin|otp|kyc|pan)$/i,
+    /^[a-z][a-z\s]{0,30}$/i, // Short English sentences in Roman script
+  ];
+
+  const lowerText = text.trim().toLowerCase();
+  const words = lowerText.split(/\s+/);
+
+  // If most words are common English, return 'en' immediately
+  const commonEnglishWords = new Set([
+    'hi', 'hello', 'hey', 'yes', 'no', 'ok', 'okay', 'good', 'bad', 'nice', 'great',
+    'please', 'thanks', 'thank', 'sorry', 'well', 'fine', 'okay', 'sure', 'right',
+    'what', 'who', 'where', 'when', 'why', 'how', 'which', 'whose', 'whom',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+    'do', 'does', 'did', 'done', 'doing', 'will', 'would', 'could', 'should',
+    'can', 'may', 'might', 'must', 'shall',
+    'i', 'me', 'my', 'mine', 'we', 'us', 'our', 'ours', 'you', 'your', 'yours',
+    'he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they', 'them', 'their',
+    'this', 'that', 'these', 'those', 'here', 'there', 'with', 'without',
+    'and', 'but', 'or', 'if', 'then', 'so', 'because', 'although', 'while',
+    'in', 'on', 'at', 'to', 'for', 'from', 'by', 'of', 'about', 'into', 'over',
+    'fd', 'sip', 'loan', 'emi', 'npa', 'roi', 'bank', 'card', 'pin', 'otp', 'kyc', 'pan',
+    'account', 'balance', 'transfer', 'deposit', 'withdraw', 'rate', 'interest',
+    'money', 'cash', 'ruppee', 'rupee', 'lakh', 'crore', 'thousand', 'hundred',
+  ]);
+
+  let englishWordCount = 0;
+  for (const word of words) {
+    const clean = word.replace(/[^a-z]/gi, '');
+    if (englishPatterns.some(p => p.test(word)) || commonEnglishWords.has(clean)) {
+      englishWordCount++;
+    }
+  }
+
+  // If more than 60% words are English-ish, treat as English
+  if (words.length >= 1 && englishWordCount / words.length > 0.5) {
+    return 'en';
   }
 
   try {

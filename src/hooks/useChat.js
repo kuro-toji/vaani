@@ -84,7 +84,7 @@ export function useChat() {
     return `${Date.now()}-${idCounter.current}`;
   };
 
-  const sendMessage = useCallback(async (text) => {
+  const sendMessage = useCallback(async (text, fromVoice = false) => {
     if (!text.trim() || isLoading) return;
 
     // Stop any ongoing TTS when user sends a new message
@@ -138,8 +138,8 @@ export function useChat() {
         vibrateOnAIResponse();
       }
 
-      // Speak AI response aloud (non-blocking)
-      if (!isMuted) {
+      // Speak AI response aloud (only when user SPOKE their message, not typed)
+      if (!isMuted && fromVoice) {
         speak(response, currentLanguage);
       }
     } catch (error) {
@@ -173,9 +173,9 @@ export function useChat() {
         if (!isMuted) {
           vibrateOnAIResponse();
         }
-        
-        // Speak AI response aloud (non-blocking)
-        if (!isMuted) {
+
+        // Speak AI response aloud (only when user SPOKE their message)
+        if (!isMuted && fromVoice) {
           speak(response, currentLanguage);
         }
       } else {

@@ -69,13 +69,32 @@ export function useVoice() {
     return map[langCode] || 'auto';
   }
 
-  const startWebSpeech = useCallback((onResult, onError, language) => {
+  const startWebSpeech = useCallback(async (onResult, onError, language) => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
       setSttError('Voice not supported in this browser. Use Chrome.')
       onError?.('Voice not supported')
       return
+    }
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Mic access requires HTTPS (or localhost)');
+      }
+      const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      tempStream.getTracks().forEach(t => t.stop());
+    } catch (err) {
+      console.error('WebSpeech mic permission err:', err);
+      if (err.name === 'NotAllowedError') {
+        setSttError('Microphone permission restricted. Allow in browser settings.');
+      } else if (err.name === 'NotFoundError') {
+        setSttError('No microphone found on device.');
+      } else {
+        setSttError(err.message || 'Microphone access failed.');
+      }
+      onError?.(err.message);
+      return;
     }
 
     if (recognitionRef.current) {
@@ -133,10 +152,20 @@ export function useVoice() {
     // Request microphone
     let stream
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Mic access requires HTTPS (or localhost)');
+      }
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch {
-      setSttError('Microphone permission denied.')
-      onError?.('Permission denied')
+    } catch (err) {
+      console.error('Whisper mic err:', err)
+      if (err.name === 'NotAllowedError') {
+        setSttError('Microphone permission restricted. Allow in browser settings.')
+      } else if (err.name === 'NotFoundError') {
+        setSttError('No microphone found on device.')
+      } else {
+        setSttError(err.message || 'Microphone access failed.')
+      }
+      onError?.(err.message)
       return
     }
     streamRef.current = stream

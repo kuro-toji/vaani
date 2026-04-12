@@ -78,7 +78,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
 
   return (
     <>
-    <div className="bg-white border-t border-[#E5E7EB] px-4 py-3 flex items-end gap-2">
+    <div className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] px-4 py-3 flex items-end gap-2">
       <textarea
         ref={textareaRef}
         dir="auto"
@@ -160,9 +160,9 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         onConfirm={() => {
           setMessage(transcribedText)
           setShowConfirmation(false)
-          // Auto-send after confirm
+          // Auto-send after confirm - this was a voice message
           if (transcribedText.trim()) {
-            onSend(transcribedText)
+            onSend(transcribedText, true) // fromVoice = true
             setTranscribedText('')
           }
         }}
