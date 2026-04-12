@@ -56,6 +56,19 @@ export function useVoice() {
     }
   }, [])
 
+  function mapToGroqLanguage(langCode) {
+    const map = {
+      hi: 'hi', bn: 'bn', te: 'te', ta: 'ta', mr: 'mr',
+      ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa',
+      or: 'or', ne: 'ne', as: 'as', en: 'en',
+      mai: 'hi', sat: 'hi', ks: 'ks', sd: 'sd',
+      kok: 'hi', dgo: 'hi', brx: 'hi', mni: 'hi',
+      sa: 'hi', bho: 'hi', raj: 'hi', hne: 'hi',
+      tcy: 'kn', bgc: 'hi', mag: 'hi',
+    };
+    return map[langCode] || 'auto';
+  }
+
   const startWebSpeech = useCallback((onResult, onError, language) => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition
@@ -155,6 +168,7 @@ export function useVoice() {
           const formData = new FormData()
           formData.append('file', audioBlob, 'audio.webm')
           formData.append('model', 'whisper-large-v3')
+          formData.append('language', mapToGroqLanguage(language))
 
           const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',
