@@ -15,6 +15,23 @@ const languages = [
   { code: 'or', name: 'ଓଡ଼ିଆ', native: 'Odia', flag: '🇮🇳', speakers: '35M+' },
   { code: 'as', name: 'অসমীয়া', native: 'Assamese', flag: '🇮🇳', speakers: '15M+' },
   { code: 'mai', name: 'मैथिली', native: 'Maithili', flag: '🇮🇳', speakers: '42M+' },
+  { code: 'ur', name: 'اردو', native: 'Urdu', flag: '🇮🇳', speakers: '50M+' },
+  { code: 'sat', name: 'ᱥᱟᱱᱛᱟᱲᱤ', native: 'Santali', flag: '🇮🇳', speakers: '7M+' },
+  { code: 'ks', name: 'کٲشُر', native: 'Kashmiri', flag: '🇮🇳', speakers: '7M+' },
+  { code: 'ne', name: 'नेपाली', native: 'Nepali', flag: '🇮🇳', speakers: '16M+' },
+  { code: 'sd', name: 'سنڌي', native: 'Sindhi', flag: '🇮🇳', speakers: '2M+' },
+  { code: 'kok', name: 'कोंकणी', native: 'Konkani', flag: '🇮🇳', speakers: '2M+' },
+  { code: 'dgo', name: 'डोगरी', native: 'Dogri', flag: '🇮🇳', speakers: '2M+' },
+  { code: 'brx', name: 'बड़ो', native: 'Bodo', flag: '🇮🇳', speakers: '1M+' },
+  { code: 'mni', name: 'মেইতেই', native: 'Manipuri', flag: '🇮🇳', speakers: '1M+' },
+  { code: 'sa', name: 'संस्कृतम्', native: 'Sanskrit', flag: '🇮🇳', speakers: '25K+' },
+  { code: 'bho', name: 'भोजपुरी', native: 'Bhojpuri', flag: '🇮🇳', speakers: '50M+' },
+  { code: 'raj', name: 'राजस्थानी', native: 'Rajasthani', flag: '🇮🇳', speakers: '20M+' },
+  { code: 'hne', name: 'छत्तीसगढ़ी', native: 'Chhattisgarhi', flag: '🇮🇳', speakers: '16M+' },
+  { code: 'tcy', name: 'ತುಳು', native: 'Tulu', flag: '🇮🇳', speakers: '1M+' },
+  { code: 'bgc', name: 'हरियाणवी', native: 'Haryanvi', flag: '🇮🇳', speakers: '10M+' },
+  { code: 'mag', name: 'मगही', native: 'Magahi', flag: '🇮🇳', speakers: '14M+' },
+  { code: 'en', name: 'English', native: 'English', flag: '🌍', speakers: '1B+' },
 ];
 
 const features = [
@@ -25,7 +42,7 @@ const features = [
   },
   {
     icon: '🌐',
-    title: '12+ Indian Languages',
+    title: '29+ Indian Languages',
     description: 'From Hindi to Assamese, connect in the language you know best.',
   },
   {
