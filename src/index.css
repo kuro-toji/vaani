@@ -40,7 +40,7 @@ body {
   --vaani-bubble-padding: 16px;
 }
 
-/* High Contrast Mode */
+/* High Contrast Mode — overrides CSS variables so inline styles using var() update */
 .vaani-high-contrast {
   --vaani-bg: #FFFFFF;
   --vaani-text: #000000;
@@ -60,29 +60,53 @@ html.vaani-large-text {
   font-size: var(--vaani-base-font-size) !important;
 }
 
+/* Large text: scale ALL text elements universally (including inline-styled ones) */
+html.vaani-large-text p,
+html.vaani-large-text span,
+html.vaani-large-text div,
+html.vaani-large-text button,
+html.vaani-large-text input,
+html.vaani-large-text textarea,
+html.vaani-large-text label,
+html.vaani-large-text h1,
+html.vaani-large-text h2,
+html.vaani-large-text h3 {
+  font-size: clamp(16px, 1.25em, 2rem) !important;
+  line-height: 1.5 !important;
+}
+
+html.vaani-large-text [role="log"] p,
+html.vaani-large-text [role="log"] span {
+  font-size: clamp(18px, 1.3em, 2rem) !important;
+}
+
 html.vaani-high-contrast, html.vaani-high-contrast body {
   background-color: var(--vaani-bg) !important;
   color: var(--vaani-text) !important;
 }
 
-/* Make text sizing scale well */
-html.vaani-large-text .text-sm {
-  font-size: 1.125rem !important;
+/* High contrast: force black text and white bg on ALL elements */
+html.vaani-high-contrast p,
+html.vaani-high-contrast span,
+html.vaani-high-contrast div,
+html.vaani-high-contrast button,
+html.vaani-high-contrast label,
+html.vaani-high-contrast h1,
+html.vaani-high-contrast h2,
+html.vaani-high-contrast h3 {
+  color: #000000 !important;
 }
-html.vaani-large-text .text-xs {
-  font-size: 1rem !important;
+
+html.vaani-high-contrast input,
+html.vaani-high-contrast textarea {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #333333 !important;
 }
-html.vaani-large-text .text-base {
-  font-size: 1.25rem !important;
-}
-html.vaani-large-text .text-lg {
-  font-size: 1.5rem !important;
-}
-html.vaani-large-text .text-\[15px\] {
-  font-size: 1.25rem !important;
-}
-html.vaani-large-text .text-\[20px\] {
-  font-size: 1.75rem !important;
+
+/* High contrast: remove subtle backgrounds, make borders visible */
+html.vaani-high-contrast [style*="background"] {
+  border: 2px solid #333 !important;
 }
 
 /* Touch target minimum size */
@@ -91,7 +115,7 @@ html.vaani-large-text .text-\[20px\] {
   min-height: 56px;
 }
 
-/* Ensure all clickable elements meet 56px touch target */
+/* Ensure all clickable elements meet 48px touch target */
 button, 
 [role="button"],
 a,

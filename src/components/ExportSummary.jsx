@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useChat } from '../hooks/useChat.js';
 
 /**
  * ExportSummary — Print-friendly conversation export.
- * Uses window.print() with a dedicated print layout.
+ * Receives messages as a prop from ChatWindow (NOT from useChat).
  */
-export default function ExportSummary({ onClose }) {
-  const { messages, language } = useChat();
+export default function ExportSummary({ messages = [], onClose }) {
   const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = () => {

@@ -155,13 +155,13 @@ function LandingPage({ onStart }) {
     if (isListeningPincode) {
       stopPincodeVoice();
     } else {
-      // Detect selected language for speech recognition
+      // getRegionByPincode returns language as English name e.g. 'Hindi', 'Tamil'
+      // Match against the 'native' field (English name) in LandingPage's local languages array
       const selectedLang = detectedLang 
-        ? languages.find(l => l.name === detectedLang)?.code || 'en'
+        ? languages.find(l => l.native === detectedLang)?.code || 'en'
         : 'en';
       
       startPincodeVoice((text) => {
-        // Use the comprehensive multilingual digit extraction
         const numbers = extractDigitsFromText(text).slice(0, 6);
         
         if (numbers.length > 0) {

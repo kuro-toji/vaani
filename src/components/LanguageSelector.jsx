@@ -121,8 +121,8 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
         aria-haspopup="listbox"
         aria-label="भाषा चुनें - Select language"
         aria-controls="language-listbox"
-        className="flex items-center gap-1.5 bg-[#E1F5EE] text-[#0F6E56] text-xs px-3 py-2 rounded-full font-medium hover:bg-[#d1e9df] transition-colors vaani-touch-target"
-        style={{ minWidth: '56px', minHeight: '56px' }}
+        className="flex items-center gap-1.5 bg-[#E1F5EE] text-[#0F6E56] text-xs px-3 py-1.5 rounded-full font-medium hover:bg-[#d1e9df] transition-colors"
+        style={{ minWidth: '48px', minHeight: '36px' }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +161,8 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
           role="listbox" 
           aria-label="भाषा चुनें - Select your language"
           aria-orientation="vertical"
-          className="absolute top-full mt-2 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 max-h-[60vh] overflow-y-auto overscroll-contain"
+          className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 max-h-[60vh] overflow-y-auto overscroll-contain"
+          style={{ zIndex: 9999 }}
         >
           {majorLanguages.map((lang, index) => (
             <button
@@ -171,10 +172,9 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
               role="option"
               aria-selected={lang.code === language}
               tabIndex={activeIndex === index ? 0 : -1}
-              className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors vaani-touch-target ${
+              className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${
                 lang.code === language ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-700'
               } ${activeIndex === index ? 'bg-gray-100' : ''}`}
-              style={{ minHeight: '56px' }}
             >
               <span className="font-medium mr-2">{lang.nativeName}</span>
               <span className="text-gray-500 text-xs">({lang.name})</span>
