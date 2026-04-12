@@ -111,3 +111,50 @@ label[for] {
 .vaani-high-contrast :focus-visible {
   outline-color: #000000;
 }
+
+/* Icon Card Grid - For speech-impaired users */
+.icon-card {
+  min-width: 80px;
+  min-height: 80px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 2px solid transparent;
+  background: var(--vaani-ai-bubble-bg);
+}
+
+.icon-card:hover {
+  transform: scale(1.05);
+}
+
+.icon-card:active {
+  transform: scale(0.95);
+}
+
+.icon-card:focus-visible {
+  outline: 2px solid var(--vaani-user-bubble);
+  outline-offset: 2px;
+}
+
+.icon-card.category-investment { border-color: #10B981; }
+.icon-card.category-insurance { border-color: #3B82F6; }
+.icon-card.category-savings { border-color: #F59E0B; }
+.icon-card.category-government { border-color: #8B5CF6; }
+.icon-card.category-tax { border-color: #EF4444; }
+.icon-card.category-life-event { border-color: #14B8A6; }
+
+.icon-card.selected {
+  animation: iconPulse 0.5s ease;
+  box-shadow: 0 0 20px currentColor;
+}
+
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}

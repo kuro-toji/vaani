@@ -6,14 +6,19 @@ import SuggestionChips from './SuggestionChips.jsx';
 import LanguageSelector from './LanguageSelector.jsx';
 import ChatInput from './ChatInput.jsx';
 import FlashNotification from './FlashNotification.jsx';
+import IconCardGrid from './IconCardGrid.jsx';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useAccessibility } from '../context/AccessibilityContext.jsx';
+import { useCognitiveMode } from '../context/CognitiveModeContext.jsx';
+import CognitiveDashboard from './CognitiveDashboard.jsx';
 
 export default function ChatWindow() {
+  const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
   const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
   const messagesEndRef = useRef(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { largeText, highContrast, toggleLargeText, toggleHighContrast } = useAccessibility();
+  const [showIconMode, setShowIconMode] = useState(false);
   
   // Track message count for flash notification trigger
   const [flashTrigger, setFlashTrigger] = useState(0);
@@ -62,6 +67,11 @@ export default function ChatWindow() {
     highContrast ? 'vaani-high-contrast' : '',
   ].filter(Boolean).join(' ');
 
+  // When cognitive mode is on, render the simplified dashboard instead
+  if (cognitiveMode) {
+    return <CognitiveDashboard />;
+  }
+
   return (
     <>
       <FlashNotification trigger={flashTrigger} />
@@ -91,6 +101,17 @@ export default function ChatWindow() {
       <header role="banner" aria-label="Vaani चैट" className="h-14 bg-[var(--vaani-bg)] border-b border-[var(--vaani-border)] px-4 flex items-center justify-between shrink-0">
         <span className="text-[20px] font-semibold text-[var(--vaani-user-bubble)]">Vaani</span>
         <div className="flex items-center gap-2">
+          {/* Cognitive Mode Toggle */}
+          <button
+            onClick={toggleCognitiveMode}
+            aria-pressed={cognitiveMode}
+            aria-label="सरल मोड"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            title="सरल मोड"
+          >
+            <span className="text-lg">🧠</span>
+          </button>
+
           {/* Large Text Toggle */}
           <button
             onClick={toggleLargeText}
@@ -115,6 +136,17 @@ export default function ChatWindow() {
               <path d="M12 2v20"/>
               <path d="M12 2a10 10 0 0 1 0 20"/>
             </svg>
+          </button>
+
+          {/* Icon Card Mode Toggle */}
+          <button
+            onClick={() => setShowIconMode(!showIconMode)}
+            aria-pressed={showIconMode}
+            aria-label="आइकन मोड"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            title="आइकन से बोलें"
+          >
+            <span className="text-lg">⌨️</span>
           </button>
           
           <button
@@ -152,6 +184,15 @@ export default function ChatWindow() {
         {isLoading && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Icon Card Grid - For speech-impaired users */}
+      {showIconMode && (
+        <IconCardGrid 
+          onSendMessage={sendMessage} 
+          isVisible={showIconMode}
+          onClose={() => setShowIconMode(false)}
+        />
+      )}
 
       {/* Input */}
       <div role="form" aria-label="संदेश भेजें" className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
