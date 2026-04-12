@@ -33,6 +33,50 @@ export function useChat() {
   // Keep ref in sync with state
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
+  // Load saved messages on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('vaani_messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load saved messages:', e);
+    }
+  }, []);
+
+  // Save messages to localStorage on every change
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        localStorage.setItem('vaani_messages', JSON.stringify(messages));
+      }
+    } catch (e) {
+      console.warn('Could not save messages:', e);
+    }
+  }, [messages]);
+
+  // Save language preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('vaani_language', language);
+      localStorage.setItem('vaani_isMuted', isMuted ? '1' : '0');
+    } catch (e) {}
+  }, [language, isMuted]);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem('vaani_language');
+      const savedMuted = localStorage.getItem('vaani_isMuted');
+      if (savedLang) setLanguage(savedLang);
+      if (savedMuted === '1') setMuted(true);
+    } catch (e) {}
+  }, []);
+
   const generateId = () => {
     idCounter.current += 1;
     return `${Date.now()}-${idCounter.current}`;
