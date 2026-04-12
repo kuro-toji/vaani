@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
-import { buildSystemPrompt } from '../services/promptBuilder.js';
 import { sendToGemini } from '../services/geminiService.js';
 import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
+import { enqueueRequest } from '../services/requestQueue.js';
+import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
 import { useVoice } from '../hooks/useVoice.js';
 
 export function useChat() {
@@ -62,14 +63,20 @@ export function useChat() {
         setLanguage(currentLanguage);
       }
 
-      // Build system prompt with detected language
-      const systemPrompt = buildSystemPrompt(currentLanguage);
+      // Detect topic from user's message
+      const topic = detectTopic(text);
 
-      // Get all messages including the new user message
+      // Build optimized prompt — only relevant category, trimmed history
+      const isFirstMessage = messagesRef.current.length === 0;
+      const systemPrompt = isFirstMessage 
+        ? buildCompactOverview()
+        : buildTrimmedPrompt(currentLanguage, topic, [...messagesRef.current, userMessage]);
+
+      // Get all messages including the new user message  
       const allMessages = [...messagesRef.current, userMessage];
 
-      // Call Gemini service
-      const response = await sendToGemini(allMessages, systemPrompt);
+      // Enqueue the request (auto-spaces calls, retries on 429)
+      const response = await enqueueRequest(() => sendToGemini(allMessages, systemPrompt));
 
       // Add AI response
       const aiMessage = {
@@ -93,7 +100,8 @@ export function useChat() {
         try {
           const ollamaAvailable = await isOllamaAvailable();
           if (ollamaAvailable) {
-            response = await sendToOllama(allMessages, systemPrompt);
+            const ollamaPrompt = buildTrimmedPrompt(currentLanguage, topic, allMessages);
+            response = await sendToOllama(allMessages, ollamaPrompt);
           }
         } catch (ollamaError) {
           console.error('Ollama fallback also failed:', ollamaError);
