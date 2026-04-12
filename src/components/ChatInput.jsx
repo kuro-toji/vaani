@@ -118,7 +118,21 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       </button>
     </div>
     {sttError && (
-      <p className="text-xs text-red-500 px-4 py-1">{sttError}</p>
+      <div className="flex items-center gap-2 px-4 py-1">
+        <p className="text-xs text-red-500">{sttError}</p>
+        <button
+          onClick={() => {
+            startListening(
+              (transcript, isFinal) => setMessage(transcript),
+              (error) => console.error('Speech recognition error:', error),
+              language
+            );
+          }}
+          className="text-xs text-[#0F6E56] font-medium underline"
+        >
+          Try Again
+        </button>
+      </div>
     )}
     </>
   );
