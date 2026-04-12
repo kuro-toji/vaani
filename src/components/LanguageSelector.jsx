@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { languages } from '../data/languages.js';
 
 const MAJOR_LANGUAGES = [
@@ -9,6 +9,8 @@ const MAJOR_LANGUAGES = [
 export default function LanguageSelector({ language, onSelect, isManual }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const listboxRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const majorLanguages = languages.filter((lang) =>
     MAJOR_LANGUAGES.includes(lang.code)
@@ -20,6 +22,7 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
+        setActiveIndex(-1);
       }
     };
 
@@ -27,10 +30,73 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelect = (code) => {
+  const handleSelect = useCallback((code) => {
     onSelect(code);
     setIsOpen(false);
-  };
+    setActiveIndex(-1);
+  }, [onSelect]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (!isOpen) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setIsOpen(true);
+        // Focus first selected or first item
+        const currentIdx = majorLanguages.findIndex(l => l.code === language);
+        setActiveIndex(currentIdx >= 0 ? currentIdx : 0);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex(prev => 
+          prev < majorLanguages.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex(prev => 
+          prev > 0 ? prev - 1 : majorLanguages.length - 1
+        );
+        break;
+      case 'Home':
+        e.preventDefault();
+        setActiveIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setActiveIndex(majorLanguages.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < majorLanguages.length) {
+          handleSelect(majorLanguages[activeIndex].code);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        setActiveIndex(-1);
+        break;
+      case 'Tab':
+        setIsOpen(false);
+        setActiveIndex(-1);
+        break;
+      default:
+        break;
+    }
+  }, [isOpen, activeIndex, majorLanguages, language, handleSelect]);
+
+  // Focus active item when activeIndex changes
+  useEffect(() => {
+    if (isOpen && activeIndex >= 0 && listboxRef.current) {
+      const items = listboxRef.current.querySelectorAll('[role="option"]');
+      items[activeIndex]?.focus();
+    }
+  }, [activeIndex, isOpen]);
 
   const getDisplayText = () => {
     if (!currentLanguage) return 'भाषा';
@@ -41,13 +107,20 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} onKeyDown={handleKeyDown}>
       {/* Pill trigger */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) {
+            const currentIdx = majorLanguages.findIndex(l => l.code === language);
+            setActiveIndex(currentIdx >= 0 ? currentIdx : 0);
+          }
+        }}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-label="भाषा चुनें"
+        aria-label="भाषा चुनें - Select language"
+        aria-controls="language-listbox"
         className="flex items-center gap-1.5 bg-[#E1F5EE] text-[#0F6E56] text-xs px-3 py-2 rounded-full font-medium hover:bg-[#d1e9df] transition-colors vaani-touch-target"
         style={{ minWidth: '56px', minHeight: '56px' }}
       >
@@ -58,6 +131,7 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
           viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={2}
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -73,6 +147,7 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
           viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={2}
+          aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
@@ -81,19 +156,24 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
       {/* Dropdown */}
       {isOpen && (
         <div 
+          ref={listboxRef}
+          id="language-listbox"
           role="listbox" 
-          aria-label="भाषा चुनें"
+          aria-label="भाषा चुनें - Select your language"
+          aria-orientation="vertical"
           className="absolute top-full mt-2 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 max-h-[60vh] overflow-y-auto overscroll-contain"
         >
-          {majorLanguages.map((lang) => (
+          {majorLanguages.map((lang, index) => (
             <button
               key={lang.code}
+              id={`lang-option-${lang.code}`}
               onClick={() => handleSelect(lang.code)}
               role="option"
               aria-selected={lang.code === language}
+              tabIndex={activeIndex === index ? 0 : -1}
               className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors vaani-touch-target ${
                 lang.code === language ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-700'
-              }`}
+              } ${activeIndex === index ? 'bg-gray-100' : ''}`}
               style={{ minHeight: '56px' }}
             >
               <span className="font-medium mr-2">{lang.nativeName}</span>

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRegionByPincode } from '../services/pincodeService';
+import { Mic } from 'lucide-react';
 
 const languages = [
   { code: 'hi', name: 'हिन्दी', native: 'Hindi', flag: '🇮🇳', speakers: '600M+' },
@@ -49,12 +50,139 @@ const features = [
   },
 ];
 
+// Hook for voice input on landing page
+function useLandingVoice() {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [error, setError] = useState(null);
+  const recognitionRef = useRef(null);
+  const onResultRef = useRef(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const startListening = useCallback((onResult) => {
+    // Stop any existing recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      setError('Voice input not supported in this browser');
+      return;
+    }
+
+    setError(null);
+    setIsListening(true);
+    setTranscript('');
+    onResultRef.current = onResult;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN'; // Default to Hindi
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+    };
+
+    recognition.onresult = (e) => {
+      let finalTranscript = '';
+      for (let i = 0; i < e.results.length; i++) {
+        finalTranscript += e.results[i][0].transcript;
+      }
+      setTranscript(finalTranscript);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error === 'no-speech') {
+        // Not an error, user just didn't speak
+        setIsListening(false);
+        return;
+      }
+      setError(e.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (transcript && onResultRef.current) {
+        onResultRef.current(transcript);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    
+    try {
+      recognition.start();
+    } catch (err) {
+      setError(err.message);
+      setIsListening(false);
+    }
+  }, []); // Empty deps - all state updates through refs
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setTranscript('');
+  }, []);
+
+  return { isListening, transcript, error, startListening, stopListening };
+}
+
 function LandingPage({ onStart }) {
   const [pincode, setPincode] = useState('');
   const [region, setRegion] = useState(null);
   const [detectedLang, setDetectedLang] = useState(null);
   const [isVisible, setIsVisible] = useState({});
+  const [selectedLangIndex, setSelectedLangIndex] = useState(0);
   const heroRef = useRef(null);
+  const mainContentRef = useRef(null);
+  const pincodeInputRef = useRef(null);
+  
+  // Voice input for pincode
+  const { isListening: isListeningPincode, startListening: startPincodeVoice, stopListening: stopPincodeVoice } = useLandingVoice();
+
+  // Disable animations for users with prefers-reduced-motion
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    const disableAnimations = () => {
+      document.body.style.animation = 'none';
+      document.body.style.transition = 'none';
+    };
+    
+    if (prefersReducedMotion.matches) {
+      disableAnimations();
+    }
+    
+    const handler = (e) => {
+      if (e.matches) {
+        disableAnimations();
+      }
+    };
+    
+    prefersReducedMotion.addEventListener('change', handler);
+    return () => prefersReducedMotion.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -62,6 +190,11 @@ function LandingPage({ onStart }) {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }));
+            // Focus management: move focus to section heading when visible
+            const heading = entry.target.querySelector('h2');
+            if (heading && !document.activeElement?.closest(`#${entry.target.id}`)) {
+              // Only auto-focus if user isn't currently interacting
+            }
           }
         });
       },
@@ -84,7 +217,80 @@ function LandingPage({ onStart }) {
   }, [pincode]);
 
   const scrollToDemo = () => {
-    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('demo')?.scrollIntoView({ 
+      behavior: prefersReducedMotion ? 'auto' : 'smooth' 
+    });
+  };
+
+  const scrollToMain = () => {
+    document.getElementById('main-content')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('main-content')?.focus();
+  };
+
+  const handleVoicePincode = () => {
+    if (isListeningPincode) {
+      stopPincodeVoice();
+    } else {
+      startPincodeVoice((text) => {
+        // Extract numbers from transcript
+        const numbers = text.replace(/\D/g, '').slice(0, 6);
+        if (numbers.length >= 4) {
+          setPincode(numbers);
+        }
+      });
+    }
+  };
+
+  const handleLanguageSelect = (lang) => {
+    setDetectedLang(lang.name);
+    // Scroll to demo or trigger start
+    const demoSection = document.getElementById('demo');
+    if (demoSection) {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      demoSection.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+    }
+  };
+
+  // Keyboard navigation for language grid
+  const handleLanguageKeyDown = (e, index) => {
+    const gridCols = 3; // approximate for responsive
+    let newIndex = index;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        newIndex = Math.min(index + 1, languages.length - 1);
+        break;
+      case 'ArrowLeft':
+        newIndex = Math.max(index - 1, 0);
+        break;
+      case 'ArrowDown':
+        newIndex = Math.min(index + 4, languages.length - 1);
+        break;
+      case 'ArrowUp':
+        newIndex = Math.max(index - 4, 0);
+        break;
+      case 'Home':
+        newIndex = 0;
+        break;
+      case 'End':
+        newIndex = languages.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        // Select language (could trigger something)
+        e.preventDefault();
+        return;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    setSelectedLangIndex(newIndex);
+    
+    // Focus the new language element
+    const langElements = document.querySelectorAll('[data-lang-index]');
+    langElements[newIndex]?.focus();
   };
 
   return (
@@ -98,6 +304,18 @@ function LandingPage({ onStart }) {
         overflowX: 'hidden',
       }}
     >
+      {/* Skip to Chat Link - FIRST child for accessibility */}
+      <a 
+        href="#main-content" 
+        className="skip-link"
+        onClick={(e) => {
+          e.preventDefault();
+          scrollToMain();
+        }}
+      >
+        Skip to Chat / चैट पर जाएं
+      </a>
+
       {/* Navigation */}
       <nav
         style={{
@@ -114,9 +332,11 @@ function LandingPage({ onStart }) {
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
+        role="navigation"
+        aria-label="Main navigation"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '24px' }}>🔊</span>
+          <img src="/logo.png" alt="Vaani Logo" style={{ height: '32px', width: 'auto' }} />
           <span
             style={{
               fontSize: '20px',
@@ -131,6 +351,7 @@ function LandingPage({ onStart }) {
         </div>
         <button
           onClick={onStart}
+          aria-label="Try VAANI now - start chatting"
           style={{
             backgroundColor: 'transparent',
             border: '1px solid rgba(255,255,255,0.3)',
@@ -148,172 +369,215 @@ function LandingPage({ onStart }) {
           onMouseOut={(e) => {
             e.target.style.backgroundColor = 'transparent';
           }}
+          onFocus={(e) => {
+            e.target.style.outline = '2px solid #00D4AA';
+            e.target.style.outlineOffset = '2px';
+          }}
+          onBlur={(e) => {
+            e.target.style.outline = 'none';
+          }}
         >
           Try Now
         </button>
       </nav>
 
-      {/* Hero Section */}
-      <section
-        id="hero"
-        ref={heroRef}
-        style={{
-          minHeight: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          textAlign: 'center',
-          padding: '120px 24px 80px',
-          position: 'relative',
-        }}
-      >
-        {/* Background gradient */}
-        <div
+      {/* Main Content - This is where skip link jumps to */}
+      <main id="main-content" ref={mainContentRef} tabIndex={-1}>
+        {/* Hero Section */}
+        <section
+          id="hero"
+          ref={heroRef}
           style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.3), transparent), radial-gradient(ellipse 60% 40% at 70% 60%, rgba(0, 163, 255, 0.15), transparent)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              padding: '8px 16px',
-              borderRadius: '980px',
-              fontSize: '14px',
-              marginBottom: '32px',
-              border: '1px solid rgba(255,255,255,0.2)',
-            }}
-          >
-            <span style={{ fontSize: '16px' }}>✨</span>
-            <span>Voice AI for 1.4 Billion Indians</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: 'clamp(40px, 10vw, 80px)',
-              fontWeight: 800,
-              lineHeight: 1.1,
-              marginBottom: '24px',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #fff 0%, #999 50%, #fff 100%)',
-                backgroundSize: '200% 100%',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                animation: 'shimmer 3s ease-in-out infinite',
-              }}
-            >
-              Speak. Understand.
-            </span>
-            <br />
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #00D4AA, #00A3FF)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Connect.
-            </span>
-          </h1>
-
-          <p
-            style={{
-              fontSize: 'clamp(16px, 3vw, 20px)',
-              color: 'rgba(255,255,255,0.6)',
-              maxWidth: '600px',
-              marginBottom: '48px',
-              lineHeight: 1.6,
-            }}
-          >
-            VAANI breaks language barriers with voice AI that speaks your language,
-            understands your context, and respects your privacy.
-          </p>
-
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              onClick={onStart}
-              style={{
-                backgroundColor: '#00D4AA',
-                color: '#000',
-                border: 'none',
-                padding: '16px 40px',
-                borderRadius: '980px',
-                fontSize: '18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseOver={(e) => {
-                e.target.style.transform = 'scale(1.05)';
-                e.target.style.boxShadow = '0 8px 32px rgba(0, 212, 170, 0.4)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.transform = 'scale(1)';
-                e.target.style.boxShadow = 'none';
-              }}
-            >
-              <span>Start Talking</span>
-              <span style={{ fontSize: '20px' }}>→</span>
-            </button>
-            <button
-              onClick={scrollToDemo}
-              style={{
-                backgroundColor: 'transparent',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.3)',
-                padding: '16px 40px',
-                borderRadius: '980px',
-                fontSize: '18px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-              }}
-            >
-              See Demo
-            </button>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: '8px',
-            animation: 'bounce 2s ease-in-out infinite',
+            textAlign: 'center',
+            padding: '120px 24px 80px',
+            position: 'relative',
           }}
+          aria-labelledby="hero-heading"
         >
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Scroll</span>
-          <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.4)' }}>↓</span>
-        </div>
-      </section>
+          {/* Background gradient */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.3), transparent), radial-gradient(ellipse 60% 40% at 70% 60%, rgba(0, 163, 255, 0.15), transparent)',
+              pointerEvents: 'none',
+            }}
+            aria-hidden="true"
+          />
+
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img 
+              src="/logo.png" 
+              alt="Vaani" 
+              style={{ 
+                height: '140px', 
+                width: 'auto', 
+                marginBottom: '24px', 
+                filter: 'drop-shadow(0 0 20px rgba(0, 212, 170, 0.4))' 
+              }} 
+            />
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                padding: '8px 16px',
+                borderRadius: '980px',
+                fontSize: '14px',
+                marginBottom: '32px',
+                border: '1px solid rgba(255,255,255,0.2)',
+              }}
+              role="status"
+              aria-label="Feature announcement"
+            >
+              <span style={{ fontSize: '16px' }} aria-hidden="true">✨</span>
+              <span>Voice AI for 1.4 Billion Indians</span>
+            </div>
+
+            <h1
+              id="hero-heading"
+              style={{
+                fontSize: 'clamp(40px, 10vw, 80px)',
+                fontWeight: 800,
+                lineHeight: 1.1,
+                marginBottom: '24px',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #fff 0%, #999 50%, #fff 100%)',
+                  backgroundSize: '200% 100%',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  animation: 'shimmer 3s ease-in-out infinite',
+                }}
+              >
+                Speak. Understand.
+              </span>
+              <br />
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #00D4AA, #00A3FF)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Connect.
+              </span>
+            </h1>
+
+            <p
+              style={{
+                fontSize: 'clamp(16px, 3vw, 20px)',
+                color: 'rgba(255,255,255,0.6)',
+                maxWidth: '600px',
+                marginBottom: '48px',
+                lineHeight: 1.6,
+              }}
+            >
+              VAANI breaks language barriers with voice AI that speaks your language,
+              understands your context, and respects your privacy.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={onStart}
+                aria-label="Start Talking - Enter main chat"
+                style={{
+                  backgroundColor: '#00D4AA',
+                  color: '#000',
+                  border: 'none',
+                  padding: '16px 40px',
+                  borderRadius: '980px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'scale(1.05)';
+                  e.target.style.boxShadow = '0 8px 32px rgba(0, 212, 170, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+                onFocus={(e) => {
+                  e.target.style.outline = '2px solid #00D4AA';
+                  e.target.style.outlineOffset = '4px';
+                }}
+                onBlur={(e) => {
+                  e.target.style.outline = 'none';
+                }}
+              >
+                <span>Start Talking</span>
+                <span style={{ fontSize: '20px' }} aria-hidden="true">→</span>
+              </button>
+              <button
+                onClick={scrollToDemo}
+                aria-label="See demo - scroll to demo section"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  padding: '16px 40px',
+                  borderRadius: '980px',
+                  fontSize: '18px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
+                onFocus={(e) => {
+                  e.target.style.outline = '2px solid #00D4AA';
+                  e.target.style.outlineOffset = '2px';
+                }}
+                onBlur={(e) => {
+                  e.target.style.outline = 'none';
+                }}
+              >
+                See Demo
+              </button>
+            </div>
+          </div>
+
+          {/* Scroll indicator */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '40px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              animation: 'bounce 2s ease-in-out infinite',
+            }}
+            role="presentation"
+            aria-hidden="true"
+          >
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Scroll</span>
+            <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.4)' }}>↓</span>
+          </div>
+        </section>
+      </main>
 
       {/* Language Showcase */}
       <section
@@ -322,10 +586,12 @@ function LandingPage({ onStart }) {
           padding: '100px 24px',
           backgroundColor: '#0a0a0a',
         }}
+        aria-labelledby="languages-heading"
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '64px' }}>
             <h2
+              id="languages-heading"
               style={{
                 fontSize: 'clamp(28px, 5vw, 48px)',
                 fontWeight: 700,
@@ -341,8 +607,9 @@ function LandingPage({ onStart }) {
                 maxWidth: '500px',
                 margin: '0 auto',
               }}
+              id="languages-description"
             >
-              Enter your pincode to see how VAANI detects your region and language automatically.
+              Enter your pincode to see how VAANI detects your region and language automatically. Or just click "Start VAANI" to begin with Hindi as default.
             </p>
           </div>
 
@@ -356,8 +623,11 @@ function LandingPage({ onStart }) {
               padding: '32px',
               border: '1px solid rgba(255,255,255,0.1)',
             }}
+            role="region"
+            aria-labelledby="pincode-label"
           >
             <label
+              id="pincode-label"
               style={{
                 display: 'block',
                 fontSize: '14px',
@@ -366,38 +636,96 @@ function LandingPage({ onStart }) {
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
               }}
+              htmlFor="pincode-input"
             >
-              Enter Your Pincode
+              Enter Your Pincode (Optional)
             </label>
-            <input
-              type="text"
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="110001"
-              maxLength={6}
-              style={{
-                width: '100%',
-                padding: '16px 20px',
-                fontSize: '24px',
-                fontWeight: 600,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                border: '2px solid rgba(255,255,255,0.1)',
-                borderRadius: '16px',
-                color: '#fff',
-                textAlign: 'center',
-                letterSpacing: '0.2em',
-                outline: 'none',
-                transition: 'all 0.2s ease',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#00D4AA';
-                e.target.style.boxShadow = '0 0 0 4px rgba(0, 212, 170, 0.2)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.1)';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+              <input
+                id="pincode-input"
+                ref={pincodeInputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="110001"
+                maxLength={6}
+                aria-label="अपना 6 अंकों का पिनकोड दर्ज करें"
+                aria-describedby="pincode-hint"
+                style={{
+                  flex: 1,
+                  padding: '16px 20px',
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  border: '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px',
+                  color: '#fff',
+                  textAlign: 'center',
+                  letterSpacing: '0.2em',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#00D4AA';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(0, 212, 170, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              <button
+                onClick={handleVoicePincode}
+                aria-label={isListeningPincode ? 'पिनकोड बोलना बंद करें' : 'पिनकोड बोलें'}
+                aria-pressed={isListeningPincode}
+                className="vaani-touch-target"
+                style={{
+                  minWidth: '56px',
+                  minHeight: '56px',
+                  backgroundColor: isListeningPincode ? '#00D4AA' : 'rgba(0,0,0,0.5)',
+                  border: '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px',
+                  color: isListeningPincode ? '#000' : '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => {
+                  e.target.style.outline = '2px solid #00D4AA';
+                  e.target.style.outlineOffset = '2px';
+                }}
+                onBlur={(e) => {
+                  e.target.style.outline = 'none';
+                }}
+              >
+                <Mic size={20} aria-hidden="true" />
+              </button>
+            </div>
+            <p id="pincode-hint" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '12px', textAlign: 'center' }}>
+              पिनकोड दर्ज करें या खाली छोड़ दें • तो भी आप भाषा बदल सकते हैं
+            </p>
+            
+            {/* Optional notice when pincode is empty */}
+            {!pincode && (
+              <p 
+                role="status" 
+                style={{ 
+                  fontSize: '14px', 
+                  color: '#00D4AA', 
+                  marginTop: '16px', 
+                  textAlign: 'center',
+                  fontWeight: 500,
+                }}
+                aria-live="polite"
+              >
+                तो भी आप भाषा बदल सकते हैं (You can still change language later)
+              </p>
+            )}
+            
             {region && (
               <div
                 style={{
@@ -408,16 +736,19 @@ function LandingPage({ onStart }) {
                   border: '1px solid rgba(0, 212, 170, 0.3)',
                   animation: 'fadeIn 0.3s ease',
                 }}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '32px' }}>📍</span>
+                  <span style={{ fontSize: '32px' }} aria-hidden="true">📍</span>
                   <div>
                     <div style={{ fontSize: '20px', fontWeight: 600 }}>{region.region}</div>
                     <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>{region.state}</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '32px' }}>🗣️</span>
+                  <span style={{ fontSize: '32px' }} aria-hidden="true">🗣️</span>
                   <div>
                     <div style={{ fontSize: '20px', fontWeight: 600 }}>{region.language}</div>
                     <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
@@ -429,25 +760,87 @@ function LandingPage({ onStart }) {
             )}
           </div>
 
-          {/* Language Grid */}
+          {/* Language Grid with proper ARIA */}
+          <h3 
+            id="language-grid-label" 
+            className="sr-only"
+          >
+            भाषा चुनें - Select Language
+          </h3>
           <div
+            role="listbox"
+            aria-label="भाषा चुनें - Select your language"
+            aria-describedby="languages-description"
+            aria-orientation="horizontal"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
               gap: '16px',
             }}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              // Grid-level keyboard navigation
+              const focused = document.activeElement;
+              const items = Array.from(document.querySelectorAll('[data-lang-index]'));
+              const currentIndex = items.indexOf(focused);
+              
+              if (currentIndex === -1) return;
+              
+              let newIndex = currentIndex;
+              switch (e.key) {
+                case 'ArrowRight':
+                  newIndex = Math.min(currentIndex + 1, languages.length - 1);
+                  break;
+                case 'ArrowLeft':
+                  newIndex = Math.max(currentIndex - 1, 0);
+                  break;
+                case 'ArrowDown':
+                  newIndex = Math.min(currentIndex + 4, languages.length - 1);
+                  break;
+                case 'ArrowUp':
+                  newIndex = Math.max(currentIndex - 4, 0);
+                  break;
+                case 'Home':
+                  newIndex = 0;
+                  break;
+                case 'End':
+                  newIndex = languages.length - 1;
+                  break;
+                default:
+                  return;
+              }
+              
+              e.preventDefault();
+              items[newIndex]?.focus();
+            }}
           >
             {languages.map((lang, index) => (
               <div
                 key={lang.code}
+                data-lang-index={index}
+                role="option"
+                aria-selected={detectedLang === lang.name}
+                aria-label={`${lang.name}, ${lang.native}, ${lang.speakers} speakers`}
+                tabIndex={0}
+                onClick={() => handleLanguageSelect(lang)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLanguageSelect(lang);
+                  } else {
+                    handleLanguageKeyDown(e, index);
+                  }
+                }}
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.03)',
                   borderRadius: '20px',
                   padding: '24px 16px',
                   textAlign: 'center',
                   border: '1px solid rgba(255,255,255,0.08)',
+                  borderWidth: detectedLang === lang.name ? '2px' : '1px',
+                  borderColor: detectedLang === lang.name ? '#00D4AA' : 'rgba(255,255,255,0.08)',
                   transition: 'all 0.3s ease',
-                  cursor: 'default',
+                  cursor: 'pointer',
                   opacity: isVisible['languages'] ? 1 : 0,
                   transform: isVisible['languages'] ? 'translateY(0)' : 'translateY(20px)',
                   transitionDelay: `${index * 50}ms`,
@@ -460,8 +853,16 @@ function LandingPage({ onStart }) {
                   e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#00D4AA';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                }}
               >
-                <div style={{ fontSize: '36px', marginBottom: '12px' }}>{lang.flag}</div>
+                <div style={{ fontSize: '36px', marginBottom: '12px' }} aria-hidden="true">{lang.flag}</div>
                 <div
                   style={{
                     fontSize: '16px',
@@ -478,6 +879,7 @@ function LandingPage({ onStart }) {
                     color: 'rgba(255,255,255,0.4)',
                     marginBottom: '8px',
                   }}
+                  aria-hidden="true"
                 >
                   {lang.native}
                 </div>
@@ -487,6 +889,7 @@ function LandingPage({ onStart }) {
                     color: '#00D4AA',
                     fontWeight: 500,
                   }}
+                  aria-hidden="true"
                 >
                   {lang.speakers}
                 </div>
@@ -503,10 +906,12 @@ function LandingPage({ onStart }) {
           padding: '100px 24px',
           backgroundColor: '#000',
         }}
+        aria-labelledby="features-heading"
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '64px' }}>
             <h2
+              id="features-heading"
               style={{
                 fontSize: 'clamp(28px, 5vw, 48px)',
                 fontWeight: 700,
@@ -533,10 +938,13 @@ function LandingPage({ onStart }) {
               gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               gap: '24px',
             }}
+            role="list"
+            aria-label="VAANI features"
           >
             {features.map((feature, index) => (
               <div
                 key={index}
+                role="listitem"
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.03)',
                   borderRadius: '24px',
@@ -561,6 +969,7 @@ function LandingPage({ onStart }) {
                     fontSize: '48px',
                     marginBottom: '20px',
                   }}
+                  aria-hidden="true"
                 >
                   {feature.icon}
                 </div>
@@ -596,10 +1005,12 @@ function LandingPage({ onStart }) {
           padding: '100px 24px',
           backgroundColor: '#0a0a0a',
         }}
+        aria-labelledby="demo-heading"
       >
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2
+              id="demo-heading"
               style={{
                 fontSize: 'clamp(28px, 5vw, 48px)',
                 fontWeight: 700,
@@ -634,6 +1045,8 @@ function LandingPage({ onStart }) {
               justifyContent: 'center',
               position: 'relative',
             }}
+            role="region"
+            aria-label="VAANI demo preview"
           >
             <div
               style={{
@@ -642,6 +1055,7 @@ function LandingPage({ onStart }) {
                 background: 'radial-gradient(circle at center, rgba(0, 212, 170, 0.1), transparent 70%)',
                 pointerEvents: 'none',
               }}
+              aria-hidden="true"
             />
             <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
               <div
@@ -650,6 +1064,7 @@ function LandingPage({ onStart }) {
                   marginBottom: '24px',
                   animation: 'pulse 2s ease-in-out infinite',
                 }}
+                aria-hidden="true"
               >
                 🎙️
               </div>
@@ -664,6 +1079,7 @@ function LandingPage({ onStart }) {
               </p>
               <button
                 onClick={onStart}
+                aria-label="Start Speaking - Launch VAANI chat"
                 style={{
                   backgroundColor: '#00D4AA',
                   color: '#000',
@@ -681,6 +1097,13 @@ function LandingPage({ onStart }) {
                 onMouseOut={(e) => {
                   e.target.style.transform = 'scale(1)';
                 }}
+                onFocus={(e) => {
+                  e.target.style.outline = '2px solid #00D4AA';
+                  e.target.style.outlineOffset = '4px';
+                }}
+                onBlur={(e) => {
+                  e.target.style.outline = 'none';
+                }}
               >
                 Start Speaking
               </button>
@@ -697,9 +1120,11 @@ function LandingPage({ onStart }) {
           backgroundColor: '#000',
           textAlign: 'center',
         }}
+        aria-labelledby="cta-heading"
       >
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <h2
+            id="cta-heading"
             style={{
               fontSize: 'clamp(32px, 6vw, 56px)',
               fontWeight: 700,
@@ -732,6 +1157,7 @@ function LandingPage({ onStart }) {
           </p>
           <button
             onClick={onStart}
+            aria-label="Launch VAANI - Start chatting in your language"
             style={{
               backgroundColor: '#00D4AA',
               color: '#000',
@@ -754,9 +1180,16 @@ function LandingPage({ onStart }) {
               e.target.style.transform = 'scale(1)';
               e.target.style.boxShadow = 'none';
             }}
+            onFocus={(e) => {
+              e.target.style.outline = '2px solid #00D4AA';
+              e.target.style.outlineOffset = '4px';
+            }}
+            onBlur={(e) => {
+              e.target.style.outline = 'none';
+            }}
           >
             <span>Launch VAANI</span>
-            <span style={{ fontSize: '24px' }}>→</span>
+            <span style={{ fontSize: '24px' }} aria-hidden="true">→</span>
           </button>
         </div>
       </section>
@@ -768,6 +1201,8 @@ function LandingPage({ onStart }) {
           borderTop: '1px solid rgba(255,255,255,0.1)',
           textAlign: 'center',
         }}
+        role="contentinfo"
+        aria-label="Site footer"
       >
         <div
           style={{
@@ -778,7 +1213,7 @@ function LandingPage({ onStart }) {
             marginBottom: '16px',
           }}
         >
-          <span style={{ fontSize: '20px' }}>🔊</span>
+          <span style={{ fontSize: '20px' }} aria-hidden="true">🔊</span>
           <span
             style={{
               fontSize: '16px',
@@ -813,6 +1248,19 @@ function LandingPage({ onStart }) {
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        /* Screen reader only class */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
       `}</style>
     </div>
