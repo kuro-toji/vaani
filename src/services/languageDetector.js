@@ -50,7 +50,12 @@ async function geminiFallback(text) {
       return 'hi';
     }
 
-    const prompt = `What Indian language is this text written in? Consider Hinglish and romanized Indian languages. Reply with ONLY the ISO 639-1 two-letter language code, nothing else. Text: "${text}"`;
+    const prompt = `What language is this text written in? This is a personal finance assistant app. 
+Common English words like "hi", "hello", "yes", "no", "what", "how", "I", "you", "FD", "SIP", "loan" in plain Roman English are ENGLISH, not Hindi.
+If the text contains ONLY common Roman English words and numbers, reply with "en".
+Otherwise reply with the appropriate Indian language code (hi, bn, te, ta, mr, ur, gu, kn, ml, pa, or, etc).
+Reply with ONLY the ISO 639-1 two-letter language code, nothing else.
+Text: "${text}"`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
