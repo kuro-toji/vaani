@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import useVoice from '../hooks/useVoice.js';
+import ConfirmationModal from './ConfirmationModal.jsx';
 
 const placeholders = [
   "Vaani से बात करें...",
@@ -13,6 +14,8 @@ const placeholders = [
 export default function ChatInput({ onSend, isLoading, language, isMuted = false }) {
   const [message, setMessage] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [transcribedText, setTranscribedText] = useState('');
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
 
@@ -75,7 +78,12 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       />
       <button
         onClick={isListening ? stopListening : () => startListening(
-          (transcript, isFinal) => setMessage(transcript),
+          (transcript, isFinal) => {
+            if (isFinal) {
+              setTranscribedText(transcript)
+              setShowConfirmation(true)
+            }
+          },
           (error) => console.error('Speech recognition error:', error),
           language
         )}
@@ -133,6 +141,38 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
           Try Again
         </button>
       </div>
+    )}
+    {showConfirmation && (
+      <ConfirmationModal
+        text={transcribedText}
+        language={language}
+        onConfirm={() => {
+          setMessage(transcribedText)
+          setShowConfirmation(false)
+          // Auto-send after confirm
+          if (transcribedText.trim()) {
+            onSend(transcribedText)
+            setTranscribedText('')
+          }
+        }}
+        onRetry={() => {
+          setShowConfirmation(false)
+          setTranscribedText('')
+          // Auto-open mic again after retry
+          setTimeout(() => {
+            startListening(
+              (transcript, isFinal) => {
+                if (isFinal) {
+                  setTranscribedText(transcript)
+                  setShowConfirmation(true)
+                }
+              },
+              (error) => console.error('Speech recognition error:', error),
+              language
+            )
+          }, 300)
+        }}
+      />
     )}
     </>
   );
