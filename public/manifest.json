@@ -1,0 +1,16 @@
+{
+  "name": "Vaani - India's Finance Assistant",
+  "short_name": "Vaani",
+  "description": "Your financial friend in 28 Indian languages",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF8",
+  "theme_color": "#0F6E56",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
