@@ -35,7 +35,7 @@ export function useChat() {
   const [isMuted, setMuted] = useState(false);
 
   const { speak, stopSpeaking } = useVoice();
-  const { vibrateOnAIResponse, vibrateOnRecordingStart } = useVibration();
+  const { vibrateOnAIResponse } = useVibration();
   const idCounter = useRef(0);
   const messagesRef = useRef([]);
 
