@@ -71,20 +71,31 @@ class ErrorBoundary extends Component {
   }
 }
 
-function App() {
+function ThemedApp() {
   const { largeText, highContrast } = useAccessibility()
 
   useEffect(() => {
-    const root = document.getElementById('root');
-    if (root) {
-      root.classList.toggle('vaani-large-text', largeText);
-      root.classList.toggle('vaani-high-contrast', highContrast);
+    const htmlElem = document.documentElement;
+    if (htmlElem) {
+      if (largeText) {
+        htmlElem.classList.add('vaani-large-text');
+        htmlElem.style.fontSize = '20px';
+      } else {
+        htmlElem.classList.remove('vaani-large-text');
+        htmlElem.style.fontSize = '';
+      }
+      
+      htmlElem.classList.toggle('vaani-high-contrast', highContrast);
     }
   }, [largeText, highContrast]);
 
+  return <ErrorBoundary />;
+}
+
+function App() {
   return (
     <AccessibilityProvider>
-      <ErrorBoundary />
+      <ThemedApp />
     </AccessibilityProvider>
   )
 }

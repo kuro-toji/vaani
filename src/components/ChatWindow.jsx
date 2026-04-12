@@ -51,11 +51,13 @@ export default function ChatWindow() {
 
   // Build className for accessibility modes
   const containerClass = [
-    'h-screen',
+    'flex-1',
+    'w-full',
     'flex',
     'flex-col',
     'bg-[var(--vaani-bg)]',
     'text-[var(--vaani-text)]',
+    'overflow-hidden', // Prevent body scroll
     largeText ? 'vaani-large-text' : '',
     highContrast ? 'vaani-high-contrast' : '',
   ].filter(Boolean).join(' ');
@@ -140,7 +142,6 @@ export default function ChatWindow() {
         aria-live="polite"
         aria-label="संदेश"
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 pb-[max(20px,env(safe-area-inset-bottom))] flex flex-col gap-3"
-        ref={messagesEndRef}
       >
         {messages.length === 0 && !isLoading && (
           <SuggestionChips language={language} onSend={sendMessage} />
@@ -149,6 +150,7 @@ export default function ChatWindow() {
           <MessageBubble key={msg.id} message={msg} language={language} />
         ))}
         {isLoading && <TypingIndicator />}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

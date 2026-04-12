@@ -56,17 +56,33 @@ body {
   --vaani-bubble-padding: 16px;
 }
 
-#root.vaani-large-text {
+html.vaani-large-text {
   font-size: var(--vaani-base-font-size) !important;
 }
 
-#root.vaani-high-contrast {
+html.vaani-high-contrast, html.vaani-high-contrast body {
   background-color: var(--vaani-bg) !important;
+  color: var(--vaani-text) !important;
 }
 
-/* Override any hardcoded text sizes in large text mode */
-#root.vaani-large-text * {
-  font-size: inherit !important;
+/* Make text sizing scale well */
+html.vaani-large-text .text-sm {
+  font-size: 1.125rem !important;
+}
+html.vaani-large-text .text-xs {
+  font-size: 1rem !important;
+}
+html.vaani-large-text .text-base {
+  font-size: 1.25rem !important;
+}
+html.vaani-large-text .text-lg {
+  font-size: 1.5rem !important;
+}
+html.vaani-large-text .text-\[15px\] {
+  font-size: 1.25rem !important;
+}
+html.vaani-large-text .text-\[20px\] {
+  font-size: 1.75rem !important;
 }
 
 /* Touch target minimum size */

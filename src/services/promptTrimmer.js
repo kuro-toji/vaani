@@ -4,6 +4,7 @@
  */
 
 import { ratesData } from '../data/ratesData.js';
+import { languages } from '../data/languages.js';
 
 // Keywords to detect investment topics
 const TOPIC_KEYWORDS = {
@@ -32,11 +33,17 @@ export function detectTopic(text) {
   return 'general';
 }
 
-export function buildCompactOverview() {
+export function buildCompactOverview(languageCode) {
+  const language = languages.find(lang => lang.code === languageCode) || languages[0];
+  const SCRIPT_INSTRUCTION = language.direction === 'rtl'
+    ? `Write in ${language.name} using ${language.script} script. Text direction is right to left.`
+    : `Write in ${language.name} using ${language.script} script.`;
+
   return `You are Vaani, a personal finance assistant for Indians.
 
 CRITICAL LANGUAGE RULE:
-Write in the user's language using simple words.
+${SCRIPT_INSTRUCTION}
+Use simple everyday conversational words. Never use English financial jargon unless you immediately explain it in simple words. Never romanize. Match the user's tone exactly — casual if they are casual, formal if they are formal.
 
 YOUR APPROACH:
 1. Listen carefully — understand their situation, not just words.
@@ -56,15 +63,21 @@ IMPORTANT: If asked about a topic not listed above, say you don't have that data
 }
 
 export function buildTrimmedPrompt(languageCode, detectedTopic, messages) {
-  const topicSection = buildTopicSection(detectedTopic);
+  const topicSection = buildTopicSection(detectedTopic, languageCode);
   return `${topicSection}
 
 ${buildConversationSection(messages)}`;
 }
 
-function buildTopicSection(topic) {
+function buildTopicSection(topic, languageCode) {
+  const language = languages.find(lang => lang.code === languageCode) || languages[0];
+  const SCRIPT_INSTRUCTION = language.direction === 'rtl'
+    ? `Write in ${language.name} using ${language.script} script. Text direction is right to left.`
+    : `Write in ${language.name} using ${language.script} script.`;
+
   const languageInstructions = `CRITICAL LANGUAGE RULE:
-Write in the user's language using simple conversational words. Use the script/script direction matching their language.
+${SCRIPT_INSTRUCTION}
+Use simple everyday conversational words. Never use English financial jargon unless you immediately explain it in simple words. Never romanize. Match the user's tone exactly — casual if they are casual, formal if they are formal.
 
 YOUR APPROACH:
 1. Listen carefully — understand their situation, not just words.

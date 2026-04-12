@@ -115,7 +115,7 @@ export function useChat() {
       // Build optimized prompt — only relevant category, trimmed history
       const isFirstMessage = messagesRef.current.length === 0;
       const systemPrompt = isFirstMessage 
-        ? buildCompactOverview()
+        ? buildCompactOverview(currentLanguage)
         : buildTrimmedPrompt(currentLanguage, topic, [...messagesRef.current, userMessage]);
 
       // Get all messages including the new user message  

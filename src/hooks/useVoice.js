@@ -366,7 +366,16 @@ export function useVoice() {
     // Browser TTS fallback
     if (!('speechSynthesis' in window)) return;
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = webSpeechSupported[language] || 'en-US';
+    const targetLang = webSpeechSupported[language] || 'hi-IN';
+    utterance.lang = targetLang;
+    
+    // Try to find the closest matching voice
+    const voices = window.speechSynthesis.getVoices();
+    const voiceMatch = voices.find(v => v.lang === targetLang || v.lang.startsWith(language));
+    if (voiceMatch) {
+      utterance.voice = voiceMatch;
+    }
+    
     utterance.rate = 0.9;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);

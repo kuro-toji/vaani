@@ -83,7 +83,7 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
         <div 
           role="listbox" 
           aria-label="भाषा चुनें"
-          className="absolute top-full mt-2 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1"
+          className="absolute top-full mt-2 right-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 max-h-[60vh] overflow-y-auto overscroll-contain"
         >
           {majorLanguages.map((lang) => (
             <button
