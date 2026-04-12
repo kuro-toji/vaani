@@ -13,16 +13,23 @@ async function loadWhisper() {
     return whisperPipeline
   }
   whisperLoading = true
-  try {
-    const { pipeline } = await import('@xenova/transformers')
-    whisperPipeline = await pipeline(
-      'automatic-speech-recognition',
-      'Xenova/whisper-small',
-      { quantized: true }
-    )
-  } finally {
-    whisperLoading = false
+  let attempts = 0
+  while (attempts < 2) {
+    try {
+      const { pipeline } = await import('@xenova/transformers')
+      whisperPipeline = await pipeline(
+        'automatic-speech-recognition',
+        'Xenova/whisper-small',
+        { quantized: true }
+      )
+      break
+    } catch (err) {
+      attempts++
+      if (attempts >= 2) throw err
+      await new Promise(r => setTimeout(r, 3000)) // wait 3s before retry
+    }
   }
+  whisperLoading = false
   return whisperPipeline
 }
 
@@ -107,20 +114,7 @@ export function useVoice() {
 
   const startWhisper = useCallback(async (onResult, onError, language) => {
     setSttError(null)
-
-    // Load model in background if needed
-    if (!whisperPipeline) {
-      setIsModelLoading(true)
-      try {
-        await loadWhisper()
-      } catch (err) {
-        setIsModelLoading(false)
-        setSttError('Could not load speech model.')
-        onError?.('Model load failed')
-        return
-      }
-      setIsModelLoading(false)
-    }
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY
 
     // Request microphone
     let stream
@@ -153,7 +147,55 @@ export function useVoice() {
       setIsListening(false)
 
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+
+      // Try Groq first (faster, more reliable)
+      if (apiKey) {
+        try {
+          const formData = new FormData()
+          formData.append('file', audioBlob, 'audio.webm')
+          formData.append('model', 'whisper-large-v3')
+
+          const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            body: formData,
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            onResult?.(data.text.trim(), true)
+            return
+          }
+        } catch {
+          // Groq failed, fall through to local Whisper
+        }
+      }
+
+      // Fallback: local transformers.js Whisper
       try {
+        // Load model if needed
+        if (!whisperPipeline) {
+          setIsModelLoading(true)
+          let loaded = false
+          let attempts = 0
+          while (!loaded && attempts < 2) {
+            try {
+              await loadWhisper()
+              loaded = true
+            } catch (err) {
+              attempts++
+              if (attempts >= 2) {
+                setIsModelLoading(false)
+                setSttError('Could not load speech model. Check your connection.')
+                onError?.('Model load failed')
+                return
+              }
+              await new Promise(r => setTimeout(r, 3000))
+            }
+          }
+          setIsModelLoading(false)
+        }
+
         const arrayBuffer = await audioBlob.arrayBuffer()
         const audioContext = new AudioContext({ sampleRate: 16000 })
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
@@ -212,7 +254,10 @@ export function useVoice() {
   // Preload whisper model for whisper-only languages on mount
   useEffect(() => {
     if (!whisperPipeline && !whisperLoading) {
-      loadWhisper().catch(() => {})
+      setIsModelLoading(true)
+      loadWhisper()
+        .catch(() => {})
+        .finally(() => setIsModelLoading(false))
     }
   }, [])
 
