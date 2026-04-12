@@ -356,6 +356,9 @@ export function useVoice() {
         audioSource.buffer = audioBufferDecoded;
         audioSource.connect(audioContext.destination);
         audioSource.start(0);
+        audioSource.onended = () => {
+          audioContext.close().catch(() => {});
+        };
         return;
       } catch (error) {
         console.warn('ElevenLabs TTS failed, falling back to browser TTS:', error);
