@@ -3,7 +3,7 @@ import { languages } from '../data/languages.js';
 
 const MAJOR_LANGUAGES = [
   'hi', 'bn', 'te', 'mr', 'ta', 'ur', 'gu', 'kn', 'or', 'pa', 'ml', 
-  'as', 'mai', 'sa', 'sd', 'kok', 'ne', 'brx', 'sat', 'dgo', 'mni', 'ks'
+  'as', 'mai', 'sa', 'sd', 'kok', 'ne', 'brx', 'sat', 'dgo', 'mni', 'ks', 'en'
 ];
 
 export default function LanguageSelector({ language, onSelect, isManual }) {
