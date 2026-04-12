@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Volume2, Check, X, Mic } from 'lucide-react'
 import useVoice from '../hooks/useVoice.js'
 
-export default function ConfirmationModal({ text, onConfirm, onRetry, language = 'hi' }) {
+export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, language = 'hi' }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const { speak, stopSpeaking } = useVoice()
 
@@ -33,6 +33,20 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, language =
       zIndex: 100,
       fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
     }}>
+      <button
+        onClick={onCancel}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '4px',
+        }}
+      >
+        <X size={16} color="#9CA3AF" />
+      </button>
       <p style={{
         fontSize: '12px',
         color: '#6B7280',
@@ -129,6 +143,25 @@ export default function ConfirmationModal({ text, onConfirm, onRetry, language =
         <span style={{ fontSize: '10px', color: '#9CA3AF' }}>Play</span>
         <span style={{ fontSize: '10px', color: '#9CA3AF' }}>Retry</span>
         <span style={{ fontSize: '10px', color: '#9CA3AF' }}>Send</span>
+      </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        marginTop: '12px',
+      }}>
+        <button
+          onClick={onCancel}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '12px',
+            color: '#9CA3AF',
+            padding: '8px 16px',
+          }}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   )

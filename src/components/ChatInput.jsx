@@ -172,6 +172,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
             )
           }, 300)
         }}
+        onCancel={() => setShowConfirmation(false)}
       />
     )}
     </>
