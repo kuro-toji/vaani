@@ -10,7 +10,6 @@ export default {
   plugins: [],
   safelist: [
     'vaani-large-text',
-    'vaani-high-contrast',
-    { pattern: /vaani-/ },
+    'vaani-high-contrast'
   ],
 }
