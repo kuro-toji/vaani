@@ -13,6 +13,7 @@ export const webSpeechSupported = {
   or: 'or-IN',
   as: 'as-IN',
   ur: 'ur-IN',
+  en: 'en-US',
 }
 
 // These will always fail in Web Speech API — route to Whisper
@@ -51,4 +52,5 @@ export const whisperLangMap = {
   brx: 'hindi',
   mni: 'bengali',
   dgo: 'hindi',
+  en: 'english',
 }
