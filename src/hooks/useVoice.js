@@ -236,7 +236,7 @@ export function useVoice() {
   const speak = useCallback((text, language = 'hi') => {
     if (!('speechSynthesis' in window)) return
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = `urn:cc:ache:locale:${language}`
+    utterance.lang = webSpeechSupported[language] || 'en-US'
     utterance.rate = 0.9
     utterance.onstart = () => {}
     utterance.onend = () => {}
