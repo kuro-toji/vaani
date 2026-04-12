@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRegionByPincode } from '../services/pincodeService';
+import { useLandingVoice } from '../hooks/useLandingVoice';
 import { Mic } from 'lucide-react';
 
 const languages = [
@@ -67,105 +68,7 @@ const features = [
   },
 ];
 
-// Hook for voice input on landing page
-function useLandingVoice() {
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [error, setError] = useState(null);
-  const recognitionRef = useRef(null);
-  const onResultRef = useRef(null);
-  const transcriptRef = useRef('');
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-        recognitionRef.current = null;
-      }
-    };
-  }, []);
-
-  const startListening = useCallback((onResult) => {
-    // Stop any existing recognition
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      setError('Voice input not supported in this browser');
-      return;
-    }
-
-    setError(null);
-    setIsListening(true);
-    setTranscript('');
-    transcriptRef.current = '';
-    onResultRef.current = onResult;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'hi-IN'; // Default to Hindi
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setError(null);
-    };
-
-    recognition.onresult = (e) => {
-      let finalTranscript = '';
-      for (let i = 0; i < e.results.length; i++) {
-        finalTranscript += e.results[i][0].transcript;
-      }
-      setTranscript(finalTranscript);
-      transcriptRef.current = finalTranscript;
-    };
-
-    recognition.onerror = (e) => {
-      if (e.error === 'no-speech') {
-        // Not an error, user just didn't speak
-        setIsListening(false);
-        return;
-      }
-      setError(e.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      // Use the ref since transcript from state is stale in this closure
-      if (transcriptRef.current && onResultRef.current) {
-        onResultRef.current(transcriptRef.current);
-      }
-    };
-
-    recognitionRef.current = recognition;
-    
-    try {
-      recognition.start();
-    } catch (err) {
-      setError(err.message);
-      setIsListening(false);
-    }
-  }, []); // Empty deps - all state updates through refs
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setIsListening(false);
-  }, []);
-
-  return { isListening, transcript, error, startListening, stopListening };
-}
+// useLandingVoice is now imported from hooks/useLandingVoice.js
 
 function LandingPage({ onStart }) {
   const [pincode, setPincode] = useState('');
@@ -252,10 +155,39 @@ function LandingPage({ onStart }) {
       stopPincodeVoice();
     } else {
       startPincodeVoice((text) => {
-        // Extract numbers from transcript
-        const numbers = text.replace(/\D/g, '').slice(0, 6);
-        if (numbers.length >= 4) {
+        // Map spoken English words, Hindi words, and native Devanagari digits → ASCII digits
+        const wordToDigit = {
+          // English words
+          'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+          'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+          'to': '2', 'for': '4', 'too': '2', 'won': '1', 'ate': '8',
+          // Hindi words
+          'शून्य': '0', 'एक': '1', 'दो': '2', 'तीन': '3', 'ती': '3',
+          'चार': '4', 'पांच': '5', 'पाँच': '5', 'छह': '6', 'छः': '6',
+          'सात': '7', 'आठ': '8', 'नौ': '9',
+          // Devanagari digits
+          '०': '0', '१': '1', '२': '2', '३': '3', '४': '4',
+          '५': '5', '६': '6', '७': '7', '८': '8', '९': '9',
+        };
+        
+        let processedText = text.toLowerCase().trim();
+        
+        // Sort keys by length descending so longer words match first ("three" before "ती")
+        const sortedKeys = Object.keys(wordToDigit).sort((a, b) => b.length - a.length);
+        sortedKeys.forEach(word => {
+          processedText = processedText.replace(new RegExp(word, 'gi'), wordToDigit[word]);
+        });
+
+        // Extract only digit characters
+        const cleaned = processedText.replace(/\D/g, '');
+        const numbers = cleaned.slice(0, 6);
+        
+        if (numbers.length > 0) {
           setPincode(numbers);
+          // If 6 valid digits recognized, auto-stop the mic
+          if (numbers.length === 6) {
+            stopPincodeVoice();
+          }
         }
       });
     }
