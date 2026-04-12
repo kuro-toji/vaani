@@ -86,8 +86,8 @@ export default function ChatWindow() {
       )}
     <div className={containerClass}>
       {/* Header */}
-      <header role="banner" aria-label="Vaani चैट" className="h-14 bg-white border-b border-[#E5E7EB] px-4 flex items-center justify-between shrink-0">
-        <span className="text-[20px] font-semibold text-[#0F6E56]">Vaani</span>
+      <header role="banner" aria-label="Vaani चैट" className="h-14 bg-[var(--vaani-bg)] border-b border-[var(--vaani-border)] px-4 flex items-center justify-between shrink-0">
+        <span className="text-[20px] font-semibold text-[var(--vaani-user-bubble)]">Vaani</span>
         <div className="flex items-center gap-2">
           {/* Large Text Toggle */}
           <button

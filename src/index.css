@@ -56,18 +56,17 @@ body {
   --vaani-bubble-padding: 16px;
 }
 
-/* Apply CSS variables to root elements */
-.vaani-large-text body,
-.vaani-large-text #root {
-  font-size: var(--vaani-base-font-size);
+#root.vaani-large-text {
+  font-size: var(--vaani-base-font-size) !important;
 }
 
-.vaani-high-contrast body {
-  background-color: var(--vaani-bg);
+#root.vaani-high-contrast {
+  background-color: var(--vaani-bg) !important;
 }
 
-.vaani-high-contrast #root {
-  background-color: var(--vaani-bg);
+/* Override any hardcoded text sizes in large text mode */
+#root.vaani-large-text * {
+  font-size: inherit !important;
 }
 
 /* Touch target minimum size */

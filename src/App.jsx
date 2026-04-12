@@ -1,5 +1,5 @@
-import { Component } from 'react'
-import { AccessibilityProvider } from './context/AccessibilityContext'
+import { Component, useEffect } from 'react'
+import { AccessibilityProvider, useAccessibility } from './context/AccessibilityContext'
 import ChatWindow from './components/ChatWindow'
 
 class ErrorBoundary extends Component {
@@ -72,6 +72,16 @@ class ErrorBoundary extends Component {
 }
 
 function App() {
+  const { largeText, highContrast } = useAccessibility()
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (root) {
+      root.classList.toggle('vaani-large-text', largeText);
+      root.classList.toggle('vaani-high-contrast', highContrast);
+    }
+  }, [largeText, highContrast]);
+
   return (
     <AccessibilityProvider>
       <ErrorBoundary />
