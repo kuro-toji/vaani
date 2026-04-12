@@ -46,12 +46,16 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   }, [message]);
 
   const handleSend = () => {
-    if (message.trim() && !isLoading) {
-      onSend(message);
-      setMessage('');
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
+    const trimmed = message.trim();
+    if (!trimmed || isLoading) return;
+    if (trimmed.length > 5000) {
+      alert('Message too long. Please keep it under 5000 characters.');
+      return;
+    }
+    onSend(trimmed);
+    setMessage('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
     }
   };
 
@@ -87,6 +91,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         onKeyDown={handleKeyDown}
         placeholder={placeholders[placeholderIndex]}
         disabled={isLoading}
+        maxLength={5000}
         className="flex-1 bg-transparent text-[15px] resize-none outline-none border-none no-scrollbar"
         style={{ minHeight: '24px' }}
         aria-label="अपना संदेश लिखें"
