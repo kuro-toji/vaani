@@ -3,6 +3,7 @@ import { useCognitiveMode } from '../context/CognitiveModeContext';
 import { useChat } from '../hooks/useChat';
 import { useVoice } from '../hooks/useVoice';
 import { Mic, MicOff } from 'lucide-react';
+import { detectLifeEvents, buildInvestmentLadder } from '../services/lifeEventService';
 
 export default function CognitiveDashboard() {
   const { cognitiveMode, toggleCognitiveMode, financialStatus, setFinancialStatus } = useCognitiveMode();
@@ -10,6 +11,7 @@ export default function CognitiveDashboard() {
   const { isListening, startListening, stopListening } = useVoice();
   const [statusMessage, setStatusMessage] = useState('अपनी बात बोलिए');
   const [transcript, setTranscript] = useState('');
+  const [activeLadder, setActiveLadder] = useState(null);
   const messagesEndRef = useRef(null);
   const isRecording = isListening;
 
@@ -17,7 +19,8 @@ export default function CognitiveDashboard() {
   useEffect(() => {
     // Simple heuristic based on conversation
     // In real app, this would be ML-based
-    if (messages && messages.length > 3) {
+    if (messages && messages.length > 0) {
+      // 1. Detect Financial Status
       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
       if (lastUserMessage?.content.includes('शादी') || lastUserMessage?.content.includes('बच्चे') || lastUserMessage?.content.includes('विवाह')) {
         setFinancialStatus('yellow');
@@ -25,6 +28,13 @@ export default function CognitiveDashboard() {
         setFinancialStatus('red');
       } else {
         setFinancialStatus('green');
+      }
+
+      // 2. Detect Life Events and Build Ladder
+      const event = detectLifeEvents(messages);
+      if (event) {
+        const ladder = buildInvestmentLadder(event);
+        setActiveLadder(ladder);
       }
     }
   }, [messages, setFinancialStatus]);
@@ -84,6 +94,7 @@ export default function CognitiveDashboard() {
       flexDirection: 'column',
       backgroundColor: 'var(--vaani-bg)',
       padding: '20px',
+      overflowY: 'auto'
     }}>
       {/* Header */}
       <div style={{
@@ -205,6 +216,42 @@ export default function CognitiveDashboard() {
           {statusMessage}
         </div>
       </div>
+
+      {/* Investment Ladder Display */}
+      {activeLadder && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          margin: '20px 0',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid var(--vaani-border)'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>📈</span> {activeLadder.title}
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeLadder.allocations.map((alloc, idx) => (
+              <div key={idx} style={{ 
+                backgroundColor: '#F3F4F6', 
+                padding: '12px 16px', 
+                borderRadius: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#111827', fontSize: '16px' }}>{alloc.purpose}</div>
+                  <div style={{ color: '#4B5563', fontSize: '14px' }}>{alloc.instrument} • {alloc.timeline}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 'bold', color: '#0F6E56', fontSize: '16px' }}>{alloc.percentage}%</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Simple Messages */}
       <div style={{
