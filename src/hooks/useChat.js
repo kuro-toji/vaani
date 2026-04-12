@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
 import { buildSystemPrompt } from '../services/promptBuilder.js';
 import { sendToGemini } from '../services/geminiService.js';
+import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { useVoice } from '../hooks/useVoice.js';
 
 export function useChat() {
@@ -84,21 +85,52 @@ export function useChat() {
         speak(response, currentLanguage);
       }
     } catch (error) {
-      // Add error message in the detected language
-      const errorContent =
-        language === 'hi'
-          ? 'कुछ गलत हो गया, कृपया पुनः प्रयास करें।'
-          : language === 'bn'
-            ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।'
-            : 'Something went wrong, please try again.';
+      // Try Ollama as fallback before giving up
+      let response = null;
+      const isRateLimit = error.message.includes('429') || error.message.includes('rate') || error.message.includes('RESOURCE_EXHAUSTED');
+      
+      if (isRateLimit) {
+        try {
+          const ollamaAvailable = await isOllamaAvailable();
+          if (ollamaAvailable) {
+            response = await sendToOllama(allMessages, systemPrompt);
+          }
+        } catch (ollamaError) {
+          console.error('Ollama fallback also failed:', ollamaError);
+        }
+      }
+      
+      if (response) {
+        // Use Ollama response
+        const aiMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: response,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+        
+        // Speak AI response aloud (non-blocking)
+        if (!isMuted) {
+          speak(response, currentLanguage);
+        }
+      } else {
+        // Add error message in the detected language
+        const errorContent =
+          language === 'hi'
+            ? 'कुछ गलत हो गया, कृपया पुनः प्रयास करें।'
+            : language === 'bn'
+              ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।'
+              : 'Something went wrong, please try again.';
 
-      const errorMessage = {
-        id: generateId(),
-        role: 'assistant',
-        content: errorContent,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+        const errorMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: errorContent,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setIsLoading(false);
     }
