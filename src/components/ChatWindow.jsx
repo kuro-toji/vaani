@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../hooks/useChat.js';
 import MessageBubble from './MessageBubble.jsx';
 import TypingIndicator from './TypingIndicator.jsx';
@@ -10,13 +10,46 @@ import { Volume2, VolumeX } from 'lucide-react';
 export default function ChatWindow() {
   const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
   const messagesEndRef = useRef(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   return (
+    <>
+      {!isOnline && (
+        <div style={{
+          backgroundColor: '#FEF3C7',
+          borderBottom: '1px solid #F59E0B',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontSize: '13px',
+          color: '#92400E',
+          fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+        }}>
+          <span>📶</span>
+          <span>ऑफलाइन है — कृपया इंटरनेट चालू करें</span>
+        </div>
+      )}
     <div className="h-screen flex flex-col bg-[#FAFAF8]">
       {/* Header */}
       <header className="h-14 bg-white border-b border-[#E5E7EB] px-4 flex items-center justify-between shrink-0">
@@ -60,5 +93,6 @@ export default function ChatWindow() {
         <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
       </div>
     </div>
+    </>
   );
 }
