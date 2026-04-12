@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { langToSpeechLocale } from '../data/indianDigitMap.js';
 
 /**
  * useLandingVoice — Speech recognition hook for pincode input on landing page.
  * 
- * Uses 'en-IN' language for reliable digit recognition.
+ * Accepts a language parameter to set the Web Speech API locale dynamically.
+ * Falls back to 'en-IN' for best numeric digit recognition.
  * Sets continuous=false so it auto-stops after a phrase.
- * Fires onResult callback with the full transcript on every interim/final result.
  */
 export function useLandingVoice() {
   const [isListening, setIsListening] = useState(false);
@@ -26,7 +27,7 @@ export function useLandingVoice() {
     };
   }, []);
   
-  const startListening = useCallback((onResult) => {
+  const startListening = useCallback((onResult, lang = 'en') => {
     // Stop any existing recognition
     if (recognitionRef.current) {
       try {
@@ -48,9 +49,9 @@ export function useLandingVoice() {
     setIsListening(true);
     
     const recognition = new SpeechRecognition();
-    // Use English-IN for reliable digit recognition ("one two three" → "1 2 3")
-    recognition.lang = 'en-IN';
-    // Auto-stop after a single phrase — user says "1 1 0 0 0 1" and it stops
+    // Use the language-specific locale for recognition.
+    // For pincode, 'en-IN' is the default fallback for best digit accuracy.
+    recognition.lang = langToSpeechLocale[lang] || 'en-IN';
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;

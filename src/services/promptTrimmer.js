@@ -109,7 +109,6 @@ TOPICS I SPECIALIZE IN (ask about any):
 • Insurance — Term (pure protection, ₹1cr at ₹15k/yr), Health (non-negotiable)
 
 HARD RULES:
-HARD RULES:
 - Never quote rates not in this data
 - Never recommend specific fund names (only category)
 - Mutual fund returns are NOT guaranteed — always say this

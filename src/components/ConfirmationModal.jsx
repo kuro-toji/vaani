@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Volume2, Check, X } from 'lucide-react'
-import useVoice from '../hooks/useVoice.js'
+import { useVoice } from '../hooks/useVoice.js'
 
 export default function ConfirmationModal({ text, onConfirm, onRetry, onCancel, language = 'hi' }) {
   const [isPlaying, setIsPlaying] = useState(false)

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRegionByPincode } from '../services/pincodeService';
 import { useLandingVoice } from '../hooks/useLandingVoice';
 import { Mic } from 'lucide-react';
+import { indianDigitMap, extractDigitsFromText } from '../data/indianDigitMap';
 
 const languages = [
   { code: 'hi', name: 'हिन्दी', native: 'Hindi', flag: '🇮🇳', speakers: '600M+' },
@@ -154,42 +155,22 @@ function LandingPage({ onStart }) {
     if (isListeningPincode) {
       stopPincodeVoice();
     } else {
+      // Detect selected language for speech recognition
+      const selectedLang = detectedLang 
+        ? languages.find(l => l.name === detectedLang)?.code || 'en'
+        : 'en';
+      
       startPincodeVoice((text) => {
-        // Map spoken English words, Hindi words, and native Devanagari digits → ASCII digits
-        const wordToDigit = {
-          // English words
-          'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
-          'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
-          'to': '2', 'for': '4', 'too': '2', 'won': '1', 'ate': '8',
-          // Hindi words
-          'शून्य': '0', 'एक': '1', 'दो': '2', 'तीन': '3', 'ती': '3',
-          'चार': '4', 'पांच': '5', 'पाँच': '5', 'छह': '6', 'छः': '6',
-          'सात': '7', 'आठ': '8', 'नौ': '9',
-          // Devanagari digits
-          '०': '0', '१': '1', '२': '2', '३': '3', '४': '4',
-          '५': '5', '६': '6', '७': '7', '८': '8', '९': '9',
-        };
-        
-        let processedText = text.toLowerCase().trim();
-        
-        // Sort keys by length descending so longer words match first ("three" before "ती")
-        const sortedKeys = Object.keys(wordToDigit).sort((a, b) => b.length - a.length);
-        sortedKeys.forEach(word => {
-          processedText = processedText.replace(new RegExp(word, 'gi'), wordToDigit[word]);
-        });
-
-        // Extract only digit characters
-        const cleaned = processedText.replace(/\D/g, '');
-        const numbers = cleaned.slice(0, 6);
+        // Use the comprehensive multilingual digit extraction
+        const numbers = extractDigitsFromText(text).slice(0, 6);
         
         if (numbers.length > 0) {
           setPincode(numbers);
-          // If 6 valid digits recognized, auto-stop the mic
           if (numbers.length === 6) {
             stopPincodeVoice();
           }
         }
-      });
+      }, selectedLang);
     }
   };
 
@@ -1138,6 +1119,9 @@ function LandingPage({ onStart }) {
             onBlur={(e) => {
               e.target.style.outline = 'none';
             }}
+          >
+            <span>Launch VAANI</span>
+            <span style={{ fontSize: '24px' }} aria-hidden="true">→</span>
           </button>
         </div>
       </section>

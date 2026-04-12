@@ -345,11 +345,10 @@ export function useVoice() {
   const speak = useCallback(async (text, language = 'hi') => {
     if (!text) return;
 
-    // Try ElevenLabs first if configured
-    if (isElevenLabsConfigured()) {
+    // Try ElevenLabs first if configured (works best for English, limited Indian script)
+    if (isElevenLabsConfigured() && (language === 'en' || !/[\u0900-\u0D7F\u0B80-\u0BFF]/.test(text))) {
       try {
         const audioBuffer = await speakWithElevenLabs(text, language);
-        // Convert ArrayBuffer to Audio and play
         const audioContext = new AudioContext();
         const audioBufferDecoded = await audioContext.decodeAudioData(audioBuffer);
         const audioSource = audioContext.createBufferSource();
@@ -361,23 +360,52 @@ export function useVoice() {
         };
         return;
       } catch (error) {
-        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', error);
-        // Fall through to browser TTS
+        console.warn('ElevenLabs TTS failed, falling back:', error);
       }
     }
 
-    // Browser TTS fallback
+    // Google Translate TTS fallback for Indian languages (works for all scripts)
+    // This uses the free Google Translate audio endpoint
+    const googleTTSLangs = ['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur'];
+    if (googleTTSLangs.includes(language) && text.length < 200) {
+      try {
+        const encodedText = encodeURIComponent(text.substring(0, 200));
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${language}&q=${encodedText}`;
+        const audio = new Audio(url);
+        audio.playbackRate = 0.9;
+        await audio.play();
+        return;
+      } catch (error) {
+        console.warn('Google TTS failed, using browser TTS:', error);
+      }
+    }
+
+    // Browser native TTS fallback (decent on Android/Chrome for Indian languages)
     if (!('speechSynthesis' in window)) return;
     const utterance = new SpeechSynthesisUtterance(text);
     const targetLang = webSpeechSupported[language] || 'hi-IN';
     utterance.lang = targetLang;
     
-    // Try to find the closest matching voice
-    const voices = window.speechSynthesis.getVoices();
-    const voiceMatch = voices.find(v => v.lang === targetLang || v.lang.startsWith(language));
-    if (voiceMatch) {
-      utterance.voice = voiceMatch;
+    // Wait for voices to load if needed
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      await new Promise((resolve) => {
+        window.speechSynthesis.onvoiceschanged = () => {
+          voices = window.speechSynthesis.getVoices();
+          resolve();
+        };
+        setTimeout(resolve, 500);
+      });
     }
+
+    // Find best matching voice: prefer native Indian voices over generic ones
+    const exactMatch = voices.find(v => v.lang === targetLang);
+    const prefixMatch = voices.find(v => v.lang.startsWith(language));
+    const indianVoice = voices.find(v => v.lang.includes('IN'));
+    
+    if (exactMatch) utterance.voice = exactMatch;
+    else if (prefixMatch) utterance.voice = prefixMatch;
+    else if (indianVoice) utterance.voice = indianVoice;
     
     utterance.rate = 0.9;
     window.speechSynthesis.cancel();
