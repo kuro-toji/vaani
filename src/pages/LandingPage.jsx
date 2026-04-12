@@ -143,11 +143,8 @@ function useLandingVoice() {
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognitionRef.current = null;
     }
     setIsListening(false);
-    setTranscript('');
-    transcriptRef.current = '';
   }, []);
 
   return { isListening, transcript, error, startListening, stopListening };
