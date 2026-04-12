@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { webSpeechSupported, whisperOnly, whisperLangMap } from '../data/speechLanguages'
+import { speakWithElevenLabs, isElevenLabsConfigured } from '../services/elevenLabsService.js'
 
 let whisperPipeline = null
 let whisperLoading = false
@@ -233,16 +234,34 @@ export function useVoice() {
     setIsListening(false)
   }, [])
 
-  const speak = useCallback((text, language = 'hi') => {
-    if (!('speechSynthesis' in window)) return
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = webSpeechSupported[language] || 'en-US'
-    utterance.rate = 0.9
-    utterance.onstart = () => {}
-    utterance.onend = () => {}
-    utterance.onerror = () => {}
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(utterance)
+  const speak = useCallback(async (text, language = 'hi') => {
+    if (!text) return;
+
+    // Try ElevenLabs first if configured
+    if (isElevenLabsConfigured()) {
+      try {
+        const audioBuffer = await speakWithElevenLabs(text, language);
+        // Convert ArrayBuffer to Audio and play
+        const audioContext = new AudioContext();
+        const audioBufferDecoded = await audioContext.decodeAudioData(audioBuffer);
+        const audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBufferDecoded;
+        audioSource.connect(audioContext.destination);
+        audioSource.start(0);
+        return;
+      } catch (error) {
+        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', error);
+        // Fall through to browser TTS
+      }
+    }
+
+    // Browser TTS fallback
+    if (!('speechSynthesis' in window)) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = webSpeechSupported[language] || 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
   }, [])
 
   const stopSpeaking = useCallback(() => {
