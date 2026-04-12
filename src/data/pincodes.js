@@ -120,7 +120,10 @@ export const statePrefixes = {
 };
 
 export function getRegionByPincode(pincode) {
-  const normalized = pincode.trim();
+  if (!pincode) {
+    return { region: 'India', language: 'Hindi', state: 'Unknown' };
+  }
+  const normalized = String(pincode).trim();
   if (pincodeData[normalized]) {
     return pincodeData[normalized];
   }
