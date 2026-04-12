@@ -4,6 +4,7 @@ import { sendToGemini } from '../services/geminiService.js';
 import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
+import { encryptData, decryptData } from '../services/cryptoService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
 
@@ -40,9 +41,9 @@ export function useChat() {
     try {
       const saved = localStorage.getItem('vaani_messages');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
+        const decrypted = decryptData(saved);
+        if (decrypted && Array.isArray(decrypted) && decrypted.length > 0) {
+          setMessages(decrypted);
         }
       }
     } catch (e) {
@@ -54,7 +55,7 @@ export function useChat() {
   useEffect(() => {
     try {
       if (messages.length > 0) {
-        localStorage.setItem('vaani_messages', JSON.stringify(messages));
+        localStorage.setItem('vaani_messages', encryptData(messages));
       }
     } catch (e) {
       console.warn('Could not save messages:', e);
