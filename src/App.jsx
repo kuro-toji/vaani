@@ -4,6 +4,7 @@ import { CognitiveModeProvider, useCognitiveMode } from './context/CognitiveMode
 import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const [showApp, setShowApp] = useState(false);
@@ -28,7 +29,9 @@ function App() {
   return (
     <AccessibilityProvider>
       <CognitiveModeProvider>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
       </CognitiveModeProvider>
     </AccessibilityProvider>
   );
