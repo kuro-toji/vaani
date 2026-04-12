@@ -141,7 +141,49 @@ export function useVoice() {
     }
     streamRef.current = stream
 
-    // Start recording
+    // VAD + noise gate — wait for voice before recording
+    const audioContext = new AudioContext()
+    const source = audioContext.createMediaStreamSource(stream)
+    const analyser = audioContext.createAnalyser()
+    analyser.fftSize = 256
+    source.connect(analyser)
+
+    // Add lowpass filter to reduce hiss/hum
+    const lowpass = audioContext.createBiquadFilter()
+    lowpass.type = 'lowpass'
+    lowpass.frequency.value = 4000
+    source.connect(lowpass)
+    lowpass.connect(analyser)
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount)
+    const VOLUME_THRESHOLD = 50 // -50dB approximately
+    const WAIT_TIME = 2000 // Stop 2s after speech ends
+
+    // Wait for voice activity
+    const waitForVoice = () => {
+      return new Promise((resolve, reject) => {
+        let silenceTimer = null
+        
+        const checkVolume = () => {
+          analyser.getByteFrequencyData(dataArray)
+          const volume = Math.max(...dataArray)
+          
+          if (volume > VOLUME_THRESHOLD) {
+            clearTimeout(silenceTimer)
+            resolve()
+          } else {
+            silenceTimer = setTimeout(() => {
+              reject(new Error('No speech detected'))
+            }, 10000) // 10s timeout
+            requestAnimationFrame(checkVolume)
+          }
+        }
+        
+        checkVolume()
+      })
+    }
+
+    // Start recording with VAD
     audioChunksRef.current = []
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -158,6 +200,7 @@ export function useVoice() {
 
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop())
+      try { audioContext.close() } catch (e) {}
       setIsListening(false)
 
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
@@ -241,8 +284,18 @@ export function useVoice() {
       }
     }
 
-    mediaRecorder.start(1000)
-    setIsListening(true)
+    // Start recording only after voice is detected
+    try {
+      await waitForVoice()
+      mediaRecorder.start(1000)
+      setIsListening(true)
+    } catch {
+      setSttError('No speech detected. Please try again.')
+      onError?.('No speech detected')
+      stream.getTracks().forEach(t => t.stop())
+      try { audioContext.close() } catch (e) {}
+      return
+    }
   }, [])
 
   const stopListening = useCallback(() => {
