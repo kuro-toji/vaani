@@ -5,30 +5,30 @@
  */
 
 const VOICE_IDS = {
-  // Hindi voices
-  hi: 'zR9mCjJy4TTpMFUMINP7', // Akshay (Male) - warm, friendly
-  // Bengali
-  bn: 'nPCSutJNnxQ1ThKleX6r', // Bashabi (Female)
+  // Hindi - voices that support Hindi via multilingual model
+  hi: 'JBFqnCBsd6RMkjVDRZzb', // George (male, british) - warm, friendly
+  // Bengali - use Hindi-supporting voice
+  bn: 'EXAVITQu4vr4xnSDxMaL', // Sarah (female) - clear, warm
   // Tamil
-  ta: 'GQnfS45Cu1SmJzBzRj3k', // Muthu (Male)
+  ta: 'TX3LPaxmHKxFdv7VOQHJ', // Liam (male) - neutral
   // Telugu
-  te: 'CYzpKBrGjUcpSMMG3M5F', // Charan (Male)
+  te: 'cgSgspJ2msm6clMCkdW9', // Jessica (female) - clear
   // Marathi
-  mr: 'M5L4dRJ5kMBJGEfQWNtG', // Amit (Male)
+  mr: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // Gujarati
-  gu: 'NJyvd1I1sRpJN0GLr5l6', // Miraj (Male),
+  gu: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // Kannada
-  kn: 'O0NYEGO29TprNZqjyJKE', // Ganesha (Male),
+  kn: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // Malayalam
-  ml: 'K2pJvlAHz7bjnWzjXkFJ', // Vishnu (Male),
+  ml: 'TX3LPaxmHKxFdv7VOQHJ', // Liam (male) - same
   // Odia
-  or: 'G0lOdYQCNGEYlLl3pJl3', // Kishore (Male),
+  or: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // Punjabi
-  pa: 'eMxbK1lF1lW3aWbCNPiG', // Amrit (Male),
+  pa: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // Urdu
-  ur: '1Z7LKGlI5H2tJ8pOc3k6', // Faizan (Male),
+  ur: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
   // English
-  en: 'pFZP7FGaGmWlbQbQfF2F', // Daniel (American Male),
+  en: 'JBFqnCBsd6RMkjVDRZzb', // George (male) - same
 };
 
 // ElevenLabs voice settings for emotional, natural speech
