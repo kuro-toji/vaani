@@ -1138,10 +1138,122 @@ function LandingPage({ onStart }) {
             onBlur={(e) => {
               e.target.style.outline = 'none';
             }}
-          >
-            <span>Launch VAANI</span>
-            <span style={{ fontSize: '24px' }} aria-hidden="true">→</span>
           </button>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section style={{ padding: '80px 24px', backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '24px',
+            textAlign: 'center' 
+          }}>
+            {[
+              { label: 'Families Secured', value: '4.2M+' },
+              { label: 'States Reached', value: '28' },
+              { label: 'Total Saved', value: '₹1.5k Cr' },
+              { label: 'Dialects Supported', value: '29' }
+            ].map((stat, i) => (
+              <div key={i} className="glass-card" style={{ 
+                padding: '32px 24px', 
+                borderRadius: '24px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(12px)'
+              }}>
+                <div style={{ fontSize: '40px', fontWeight: 800, color: '#00D4AA', marginBottom: '8px' }}>{stat.value}</div>
+                <div style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.6)' }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How VAANI Works */}
+      <section style={{ padding: '120px 24px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '40px', fontWeight: 800, color: 'white', marginBottom: '16px' }}>How VAANI Works</h2>
+          <p style={{ fontSize: '18px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '64px' }}>Three simple steps to secure your financial future.</p>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '24px',
+            textAlign: 'left'
+          }}>
+            {[
+              { step: '1', title: 'Start Speaking', desc: 'Tap the mic in your native language. No typing required.' },
+              { step: '2', title: 'We Analyze', desc: 'VAANI matches your needs with 100+ local financial data points.' },
+              { step: '3', title: 'Take Action', desc: 'Get a clear, 3-step action plan that actually makes sense.' }
+            ].map((item, i) => (
+              <div key={i} className="glass-card" style={{ 
+                padding: '40px 32px', 
+                borderRadius: '24px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '-20px', 
+                  right: '-10px', 
+                  fontSize: '120px', 
+                  fontWeight: 900, 
+                  color: 'rgba(255, 255, 255, 0.03)' 
+                }}>{item.step}</div>
+                <h3 style={{ fontSize: '24px', fontWeight: 700, color: 'white', marginBottom: '12px', position: 'relative' }}>{item.title}</h3>
+                <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.6)', lineHeight: 1.6, position: 'relative' }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Accessibility Showcase */}
+      <section style={{ padding: '80px 24px 140px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '40px', fontWeight: 800, color: 'white', marginBottom: '16px' }}>The Curb-Cut Effect</h2>
+          <p style={{ fontSize: '18px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '64px', maxWidth: '600px', margin: '0 auto 64px' }}>
+            Built for the 10% with disabilities. Frictionless for the 90% in rural areas.
+          </p>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+            gap: '24px',
+            textAlign: 'left'
+          }}>
+            {[
+              { icon: '👁️', bg: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA', title: 'Visually Impaired', desc: 'Real-time STT/TTS engine with eyes-free haptic feedback loops and precise high-contrast UI modes.' },
+              { icon: '🦽', bg: 'rgba(16, 185, 129, 0.2)', color: '#34D399', title: 'Motor Impaired', desc: 'Full-screen PTT mode turns the entire device surface into a single, highly forgiving interaction target.' },
+              { icon: '🗣️', bg: 'rgba(168, 85, 247, 0.2)', color: '#C084FC', title: 'Speech Impaired', desc: 'Zero-vocal icon-card tap navigation allowing complete financial queries purely through iconography.' },
+              { icon: '🧠', bg: 'rgba(245, 158, 11, 0.2)', color: '#FBBF24', title: 'Cognitively Reduced', desc: 'Traffic-light dashboard distilling complex portfolio health into singular Green/Yellow/Red indicators.' }
+            ].map((card, i) => (
+              <div key={i} className="glass-card" style={{ 
+                padding: '32px', 
+                borderRadius: '24px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'flex-start'
+              }}>
+                <div style={{ 
+                  width: '56px', height: '56px', borderRadius: '50%', 
+                  background: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  fontSize: '24px', flexShrink: 0 
+                }}>{card.icon}</div>
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, color: card.color, marginBottom: '8px' }}>{card.title}</h3>
+                  <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.6)', lineHeight: 1.6 }}>{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

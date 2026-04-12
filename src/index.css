@@ -252,3 +252,93 @@ textarea:focus-visible {
 #main-content:focus {
   outline: none;
 }
+
+/* ===== Premium UI Utilities ===== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+.vaani-high-contrast .glass-card,
+.vaani-high-contrast .glass-panel {
+  background: var(--vaani-bg);
+  border: 2px solid var(--vaani-text);
+  backdrop-filter: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #0F6E56 0%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vaani-high-contrast .gradient-text {
+  background: none;
+  -webkit-text-fill-color: var(--vaani-text);
+  color: var(--vaani-text);
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.6s ease forwards;
+}
+
+@keyframes floatAnimation {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: floatAnimation 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(15, 110, 86, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Marquee Scroller */
+.scroller {
+  max-width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.scroller-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  animation: scroll 30s forwards linear infinite;
+}
+
+@keyframes scroll {
+  to {
+    transform: translate(calc(-50% - 0.5rem));
+  }
+}
+
+/* Premium Background */
+.bg-mesh {
+  background-color: #f7f9fc;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%);
+}
