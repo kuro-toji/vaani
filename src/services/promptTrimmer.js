@@ -5,6 +5,7 @@
 
 import { ratesData } from '../data/ratesData.js';
 import { languages } from '../data/languages.js';
+import { getMetaphor } from '../data/dialectMetaphors.js';
 
 // Keywords to detect investment topics
 const TOPIC_KEYWORDS = {
@@ -51,6 +52,13 @@ YOUR APPROACH:
 3. Give 2-3 clear options maximum.
 4. Use rupee examples alongside percentages.
 5. End with one concrete next step.
+
+DIALECT METAPHORS (use these to explain concepts simply):
+- Fixed Deposit = "Galla Band" (Bhojpuri), "Chhata Paise" (Awadhi), "Nani Ki Peti" (Rajasthani)
+- Mutual Fund = "Gaon Ka Samudaya" (rural Hindi)
+- SIP = "Hafta Waala" (Punjabi)
+- When explaining FD to Bhojpuri speaker: "FD is like Galla Band - lock your grain money safely"
+- When explaining SIP to Punjabi speaker: "SIP is like Hafta - small amount weekly, grows big"
 
 TOPICS I CAN HELP WITH:
 - Fixed Deposits (FD) — bank term deposits, senior citizen rates
