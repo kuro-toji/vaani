@@ -11,13 +11,14 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { useAccessibility } from '../context/AccessibilityContext.jsx';
 import { useCognitiveMode } from '../context/CognitiveModeContext.jsx';
 import CognitiveDashboard from './CognitiveDashboard.jsx';
+import FullScreenPTT from './FullScreenPTT.jsx';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
   const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
   const messagesEndRef = useRef(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { largeText, highContrast, toggleLargeText, toggleHighContrast } = useAccessibility();
+  const { largeText, highContrast, fullScreenPTT, toggleLargeText, toggleHighContrast, toggleFullScreenPTT } = useAccessibility();
   const [showIconMode, setShowIconMode] = useState(false);
   
   // Track message count for flash notification trigger
@@ -72,6 +73,18 @@ export default function ChatWindow() {
     return <CognitiveDashboard />;
   }
 
+  if (fullScreenPTT) {
+    return (
+      <FullScreenPTT 
+        language={language} 
+        onSend={(text) => {
+          sendMessage(text, true);
+        }}
+        onClose={toggleFullScreenPTT}
+      />
+    );
+  }
+
   return (
     <>
       <FlashNotification trigger={flashTrigger} />
@@ -121,6 +134,17 @@ export default function ChatWindow() {
             title="बड़ा टेक्सट"
           >
             <span className="text-sm font-bold text-[#0F6E56]">Aa</span>
+          </button>
+          
+          {/* Full Screen PTT Toggle */}
+          <button
+            onClick={toggleFullScreenPTT}
+            aria-pressed={fullScreenPTT}
+            aria-label="पूर्ण स्क्रीन माइक मोड"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            title="पूरी स्क्रीन पर माइक"
+          >
+             <span className="text-lg">📱</span>
           </button>
           
           {/* High Contrast Toggle */}
