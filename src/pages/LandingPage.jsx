@@ -57,6 +57,7 @@ function useLandingVoice() {
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
   const onResultRef = useRef(null);
+  const transcriptRef = useRef('');
 
   // Cleanup on unmount
   useEffect(() => {
@@ -88,6 +89,7 @@ function useLandingVoice() {
     setError(null);
     setIsListening(true);
     setTranscript('');
+    transcriptRef.current = '';
     onResultRef.current = onResult;
 
     const recognition = new SpeechRecognition();
@@ -107,6 +109,7 @@ function useLandingVoice() {
         finalTranscript += e.results[i][0].transcript;
       }
       setTranscript(finalTranscript);
+      transcriptRef.current = finalTranscript;
     };
 
     recognition.onerror = (e) => {
@@ -121,8 +124,9 @@ function useLandingVoice() {
 
     recognition.onend = () => {
       setIsListening(false);
-      if (transcript && onResultRef.current) {
-        onResultRef.current(transcript);
+      // Use the ref since transcript from state is stale in this closure
+      if (transcriptRef.current && onResultRef.current) {
+        onResultRef.current(transcriptRef.current);
       }
     };
 
@@ -143,6 +147,7 @@ function useLandingVoice() {
     }
     setIsListening(false);
     setTranscript('');
+    transcriptRef.current = '';
   }, []);
 
   return { isListening, transcript, error, startListening, stopListening };
