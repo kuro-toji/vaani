@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
-import useVoice from '../hooks/useVoice.js';
+import { useVoice } from '../hooks/useVoice.js';
 import useVibration from '../hooks/useVibration.js';
 import ConfirmationModal from './ConfirmationModal.jsx';
 
@@ -19,7 +19,16 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [transcribedText, setTranscribedText] = useState('');
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
-  const { vibrateOnRecordingStart } = useVibration();
+  const { vibrateOnRecordingStart, vibrateListeningLoop, stopVibration } = useVibration();
+
+  // Handle listening vibration loop
+  useEffect(() => {
+    if (isListening) {
+      vibrateListeningLoop();
+    } else {
+      stopVibration();
+    }
+  }, [isListening, vibrateListeningLoop, stopVibration]);
 
   // Reset message when language changes
   useEffect(() => {

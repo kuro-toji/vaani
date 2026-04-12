@@ -35,7 +35,7 @@ export function useChat() {
   const [isMuted, setMuted] = useState(false);
 
   const { speak, stopSpeaking } = useVoice();
-  const { vibrateOnAIResponse } = useVibration();
+  const { vibrateOnAIResponse, vibrateOnRecordingStart, vibrateThinking, stopVibration } = useVibration();
   const idCounter = useRef(0);
   const messagesRef = useRef([]);
 
@@ -132,6 +132,7 @@ export function useChat() {
     // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    if (!isMuted) vibrateThinking();
 
     try {
       // Detect language if not manually set
@@ -164,6 +165,9 @@ export function useChat() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Stop thinking vibration and do response vibration
+      stopVibration();
 
       // Vibration feedback for AI response (only when not muted)
       if (!isMuted) {
@@ -234,8 +238,9 @@ export function useChat() {
       }
     } finally {
       setIsLoading(false);
+      stopVibration();
     }
-  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse]);
+  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
 
   const setLanguageManual = useCallback((code) => {
     setLanguage(code);
