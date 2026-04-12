@@ -63,16 +63,16 @@ function MessageBubble({ message, language }) {
         aria-label={isUser ? 'आपका संदेश' : 'Vaani का जवाब'}
         style={{
           maxWidth: isUser ? '75%' : '80%',
-          padding: '12px 16px',
+          padding: 'var(--vaani-bubble-padding, 12px) 16px',
           borderRadius: isUser ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
-          backgroundColor: isUser ? '#0F6E56' : 'white',
-          color: isUser ? 'white' : '#111827',
-          border: isUser ? 'none' : '1px solid #E5E7EB',
+          backgroundColor: isUser ? 'var(--vaani-user-bubble)' : 'var(--vaani-ai-bubble-bg)',
+          color: isUser ? 'white' : 'var(--vaani-ai-bubble-text)',
+          border: isUser ? 'none' : '1px solid var(--vaani-border)',
           boxShadow: isUser
             ? '0 2px 12px rgba(15, 110, 86, 0.25)'
             : '0 1px 4px rgba(0, 0, 0, 0.06)',
           lineHeight: 1.6,
-          fontSize: '15px',
+          fontSize: 'var(--vaani-base-font-size, 15px)',
         }}
       >
         <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
