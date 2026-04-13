@@ -30,25 +30,43 @@ body {
   --vaani-ai-bubble-text: #111827;
   --vaani-border: #E5E7EB;
   --vaani-input-bg: #FFFFFF;
+  --vaani-accent: #0F6E56;
   --vaani-base-font-size: 15px;
+  --vaani-bubble-font-size: 14px;
   --vaani-bubble-padding: 12px;
 }
 
 /* Large Text Mode — only changes CSS variables */
 .vaani-large-text {
-  --vaani-base-font-size: 20px;
-  --vaani-bubble-padding: 16px;
+  --vaani-base-font-size: 20px !important;
+  --vaani-bubble-font-size: 18px !important;
+  --vaani-bubble-padding: 16px !important;
 }
 
 /* High Contrast Mode — only changes CSS variables */
 .vaani-high-contrast {
-  --vaani-bg: #FFFFFF;
-  --vaani-text: #000000;
-  --vaani-user-bubble: #1E3A5F;
-  --vaani-ai-bubble-bg: #F0F0F0;
-  --vaani-ai-bubble-text: #000000;
-  --vaani-border: #333333;
-  --vaani-input-bg: #FFFFFF;
+  --vaani-bg: #FFFFFF !important;
+  --vaani-text: #000000 !important;
+  --vaani-user-bubble: #1E3A8A !important;
+  --vaani-ai-bubble-bg: #F3F4F6 !important;
+  --vaani-ai-bubble-text: #000000 !important;
+  --vaani-border: #000000 !important;
+  --vaani-input-bg: #FFFFFF !important;
+  --vaani-accent: #2563EB !important;
+}
+
+.vaani-high-contrast * {
+  border-color: #000000 !important;
+}
+
+.vaani-high-contrast .bg-white,
+.vaani-high-contrast div {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+.vaani-high-contrast button {
+  border: 2px solid #000000 !important;
 }
 
 html.vaani-high-contrast, html.vaani-high-contrast body {
