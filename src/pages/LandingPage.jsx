@@ -6,103 +6,49 @@ import { useLandingVoice } from '../hooks/useLandingVoice.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { extractDigitsFromText } from '../data/indianDigitMap.js';
 
-/* ─── SVG Waveform Logo ─── */
-function VaaniLogo({ size = 32 }) {
-  const barHeights = [8, 14, 20, 14, 8];
-  const barWidth = 3;
-  const barGap = 2;
-  const totalBarWidth = barHeights.length * barWidth + (barHeights.length - 1) * barGap;
-  const maxBarHeight = Math.max(...barHeights);
-  const svgHeight = size;
-  const scale = svgHeight / maxBarHeight;
+/* ─── Water Drop Transition ─────────────────────────────── */
+function WaterDropTransition({ isActive, children }) {
+  const [phase, setPhase] = useState('idle'); // 'idle' | 'expand' | 'peak' | 'collapse'
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    // Start expand
+    setPhase('expand');
+
+    // At peak coverage (~50% of 900ms = 450ms) — show new content briefly
+    timerRef.current = setTimeout(() => {
+      setPhase('peak');
+    }, 450);
+
+    // Start collapse after peak
+    timerRef.current = setTimeout(() => {
+      setPhase('collapse');
+    }, 451);
+
+    // Done
+    timerRef.current = setTimeout(() => {
+      setPhase('idle');
+    }, 1151);
+
+    return () => clearTimeout(timerRef.current);
+  }, [isActive]);
+
+  if (phase === 'idle') return null;
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-      <svg
-        width={totalBarWidth * scale}
-        height={svgHeight}
-        viewBox={`0 0 ${totalBarWidth} ${maxBarHeight}`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        {barHeights.map((h, i) => (
-          <rect
-            key={i}
-            x={i * (barWidth + barGap)}
-            y={maxBarHeight - h}
-            width={barWidth}
-            height={h}
-            rx={1.5}
-            fill="#0F6E56"
-          />
-        ))}
-      </svg>
-      <span
-        style={{
-          fontWeight: 700,
-          fontSize: `${size * 0.85}px`,
-          lineHeight: 1,
-          background: 'linear-gradient(135deg, #00D4AA, #10B981)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          letterSpacing: '0.5px',
-        }}
-      >
-        VAANI
-      </span>
-    </span>
+    <div className="water-drop-overlay" aria-hidden="true">
+      <div
+        className={`water-drop-ripple ${phase === 'expand' ? 'animating' : phase === 'collapse' ? 'collapsing' : ''}`}
+        style={{}}
+      />
+      <div className={`water-drop-content ${phase === 'peak' ? 'visible' : ''}`}>
+        {children}
+      </div>
+    </div>
   );
 }
-
-/* ─── Fallback color palette for language circles ─── */
-const LANG_COLORS = [
-  '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
-  '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#A855F7',
-  '#E11D48', '#0EA5E9',
-];
-
-const WAVE_HEIGHTS = [8, 12, 18, 22, 18, 12, 8];
-const WAVE_DELAYS = [0, 0.1, 0.2, 0.3, 0.2, 0.1, 0];
-
-const LANG_HEADLINES = {
-  hi: { line1: 'आपकी आवाज़।', line2: 'आपकी भाषा।', sub: 'भारत का पहला वॉइस-फर्स्ट वित्तीय सलाहकार' },
-  bn: { line1: 'আপনার কণ্ঠস্বর।', line2: 'আপনার ভাষা।', sub: 'ভারতের প্রথম ভয়েস-ফার্স্ট আর্থিক উপদেষ্টা' },
-  te: { line1: 'మీ స్వరం।', line2: 'మీ భాష।', sub: 'భారతదేశ మొదటి వాయిస్-ఫస్ట్ ఆర్థిక సలహాదారు' },
-  ta: { line1: 'உங்கள் குரல்।', line2: 'உங்கள் மொழி।', sub: 'இந்தியாவின் முதல் குரல்-முதல் நிதி ஆலோசகர்' },
-  mr: { line1: 'तुमचा आवाज।', line2: 'तुमची भाषा।', sub: 'भारताचा पहिला व्हॉइस-ఫర్స్ట ఆर్థिक सल्लागार' },
-  gu: { line1: 'તમારો અવાજ।', line2: 'તમારી ભાષા।', sub: 'ભારતનો પ્રથમ વૉઇસ-ફર્સ્ટ નાણાકીય સલાહકાર' },
-  kn: { line1: 'ನಿಮ್ಮ ಧ್ವನಿ।', line2: 'ನಿಮ್ಮ ಭಾಷೆ।', sub: 'ಭಾರತದ ಮೊದಲ ವಾಯ್ಸ್-ఫస్ట్ హಣಕಾಸು ಸಲಹೆಗಾರ' },
-  ml: { line1: 'നിങ്ങളുടെ ശബ്ദം।', line2: 'നിങ്ങളുടെ ഭാഷ।', sub: 'ഇന്ത്യയുടെ ആദ്യ വോയ്സ്-ఫస్ఱ്റ് ధനകാര്യ ഉപദേഷ്ടാവ്' },
-  pa: { line1: 'ਤੁਹਾਡੀ ਆਵਾਜ਼।', line2: 'ਤੁਹਾਡੀ ਭਾਸ਼ਾ।', sub: 'ਭਾਰਤ ਦਾ ਪਹਿਲਾ ਵੌਇਸ-ਫਸਟ ਵਿੱਤੀ ਸਲਾਹਕਾਰ' },
-  or: { line1: 'ଆପଣଙ୍କ ସ୍ୱର।', line2: 'ଆପଣଙ୍କ ଭାଷା।', sub: 'ଭାରତର ପ୍ରଥମ ଭଏସ-ଫାର୍ଷ୍ଟ ଆର୍ଥିକ ସଲାହକାର' },
-  ur: { line1: 'آپ کی آواز۔', line2: 'آپ کی زبان۔', sub: 'بھارت کا پہلا وائس-فرسٹ مالیاتی مشیر' },
-  as: { line1: 'আপোনাৰ মাত।', line2: 'আপোনাৰ ভাষা।', sub: 'ভাৰতৰ প্ৰথম ভয়েচ-ফাৰ্ষ্ট বিত্তীয় পৰামৰ্শদাতা' },
-};
-const DEFAULT_HEADLINE = { line1: 'Your Voice.', line2: 'Your Language.', sub: "India's first voice-first financial advisor" };
-
-const HOW_STEPS = [
-  { num: '1', emoji: '🎤', title: 'Tap & Speak', desc: "Say anything in your language. 'Mera 50,000 kahan lagaun?'" },
-  { num: '2', emoji: '🤖', title: 'Vaani Understands', desc: 'AI listens, detects your language, finds the best answer from real bank data' },
-  { num: '3', emoji: '🔊', title: 'Hear Your Answer', desc: 'Response read aloud in your language. No reading needed.' },
-];
-
-const TRUST_CARDS = [
-  { emoji: '🏛️', title: 'No Hidden Charges', desc: 'Vaani is 100% free. We never ask for money, bank details, or OTP. Ever.' },
-  { emoji: '🔒', title: 'Your Data is Safe', desc: "We don't store your name, account number, or personal details. Nothing is saved after the conversation." },
-  { emoji: '📊', title: 'Real Bank Data', desc: 'All FD rates, post office rates, and scheme details are sourced from RBI and official bank websites.' },
-  { emoji: '👥', title: '1 Lakh+ Users Trust Us', desc: 'Farmers, homemakers, daily wage workers across India use Vaani every day.' },
-];
-
-const A11Y_CARDS = [
-  { emoji: '👁️', title: 'Blind Users', desc: 'Auto-reads all responses aloud. Complete voice-in, voice-out experience. No screen needed.' },
-  { emoji: '👂', title: 'Hearing Impaired', desc: 'All responses shown as large readable text. Icon-based shortcuts for common questions.' },
-  { emoji: '🤝', title: 'Motor Impaired', desc: 'Full-screen tap mode — tap ANYWHERE on screen to speak. No small buttons.' },
-  { emoji: '🧠', title: 'Simple Mode', desc: 'Traffic light UI (Green/Yellow/Red) — no charts, no numbers, just simple yes/no answers.' },
-  { emoji: '👴', title: 'Elderly Users', desc: "Large text mode, slow speech, simple words. Ask 'What is FD?' and get a story, not a chart." },
-  { emoji: '📖', title: 'Low Literacy', desc: 'Visual icon cards — tap a picture to get financial advice. No typing or reading needed.' },
-];
 
 export default function LandingPage({ onStart }) {
   const [pincode, setPincode] = useState('');
@@ -115,6 +61,7 @@ export default function LandingPage({ onStart }) {
   const [headlineAnim, setHeadlineAnim] = useState('idle'); // 'idle' | 'out' | 'in'
   const [activeHeadline, setActiveHeadline] = useState(DEFAULT_HEADLINE);
   const [nextHeadline, setNextHeadline] = useState(null);
+  const [waterDropKey, setWaterDropKey] = useState(0);
   const pincodeInputRef = useRef(null);
 
   const { isListening, startListening, stopListening } = useLandingVoice();
@@ -171,6 +118,13 @@ export default function LandingPage({ onStart }) {
     return () => clearTimeout(timer);
   }, [selectedLangIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Trigger water drop on language change
+  useEffect(() => {
+    if (selectedLangIndex === 0) return; // Skip on initial render
+    // Fire water drop — set a new key forces re-render with isActive=true
+    setWaterDropKey(prev => prev + 1);
+  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleLanguageSelect = (lang, index) => {
     setSelectedLangIndex(index);
     setDetectedLang(lang.name);
@@ -201,12 +155,13 @@ export default function LandingPage({ onStart }) {
   };
 
   return (
-    <div role="main" className="vaani-landing" style={{
-      backgroundColor: '#0F172A',
-      color: '#ffffff',
-      minHeight: '100vh',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-    }}>
+    <WaterDropTransition isActive={waterDropKey > 0}>
+      <div role="main" className="vaani-landing" style={{
+        backgroundColor: '#0F172A',
+        color: '#ffffff',
+        minHeight: '100vh',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+      }}>
       {/* ── Keyframes ── */}
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -631,5 +586,6 @@ export default function LandingPage({ onStart }) {
         <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px' }}>Not a bank. Not financial advice.</span>
       </footer>
     </div>
+    </WaterDropTransition>
   );
 }

@@ -21,6 +21,7 @@ export function LanguageProvider({ children, initialLang }) {
   useEffect(() => {
     try {
       localStorage.setItem('vaani_language', language);
+      triggerWaterDrop(); // ← add this
     } catch {}
   }, [language]);
 
@@ -35,6 +36,24 @@ export function useLanguage() {
   const ctx = useContext(LanguageContext);
   if (!ctx) throw new Error('useLanguage must be used within LanguageProvider');
   return ctx;
+}
+
+/**
+ * Trigger a water-drop ripple animation on the next language change.
+ * Components listening to 'vaani:triggerWaterDrop' will activate their animation.
+ */
+export function triggerWaterDrop() {
+  window.dispatchEvent(new CustomEvent('vaani:triggerWaterDrop', { detail: { timestamp: Date.now() } }));
+}
+
+/**
+ * Subscribe to water-drop triggers — call this in LandingPage to start the animation.
+ * Returns a useEffect-like cleanup function.
+ */
+export function onWaterDrop(callback) {
+  const handler = (e) => callback(e.detail);
+  window.addEventListener('vaani:triggerWaterDrop', handler);
+  return () => window.removeEventListener('vaani:triggerWaterDrop', handler);
 }
 
 export default LanguageContext;

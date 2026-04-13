@@ -71,6 +71,18 @@ export function useChat() {
     }
   }, [language, messages]);
 
+  // Reset greeting messages when global context language changes (after mount)
+  useEffect(() => {
+    if (!contextLanguage) return;
+    if (messages.length > 2) return; // Don't override user conversation
+    if (messages[0]?.id !== 'greeting_user' || messages[1]?.id !== 'greeting_assistant') return;
+    const newGreeting = getGreeting(contextLanguage);
+    setMessages([
+      { id: 'greeting_user', role: 'user', content: newGreeting.user, timestamp: new Date() },
+      { id: 'greeting_assistant', role: 'assistant', content: newGreeting.ai, timestamp: new Date() },
+    ]);
+  }, [contextLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load saved messages on mount
   useEffect(() => {
     try {
