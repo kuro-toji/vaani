@@ -6,7 +6,7 @@ import { ChevronLeft, TrendingUp, Calendar, MessageCircle, Award, Target } from 
 
 export default function PersonalDashboard({ onClose }) {
   const { messages, language } = useChat();
-  const [vaaniScore, setVaaniScore] = useState(0);
+  const [vaaniScore, setVaaniScore] = useState(50);
   const [streak, setStreak] = useState(0);
   const [scoreGrade, setScoreGrade] = useState('C');
   const [goals, setGoals] = useState([]);
@@ -14,52 +14,51 @@ export default function PersonalDashboard({ onClose }) {
 
   useEffect(() => {
     try {
-      // Calculate VAANI Score from conversation
-      const userMessages = (messages && Array.isArray(messages))
-        ? messages.filter(m => m.role === 'user')
-        : [];
+      const messageArray = Array.isArray(messages) ? messages : [];
+      const userMessages = messageArray.filter(m => m.role === 'user');
       const scoreData = calculateVaaniScore({
-        monthlyIncome: 30000, // Default assumption
+        monthlyIncome: 30000,
         savingsRatio: 15,
         hasEmergencyFund: false,
         hasInsurance: true,
         hasInvestment: true,
         lifeGoals: goals,
         dependents: 0
-      }, messages);
+      }, messageArray);
       
       setVaaniScore(scoreData?.score ?? 50);
       setScoreGrade(scoreData?.grade ?? 'C');
     } catch (e) {
-      console.error('VAANI Score error:', e);
+      console.error('Score error:', e);
       setVaaniScore(50);
       setScoreGrade('C');
     }
     
     try {
       const streakData = getStreak();
-      setStreak(streakData?.currentStreak ?? 0);
+      setStreak(streakData?.current ?? streakData?.currentStreak ?? 0);
     } catch (e) {
-      console.error('Streak error:', e);
       setStreak(0);
     }
-    
-    // Extract recent topics from conversations
-    const userMessages = (messages && Array.isArray(messages))
-      ? messages.filter(m => m.role === 'user')
-      : [];
-    const topics = userMessages.slice(-5).map(m => {
-      const text = m.content.substring(0, 50);
-      return text.length < m.content.length ? text + '...' : text;
-    });
-    setRecentTopics(topics);
+
+    try {
+      const messageArray = Array.isArray(messages) ? messages : [];
+      const userMessages = messageArray.filter(m => m.role === 'user');
+      const topics = userMessages.slice(-5).map(m => {
+        const text = m.content?.substring(0, 50) || '';
+        return text.length < (m.content?.length || 0) ? text + '...' : text;
+      });
+      setRecentTopics(topics);
+    } catch (e) {
+      setRecentTopics([]);
+    }
   }, [messages, goals]);
 
   const getScoreColor = (score) => {
-    if (score >= 80) return '#10B981'; // Green
-    if (score >= 60) return '#22C55E'; // Light green
-    if (score >= 40) return '#F59E0B'; // Yellow
-    return '#EF4444'; // Red
+    if (score >= 80) return '#10B981';
+    if (score >= 60) return '#22C55E';
+    if (score >= 40) return '#F59E0B';
+    return '#EF4444';
   };
 
   const getScoreMessage = (score) => {
@@ -70,13 +69,18 @@ export default function PersonalDashboard({ onClose }) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--vaani-bg)] pb-20">
-      {/* Header */}
-      <div className="bg-[#1D9E75] text-white px-4 py-6 pt-12">
+    <div className="min-h-screen bg-[#0F172A] text-white pb-20">
+      {/* Header - Dark gradient matching landing */}
+      <div 
+        className="px-4 py-6 pt-12"
+        style={{
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F6E56 100%)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <button 
             onClick={onClose}
-            className="flex items-center gap-2 text-white/90 hover:text-white"
+            className="flex items-center gap-2 text-white/90 hover:text-white transition-colors"
             aria-label="वापस जाएं"
           >
             <ChevronLeft size={24} />
@@ -85,52 +89,72 @@ export default function PersonalDashboard({ onClose }) {
           <h1 className="text-lg font-semibold">मेरा डैशबोर्ड</h1>
           <div className="w-12"></div>
         </div>
+        
+        {/* Logo */}
+        <div className="flex items-center justify-center mt-4 mb-2">
+          <span className="text-3xl">📊</span>
+        </div>
       </div>
 
       {/* VAANI Score Card */}
-      <div className="px-4 -mt-4">
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="px-4 -mt-6">
+        <div 
+          className="rounded-2xl p-6"
+          style={{
+            background: 'linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#1D9E75]/10 flex items-center justify-center">
-                <Award className="text-[#1D9E75]" size={24} />
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(16, 185, 129, 0.2)' }}
+              >
+                <Award className="text-[#10B981]" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-500">VAANI स्कोर</p>
-                <p className="text-xs text-gray-400">आपका वित्तीय स्वास्थ्य</p>
+                <p className="text-sm text-white/70">VAANI स्कोर</p>
+                <p className="text-xs text-white/50">आपका वित्तीय स्वास्थ्य</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-4xl font-bold" style={{ color: getScoreColor(vaaniScore) }}>
+              <span 
+                className="text-4xl font-bold"
+                style={{ color: getScoreColor(vaaniScore) }}
+              >
                 {vaaniScore}
               </span>
-              <span className="text-lg text-gray-400">/100</span>
+              <span className="text-lg text-white/40">/100</span>
             </div>
           </div>
           
           {/* Score Bar */}
-          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-white/10 rounded-full overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-500"
               style={{ 
                 width: `${vaaniScore}%`,
-                backgroundColor: getScoreColor(vaaniScore)
+                background: `linear-gradient(90deg, ${getScoreColor(vaaniScore)}, ${getScoreColor(vaaniScore)}aa)`,
               }}
             />
           </div>
           
-          <p className="mt-3 text-sm text-gray-600 text-center">
+          <p className="mt-3 text-sm text-white/80 text-center">
             {getScoreMessage(vaaniScore)}
           </p>
           
           {/* Grade */}
           <div className="flex justify-center mt-4">
-            <div className={`px-4 py-1 rounded-full text-sm font-semibold ${
-              scoreGrade === 'A' ? 'bg-green-100 text-green-700' :
-              scoreGrade === 'B' ? 'bg-blue-100 text-blue-700' :
-              scoreGrade === 'C' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
-            }`}>
+            <div 
+              className="px-4 py-1 rounded-full text-sm font-semibold"
+              style={{
+                background: `${getScoreColor(vaaniScore)}22`,
+                color: getScoreColor(vaaniScore),
+                border: `1px solid ${getScoreColor(vaaniScore)}44`,
+              }}
+            >
               ग्रेड: {scoreGrade}
             </div>
           </div>
@@ -139,20 +163,29 @@ export default function PersonalDashboard({ onClose }) {
 
       {/* Streak Card */}
       <div className="px-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-lg p-5">
+        <div 
+          className="rounded-2xl p-5"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <Calendar className="text-orange-500" size={24} />
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(249, 115, 22, 0.2)' }}
+              >
+                <Calendar className="text-orange-400" size={24} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">आपकी स्ट्रीक</p>
-                <p className="text-xs text-gray-400">लगातार दिनों की मदद</p>
+                <p className="text-sm font-medium text-white">आपकी स्ट्रीक</p>
+                <p className="text-xs text-white/50">लगातार दिनों की मदद</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-bold text-orange-500">{streak}</span>
-              <span className="text-sm text-gray-400 ml-1">दिन</span>
+              <span className="text-3xl font-bold text-orange-400">{streak}</span>
+              <span className="text-sm text-white/40 ml-1">दिन</span>
             </div>
           </div>
         </div>
@@ -160,25 +193,38 @@ export default function PersonalDashboard({ onClose }) {
 
       {/* Recent Topics */}
       <div className="px-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-lg p-5">
+        <div 
+          className="rounded-2xl p-5"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-              <MessageCircle className="text-purple-500" size={20} />
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(139, 92, 246, 0.2)' }}
+            >
+              <MessageCircle className="text-purple-400" size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">हाल की बातचीत</p>
-              <p className="text-xs text-gray-400">आपने इन विषयों पर बात की</p>
+              <p className="text-sm font-medium text-white">हाल की बातचीत</p>
+              <p className="text-xs text-white/50">आपने इन विषयों पर बात की</p>
             </div>
           </div>
           
           <div className="space-y-2">
             {recentTopics.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">अभी तक कोई बातचीत नहीं</p>
+              <p className="text-sm text-white/40 text-center py-4">अभी तक कोई बातचीत नहीं</p>
             ) : (
               recentTopics.map((topic, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
-                  <MessageCircle size={16} className="text-gray-400 mt-0.5 shrink-0" />
-                  <p className="text-sm text-gray-600">{topic}</p>
+                <div 
+                  key={i} 
+                  className="flex items-start gap-2 p-3 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                >
+                  <MessageCircle size={16} className="text-white/40 mt-0.5 shrink-0" />
+                  <p className="text-sm text-white/80">{topic}</p>
                 </div>
               ))
             )}
@@ -188,36 +234,51 @@ export default function PersonalDashboard({ onClose }) {
 
       {/* Quick Goals */}
       <div className="px-4 mt-4">
-        <div className="bg-white rounded-2xl shadow-lg p-5">
+        <div 
+          className="rounded-2xl p-5"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <Target className="text-blue-500" size={20} />
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(59, 130, 246, 0.2)' }}
+            >
+              <Target className="text-blue-400" size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">आपके लक्ष्य</p>
-              <p className="text-xs text-gray-400">वित्तीय लक्ष्य जो आपने बताए</p>
+              <p className="text-sm font-medium text-white">आपके लक्ष्य</p>
+              <p className="text-xs text-white/50">वित्तीय लक्ष्य जो आपने बताए</p>
             </div>
           </div>
           
           {goals.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-sm text-gray-400">अभी कोई लक्ष्य नहीं</p>
-              <p className="text-xs text-gray-400 mt-1">चैट में बात करके लक्ष्य बताएं</p>
+              <p className="text-sm text-white/40">अभी कोई लक्ष्य नहीं</p>
+              <p className="text-xs text-white/30 mt-1">चैट में बात करके लक्ष्य बताएं</p>
             </div>
           ) : (
             <div className="space-y-3">
               {goals.map((goal, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div 
+                  key={i} 
+                  className="flex items-center justify-between p-3 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                >
                   <div>
-                    <p className="text-sm font-medium text-gray-700">{goal.name}</p>
-                    <p className="text-xs text-gray-400">{goal.target}</p>
+                    <p className="text-sm font-medium text-white">{goal.name}</p>
+                    <p className="text-xs text-white/50">{goal.target}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    goal.status === 'on-track' ? 'bg-green-100 text-green-700' :
-                    goal.status === 'behind' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {goal.status === 'on-track' ? 'ठीक' : goal.status === 'behind' ? 'ध्यान' : 'कार्य'}
+                  <span 
+                    className="px-2 py-1 rounded text-xs font-medium"
+                    style={{
+                      background: `${getScoreColor(vaaniScore)}22`,
+                      color: getScoreColor(vaaniScore),
+                    }}
+                  >
+                    {goal.status === 'on-track' ? 'ठीक' : 'ध्यान'}
                   </span>
                 </div>
               ))}
@@ -228,7 +289,12 @@ export default function PersonalDashboard({ onClose }) {
 
       {/* Tips Section */}
       <div className="px-4 mt-4 mb-8">
-        <div className="bg-gradient-to-r from-[#1D9E75] to-[#0F6E56] rounded-2xl p-5 text-white">
+        <div 
+          className="rounded-2xl p-5"
+          style={{
+            background: 'linear-gradient(135deg, #0F6E56 0%, #1E3A5F 100%)',
+          }}
+        >
           <div className="flex items-center gap-3 mb-3">
             <TrendingUp size={24} />
             <p className="font-semibold">आज की टिप</p>
