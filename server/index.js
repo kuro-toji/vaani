@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import geminiRoute from './routes/gemini.js';
 import ttsRoute from './routes/tts.js';
 import detectRoute from './routes/detect.js';
+import sttRoute from './routes/stt.js';
+import ocrRoute from './routes/ocr.js';
 
 dotenv.config();
 
@@ -22,6 +24,8 @@ app.get('/health', (req, res) => {
 app.use('/api/gemini', geminiRoute);
 app.use('/api/tts', ttsRoute);
 app.use('/api/detect', detectRoute);
+app.use('/api/stt', sttRoute);
+app.use('/api/ocr', ocrRoute);
 
 // Error handler
 app.use((err, req, res, next) => {
