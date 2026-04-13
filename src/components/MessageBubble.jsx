@@ -88,7 +88,7 @@ function safeFormatTime(timestamp) {
 function MessageBubble({ message, language }) {
   const isUser = message.role === 'user';
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const { largeText } = useAccessibility();
+  const { largeText, highContrast } = useAccessibility();
 
   const handleSpeak = useCallback(async () => {
     if (isSpeaking) return;
@@ -124,7 +124,7 @@ function MessageBubble({ message, language }) {
     : `Vaani का जवाब: ${message.content.substring(0, 100)}`;
 
   return (
-    <div style={{
+    <div role="listitem" style={{
       display: 'flex',
       flexDirection: isUser ? 'row-reverse' : 'row',
       alignItems: 'flex-end',
@@ -142,6 +142,7 @@ function MessageBubble({ message, language }) {
           fontSize: '14px', fontWeight: 700, color: 'white',
           flexShrink: 0, marginRight: '8px', marginTop: '4px',
           boxShadow: '0 2px 8px rgba(15, 110, 86, 0.3)',
+          ...(highContrast && { background: '#FFFFFF', border: '2px solid #00FF88', color: '#00FF88' }),
         }}>V</div>
       )}
 
@@ -173,6 +174,13 @@ function MessageBubble({ message, language }) {
             boxShadow: isUser
               ? '0 2px 12px rgba(16,185,129,0.25)'
               : '0 2px 8px rgba(0,0,0,0.3)',
+            // High-contrast override
+            ...(highContrast && {
+              background: isUser ? '#004400' : '#FFFFFF',
+              border: isUser ? '2px solid #00FF88' : '2px solid #000000',
+              color: isUser ? '#FFFFFF' : '#000000',
+              boxShadow: 'none',
+            }),
           }}
         >
           {/* Rendered markdown content */}
@@ -234,6 +242,7 @@ function MessageBubble({ message, language }) {
           fontSize: '14px', fontWeight: 700, color: 'white',
           flexShrink: 0, marginLeft: '8px', marginTop: '4px',
           boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+          ...(highContrast && { background: '#FFFFFF', border: '2px solid #6366F1', color: '#6366F1' }),
         }}>U</div>
       )}
 

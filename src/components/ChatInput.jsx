@@ -22,7 +22,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
   const { vibrateOnRecordingStart, stopVibration, vibrateAISpoke } = useVibration();
   const { vibrateListeningPurr } = useVibration();
-  const { largeText } = useAccessibility();
+  const { largeText, highContrast } = useAccessibility();
 
   // Handle listening vibration loop
   useEffect(() => {
@@ -96,16 +96,21 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
 
   return (
     <>
-    <div style={{
-      display: 'flex', alignItems: 'flex-end', gap: '10px',
-      padding: '8px 12px',
-      background: 'transparent',
-    }}>
+    <div
+      data-vaani-input
+      style={{
+        display: 'flex', alignItems: 'flex-end', gap: '10px',
+        padding: '8px 12px',
+        background: 'transparent',
+      }}
+    >
       <div style={{
         flex: 1, display: 'flex', alignItems: 'flex-end',
-        background: '#EBEBF0', borderRadius: '20px',
+        background: highContrast ? 'rgba(0,0,0,0.9)' : 'rgba(235, 235, 240, 0.85)',
+        borderRadius: largeText ? '24px' : '20px',
         padding: '4px 12px', minHeight: largeText ? '64px' : '48px',
-        transition: 'border-color 0.2s ease',
+        border: highContrast ? '2px solid #00FF88' : '1.5px solid transparent',
+        transition: 'border-color 0.2s ease, background 0.2s ease',
       }}>
         <textarea
           ref={textareaRef}

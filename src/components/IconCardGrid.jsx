@@ -6,6 +6,7 @@
  * Large tap zones (80x80px min) with active:scale-95 for tremor feedback.
  */
 import { vibrateSuccess } from '../hooks/useVibration.js';
+import { useAccessibility } from '../context/AccessibilityContext.jsx';
 
 const ICON_CARDS = [
   {
@@ -60,6 +61,8 @@ const ICON_CARDS = [
 
 export default function IconCardGrid({ onSendMessage, isVisible, onClose }) {
   if (!isVisible) return null;
+
+  const { highContrast } = useAccessibility();
 
   const handleCardTap = (card) => {
     vibrateSuccess();
@@ -146,10 +149,11 @@ export default function IconCardGrid({ onSendMessage, isVisible, onClose }) {
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               borderRadius: '20px', padding: '16px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '2px solid rgba(255,255,255,0.12)',
+              background: highContrast ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.06)',
+              border: highContrast ? '2px solid #00FF88' : '2px solid rgba(255,255,255,0.12)',
               cursor: 'pointer', transition: 'all 0.2s',
-              fontSize: '48px', // emoji size
+              fontSize: '48px',
+              color: highContrast ? '#00FF88' : 'inherit',
             }}
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
