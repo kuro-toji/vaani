@@ -7,6 +7,7 @@ import LanguageSelector from './LanguageSelector.jsx';
 import ChatInput from './ChatInput.jsx';
 import FlashNotification from './FlashNotification.jsx';
 import IconCardGrid from './IconCardGrid.jsx';
+import PersonalDashboard from './PersonalDashboard.jsx';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useAccessibility } from '../context/AccessibilityContext.jsx';
 import { useCognitiveMode } from '../context/CognitiveModeContext.jsx';
@@ -36,6 +37,7 @@ export default function ChatWindow() {
   const [activePanel, setActivePanel] = useState(null);
   const [showToolbar, setShowToolbar] = useState(false);
   const [showAccessMenu, setShowAccessMenu] = useState(false);
+  const [showPersonalDashboard, setShowPersonalDashboard] = useState(false);
 
   // Record streak on mount
   useEffect(() => { recordActivity(); }, []);
@@ -153,6 +155,10 @@ export default function ChatWindow() {
 
             {/* Language Selector */}
             <LanguageSelector language={language} onSelect={setLanguageManual} isManual={isLanguageManual} />
+
+            {/* Personal Dashboard */}
+            <button onClick={() => setShowPersonalDashboard(true)}
+              style={headerBtn(showPersonalDashboard)} aria-label="डैशबोर्ड" title="मेरा डैशबोर्ड">📊</button>
           </div>
         </header>
 
@@ -253,6 +259,11 @@ export default function ChatWindow() {
             sendMessage(summary);
           }}
         />
+      )}
+
+      {/* Personal Dashboard */}
+      {showPersonalDashboard && (
+        <PersonalDashboard onClose={() => setShowPersonalDashboard(false)} />
       )}
     </>
   );
