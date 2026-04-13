@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getRegionByPincode } from '../services/pincodeService';
 import { useLandingVoice } from '../hooks/useLandingVoice';
+import { useVoiceNavigation } from '../hooks/useVoiceNavigation';
 import { Mic, MicOff } from 'lucide-react';
 
 const languages = [
@@ -58,6 +59,7 @@ function LandingPage({ onStart }) {
   const [isVisible, setIsVisible] = useState({});
   const heroRef = useRef(null);
   const { isListening: isListeningPincode, startListening: startPincodeVoice, stopListening: stopPincodeVoice } = useLandingVoice();
+  const { isListening: isVoiceNavListening, startListening: startVoiceNav, stopListening: stopVoiceNav } = useVoiceNavigation();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -935,6 +937,37 @@ function LandingPage({ onStart }) {
           50% { transform: scale(1.1); opacity: 0.8; }
         }
       `}</style>
+
+      {/* Floating Voice Navigation Button */}
+      <div 
+        role="button"
+        aria-label={isVoiceNavListening ? 'Voice navigation बंद करें' : 'Voice navigation शुरू करें'}
+        onClick={() => isVoiceNavListening ? stopVoiceNav() : startVoiceNav()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            isVoiceNavListening ? stopVoiceNav() : startVoiceNav();
+          }
+        }}
+        tabIndex={0}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          backgroundColor: isVoiceNavListening ? '#EF4444' : '#0F6E56',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          zIndex: 9999,
+        }}
+      >
+        {isVoiceNavListening ? <MicOff size={24} color="white" /> : <Mic size={24} color="white" />}
+      </div>
     </div>
   );
 }

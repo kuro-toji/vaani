@@ -26,6 +26,18 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
     setMessage('');
   }, [language]);
 
+  // Listen for voice start event from voice navigation
+  useEffect(() => {
+    const handleStartVoice = () => {
+      if (!isListening && !isLoading && !isMuted && !isModelLoading) {
+        handleStartListening();
+      }
+    };
+    
+    window.addEventListener('vaani-start-voice', handleStartVoice);
+    return () => window.removeEventListener('vaani-start-voice', handleStartVoice);
+  }, [isListening, isLoading, isMuted, isModelLoading]);
+
   // Placeholder rotation every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
