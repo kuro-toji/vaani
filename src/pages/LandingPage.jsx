@@ -98,6 +98,11 @@ function LandingPage({ onStart }) {
         overflowX: 'hidden',
       }}
     >
+      {/* Skip Link - Accessibility */}
+      <a href="#main-content" className="skip-link">
+        🎤 Chat पर जाएं / Skip to Chat
+      </a>
+
       {/* Navigation */}
       <nav
         style={{
@@ -155,7 +160,7 @@ function LandingPage({ onStart }) {
 
       {/* Hero Section */}
       <section
-        id="hero"
+        id="main-content"
         ref={heroRef}
         style={{
           minHeight: '100dvh',
