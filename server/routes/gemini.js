@@ -2,8 +2,8 @@ import express from 'express';
 
 const router = express.Router();
 
-const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text/chatcompletion_v2';
-const MINIMAX_MODEL = 'MiniMax-Text-01';
+const MINIMAX_API_URL = 'https://api.minimax.io/v1/text/chatcompletion_v2';
+const MINIMAX_MODEL = 'MiniMax-M2.7';
 
 /**
  * Build the messages array for MiniMax API.
