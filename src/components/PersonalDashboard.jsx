@@ -15,7 +15,9 @@ export default function PersonalDashboard({ onClose }) {
   useEffect(() => {
     try {
       // Calculate VAANI Score from conversation
-      const userMessages = messages.filter(m => m.role === 'user');
+      const userMessages = (messages && Array.isArray(messages))
+        ? messages.filter(m => m.role === 'user')
+        : [];
       const scoreData = calculateVaaniScore({
         monthlyIncome: 30000, // Default assumption
         savingsRatio: 15,
@@ -43,7 +45,9 @@ export default function PersonalDashboard({ onClose }) {
     }
     
     // Extract recent topics from conversations
-    const userMessages = messages.filter(m => m.role === 'user');
+    const userMessages = (messages && Array.isArray(messages))
+      ? messages.filter(m => m.role === 'user')
+      : [];
     const topics = userMessages.slice(-5).map(m => {
       const text = m.content.substring(0, 50);
       return text.length < m.content.length ? text + '...' : text;

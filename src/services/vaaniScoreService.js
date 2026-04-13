@@ -26,11 +26,15 @@ const NEGATIVE_KEYWORDS = {
 
 /**
  * Calculate VAANI Score from conversation messages.
+ * @param {Object} userProfile - User profile object
  * @param {Array} messages - Array of { role, content } message objects
  * @returns {Object} { score, breakdown, level, emoji, advice }
  */
-export function calculateVaaniScore(messages) {
-  if (!messages || messages.length === 0) {
+export function calculateVaaniScore(userProfile, messages = []) {
+  // Ensure messages is always an array
+  const messageArray = Array.isArray(messages) ? messages : [];
+  
+  if (messageArray.length === 0) {
     return {
       score: 0,
       breakdown: {},
@@ -40,17 +44,17 @@ export function calculateVaaniScore(messages) {
     };
   }
 
-  const allText = messages.map(m => m.content.toLowerCase()).join(' ');
+  const allText = messageArray.map(m => m.content.toLowerCase()).join(' ');
 
   let totalScore = 0;
   const breakdown = {};
 
   for (const [pillar, config] of Object.entries(PILLARS)) {
     const hasEvidence = config.keywords.some(kw => allText.includes(kw));
-    const userMentioned = messages
+    const userMentioned = messageArray
       .filter(m => m.role === 'user')
       .some(m => config.keywords.some(kw => m.content.toLowerCase().includes(kw)));
-    const aiConfirmed = messages
+    const aiConfirmed = messageArray
       .filter(m => m.role === 'assistant')
       .some(m => config.keywords.some(kw => m.content.toLowerCase().includes(kw)));
 
