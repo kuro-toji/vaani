@@ -116,11 +116,13 @@ export function useChat() {
 
       if (detectedLang) {
         setLanguage(detectedLang);
+        setContextLanguage(detectedLang);
         setIsLanguageManual(true);
         // Clear so it doesn't override future auto-detection on reload
         sessionStorage.removeItem('vaani_detected_language');
       } else if (savedLang) {
         setLanguage(savedLang);
+        setContextLanguage(savedLang);
       }
 
       if (savedMuted === '1') setMuted(true);
