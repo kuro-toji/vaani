@@ -1,4 +1,4 @@
-# 🌾 VAANI: Vernacular Adaptive AI Navigator for Investments
+# VAANI: Vernacular Adaptive AI Navigator for Investments
 
 > A dialect-native, hyper-accessible AI financial co-pilot empowering rural India's next 800 million.
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 🎯 One-Line Pitch
+## One-Line Pitch
 
 **"Financial literacy shouldn't require English fluency."**
 
@@ -16,7 +16,7 @@ VAANI is an AI-powered personal finance advisor that lets rural and semi-urban I
 
 ---
 
-## 🤔 The Problem
+## The Problem
 
 **Current fintech serves only the top 10%.**
 
@@ -24,7 +24,7 @@ VAANI is an AI-powered personal finance advisor that lets rural and semi-urban I
 
 - **Farmers, daily wage earners, elderly, specially-abled** — systematically underserved
 - **Tiny text, complex charts, formal jargon** — creates fear and confusion
-- **Predatory lending thrives in low-literacy zones** — ₹12,000 avg. yearly loss per household
+- **Predatory lending thrives in low-literacy zones** — 12,000 INR avg. yearly loss per household
 - **Feature phones and low-end Android** — 85% of rural India can't use existing apps
 - **15% have disabilities** — requiring accessible interfaces that don't exist
 
@@ -32,7 +32,7 @@ VAANI is an AI-powered personal finance advisor that lets rural and semi-urban I
 
 ---
 
-## 💡 The Solution: The "Curb-Cut Effect"
+## The Solution: The "Curb-Cut Effect"
 
 **Designing for the margins creates a superior product for all.**
 
@@ -47,26 +47,26 @@ VAANI applies **sensory + cognitive engineering**, not traditional UI:
 
 ---
 
-## ✨ Core Features
+## Core Features
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 🎤 | **Full-Screen Voice Target (PTT)** | Press-to-talk with 56px touch targets + hands-free wake word for motor-impaired users |
-| 👁️ | **Eyes-Free Haptic Loop** | `navigator.vibrate` feedback loop for visually impaired — every action confirmed by vibration |
-| 🚫 | **Zero-Voice Macro-Chips** | Icon grid (tractor, hospital, mandap) for speech-impaired — tap to speak without voice |
-| 🧠 | **Cognitive Simplicity Mode** | Traffic-light UI (🟢🟡🔴) — Green/Yellow/Red decisions for users with cognitive impairments |
-| 🗣️ | **Dialect-Native Concept Mapping** | "Galla Band" for FD in Bhojpuri/Maithili, "Hafta Waala" for SIP in Punjabi |
-| 🔊 | **Acoustic Warmth** | ElevenLabs TTS (`eleven_multilingual_v2`) — natural voice output in all 28 languages |
-| 💧 | **Micro-Trust Transactions** | ₹10 risk-free test deposits — let users verify before committing |
-| 🌍 | **28 Indian Languages** | Auto-detected from pincode or manual selection |
-| 📍 | **Pincode-Based Region Detection** | Enter pincode → auto-detect language + regional context (bank rates vary by RBI region) |
-| 📉 | **Prompt Compactor** | 60–70% token reduction — only topic-relevant data sent per query |
-| 📱 | **PWA + Offline Support** | Service Worker caches app shell; works partially offline |
-| 🔒 | **Security Hardened** | LocalStorage encryption, XSS sanitization, CSP headers, rate limiting |
+| | **Full-Screen Voice Target (PTT)** | Press-to-talk with 56px touch targets + hands-free wake word for motor-impaired users |
+| | **Eyes-Free Haptic Loop** | `navigator.vibrate` feedback loop for visually impaired — every action confirmed by vibration |
+| | **Zero-Voice Macro-Chips** | Icon grid (tractor, hospital, mandap) for speech-impaired — tap to speak without voice |
+| | **Cognitive Simplicity Mode** | Traffic-light UI (Green/Yellow/Red) — Green/Yellow/Red decisions for users with cognitive impairments |
+| | **Dialect-Native Concept Mapping** | "Galla Band" for FD in Bhojpuri/Maithili, "Hafta Waala" for SIP in Punjabi |
+| | **Acoustic Warmth** | ElevenLabs TTS (`eleven_multilingual_v2`) — natural voice output in all 28 languages |
+| | **Micro-Trust Transactions** | 10 INR risk-free test deposits — let users verify before committing |
+| | **28 Indian Languages** | Auto-detected from pincode or manual selection |
+| | **Pincode-Based Region Detection** | Enter pincode → auto-detect language + regional context (bank rates vary by RBI region) |
+| | **Prompt Compactor** | 60–70% token reduction — only topic-relevant data sent per query |
+| | **PWA + Offline Support** | Service Worker caches app shell; works partially offline |
+| | **Security Hardened** | LocalStorage encryption, XSS sanitization, CSP headers, rate limiting |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -99,37 +99,37 @@ VAANI applies **sensory + cognitive engineering**, not traditional UI:
 
 ---
 
-## 🎬 Demo Flow
+## Demo Flow
 
 ```
 User opens VAANI → Mic icon prominent on screen
 
-1️⃣ TAPS MICROPHONE or says wake word
+TAPS MICROPHONE or says wake word
    ↓
-2️⃣ SPEAKS IN NATIVE LANGUAGE
+SPEAKS IN NATIVE LANGUAGE
    "Mujhe fixed deposit ke baare mein jaanna hai"
    ↓
-3️⃣ VAANI DETECTS LANGUAGE + REGION via pincode
+VAANI DETECTS LANGUAGE + REGION via pincode
    (Hindi, Bihar region)
    ↓
-4️⃣ ROUTES TO RELEVANT FINANCIAL TOPIC
+ROUTES TO RELEVANT FINANCIAL TOPIC
    Fixed Deposit → Bihar RBI region rates
    ↓
-5️⃣ PROVIDES CULTURALLY-RELEVANT ANSWER
+PROVIDES CULTURALLY-RELEVANT ANSWER
    "Bihar mein FD karne ke liye SBI mein jaao,
     6.5% yah 7.2% tak milta hai—
     Galla Band ki tarah safe hai!"
    ↓
-6️⃣ SPEAKS ANSWER BACK + shows in text
+SPEAKS ANSWER BACK + shows in text
    ElevenLabs TTS in Hindi
    ↓
-7️⃣ OPTION TO CONTINUE or switch language
+OPTION TO CONTINUE or switch language
    Water-drop ripple animation → new language active
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Frontend + Backend
@@ -146,28 +146,28 @@ npm run dev:full
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Frontend (`.env` in root)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_MINIMAX_API_KEY` | ✅ Yes | MiniMax API key |
-| `VITE_GROQ_API_KEY` | ❌ No | Groq API key (cloud Whisper STT) |
-| `VITE_ELEVENLABS_API_KEY` | ❌ No | ElevenLabs API key (TTS) |
+| `VITE_MINIMAX_API_KEY` | Yes | MiniMax API key |
+| `VITE_GROQ_API_KEY` | No | Groq API key (cloud Whisper STT) |
+| `VITE_ELEVENLABS_API_KEY` | No | ElevenLabs API key (TTS) |
 
 ### Backend (`server/.env`)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MINIMAX_API_KEY` | ✅ Yes | — | MiniMax API key |
-| `GROQ_API_KEY` | ❌ No | — | Groq API key |
-| `ELEVENLABS_API_KEY` | ❌ No | — | ElevenLabs API key |
-| `PORT` | ❌ No | `3001` | Server port |
+| `MINIMAX_API_KEY` | Yes | — | MiniMax API key |
+| `GROQ_API_KEY` | No | — | Groq API key |
+| `ELEVENLABS_API_KEY` | No | — | ElevenLabs API key |
+| `PORT` | No | `3001` | Server port |
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 ### Phase 1: Universal Accessibility Upgrades
 1. **Voice-Biometric Auth** — voice-print unlock instead of passwords/PINs
@@ -177,7 +177,7 @@ npm run dev:full
 ### Phase 2: Mass Adoption Infrastructure
 4. **WhatsApp/USSD Fallback** — headless operation for 2G/WhatsApp environments
 5. **Family Node Linking** — multiple phones linked to household financial goal
-6. **Micro-Nudge Savings** — AI identifies ₹20 idle balances, voice nudge to save
+6. **Micro-Nudge Savings** — AI identifies 20 INR idle balances, voice nudge to save
 
 ### Phase 3: Infrastructure & Security
 7. **Edge-Deployed WAF** — localized firewall at API gateway, brute-force protection
@@ -185,7 +185,7 @@ npm run dev:full
 
 ---
 
-## 🌍 Supported Languages
+## Supported Languages
 
 **28 Indian Languages** — auto-detected from pincode or manual selection:
 
@@ -199,7 +199,7 @@ Sanskrit · Bhojpuri · Rajasthani · Chhattisgarhi · Tulu · Haryanvi · Magah
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 - **LocalStorage encryption** — user data never stored in plain text
 - **XSS sanitization** — all user inputs sanitized before rendering
@@ -210,7 +210,7 @@ Sanskrit · Bhojpuri · Rajasthani · Chhattisgarhi · Tulu · Haryanvi · Magah
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 vani/
@@ -235,19 +235,19 @@ vani/
 
 ---
 
-## 📊 Stats
+## Stats
 
 | Metric | Value |
 |--------|-------|
 | Languages | 28 |
 | Commits | 146 |
-| Voice-First | ✅ |
-| WCAG Compliant | ✅ |
-| PWA Ready | ✅ |
+| Voice-First | Yes |
+| WCAG Compliant | Yes |
+| PWA Ready | Yes |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -261,7 +261,7 @@ vani/
 
 <div align="center">
 
-**⭐ Star this repo if VAANI helped you!**
+**Star this repo if VAANI helped you!**
 
 *Financial literacy for 800M+ Indians — one voice at a time.*
 
