@@ -5,7 +5,7 @@ import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
 import OnboardingFlow from './components/OnboardingFlow';
-import PartnerDashboard from './pages/PartnerDashboard';
+// import PartnerDashboard from './pages/PartnerDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
@@ -16,10 +16,10 @@ function AppContent() {
 
   // Check for first visit (onboarding) and hash routes
   useEffect(() => {
-    // Check URL hash for dashboard route
-    if (window.location.hash === '#/dashboard') {
-      setShowDashboard(true);
-    }
+    // [DISABLED] Check URL hash for dashboard route
+    // if (window.location.hash === '#/dashboard') {
+    //   setShowDashboard(true);
+    // }
 
     // Show onboarding on first visit
     try {
@@ -29,27 +29,27 @@ function AppContent() {
       }
     } catch {}
 
-    // Listen for hash changes
-    const handleHash = () => {
-      if (window.location.hash === '#/dashboard') {
-        setShowDashboard(true);
-      } else {
-        setShowDashboard(false);
-      }
-    };
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    // [DISABLED] Listen for hash changes
+    // const handleHash = () => {
+    //   if (window.location.hash === '#/dashboard') {
+    //     setShowDashboard(true);
+    //   } else {
+    //     setShowDashboard(false);
+    //   }
+    // };
+    // window.addEventListener('hashchange', handleHash);
+    // return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Partner Dashboard route
-  if (showDashboard) {
-    return (
-      <PartnerDashboard onBack={() => {
-        window.location.hash = '';
-        setShowDashboard(false);
-      }} />
-    );
-  }
+  // [DISABLED] Partner Dashboard route
+  // if (showDashboard) {
+  //   return (
+  //     <PartnerDashboard onBack={() => {
+  //       window.location.hash = '';
+  //       setShowDashboard(false);
+  //     }} />
+  //   );
+  // }
 
   // Onboarding for first-time users
   if (showOnboarding) {
