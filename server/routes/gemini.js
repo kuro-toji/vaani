@@ -66,9 +66,20 @@ router.post('/chat', async (req, res) => {
 
     const data = await response.json();
 
-    // MiniMax returns: { choices: [{ messages: [{ role: 'assistant', content: '...' }] }] }
     const choice = data?.choices?.[0];
-    const reply = choice?.messages?.[0]?.content || '';
+    console.log('MiniMax response choices[0]:', JSON.stringify(choice));
+    // MiniMax-Text-01 OpenAI-compat: singular "message" not "messages"
+    const reply = choice?.message?.content 
+      || choice?.messages?.[0]?.content  // fallback for older MiniMax models
+      || '';
+
+    if (!reply) {
+      console.error('Empty reply from MiniMax. Full response:', JSON.stringify(data));
+      return res.status(500).json({ 
+        error: 'MiniMax returned empty content',
+        raw: data 
+      });
+    }
 
     res.json({ reply });
   } catch (error) {
