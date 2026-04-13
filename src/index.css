@@ -103,9 +103,14 @@ label[for] {
 }
 
 /* Accessible focus styles */
-:focus-visible {
-  outline: 2px solid #1D9E75;
+*:focus-visible {
+  outline: 3px solid #00D4AA;
   outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .vaani-high-contrast :focus-visible {

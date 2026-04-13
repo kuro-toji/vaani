@@ -70,6 +70,18 @@ export default function ChatWindow() {
     };
   }, []);
 
+  // Keyboard navigation - Escape to close icon mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showIconMode) {
+        setShowIconMode(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showIconMode]);
+
   // Build className for accessibility modes
   const containerClass = [
     'flex-1',

@@ -107,8 +107,49 @@ function LandingPage({ onStart }) {
     });
   }, []);
 
-  const scrollToDemo = () => {
-    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+  const handleLanguageKeyDown = (e, index) => {
+    const gridCols = 3;
+    let newIndex = index;
+    
+    switch (e.key) {
+      case 'ArrowRight':
+        newIndex = Math.min(index + 1, languages.length - 1);
+        break;
+      case 'ArrowLeft':
+        newIndex = Math.max(index - 1, 0);
+        break;
+      case 'ArrowDown':
+        newIndex = Math.min(index + gridCols, languages.length - 1);
+        break;
+      case 'ArrowUp':
+        newIndex = Math.max(index - gridCols, 0);
+        break;
+      case 'Home':
+        newIndex = 0;
+        break;
+      case 'End':
+        newIndex = languages.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        handleLanguageSelect(languages[index]);
+        return;
+      default:
+        return;
+    }
+    
+    e.preventDefault();
+    const buttons = document.querySelectorAll('.language-card-btn');
+    if (buttons[newIndex]) {
+      buttons[newIndex].focus();
+    }
+  };
+
+  const handleLanguageSelect = (lang) => {
+    // Language selection logic - for now just log
+    console.log('Selected language:', lang.code);
+    if (onStart) onStart();
   };
 
   return (
@@ -522,35 +563,53 @@ function LandingPage({ onStart }) {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <div style={{ fontSize: '36px', marginBottom: '12px' }}>{lang.flag}</div>
-                <div
+                <button
+                  onClick={() => handleLanguageSelect(lang)}
+                  onKeyDown={(e) => handleLanguageKeyDown(e, index)}
+                  tabIndex={0}
+                  className="language-card-btn"
                   style={{
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    color: '#fff',
-                    marginBottom: '4px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
                   }}
+                  aria-label={`${lang.name} (${lang.native}) - ${lang.speakers} speakers`}
                 >
-                  {lang.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(255,255,255,0.4)',
-                    marginBottom: '8px',
-                  }}
-                >
-                  {lang.native}
-                </div>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    color: '#00D4AA',
-                    fontWeight: 500,
-                  }}
-                >
-                  {lang.speakers}
-                </div>
+                  <span style={{ fontSize: '36px' }}>{lang.flag}</span>
+                  <span
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      color: '#fff',
+                      marginBottom: '0',
+                    }}
+                  >
+                    {lang.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      color: 'rgba(255,255,255,0.4)',
+                      marginBottom: '0',
+                    }}
+                  >
+                    {lang.native}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: '#00D4AA',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {lang.speakers}
+                  </span>
+                </button>
               </div>
             ))}
           </div>
