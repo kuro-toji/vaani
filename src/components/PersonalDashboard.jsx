@@ -168,9 +168,9 @@ export default function PersonalDashboard({ onClose }) {
             </div>
           )}
           
-          <p className="mt-3 text-sm text-white/80 text-center">
+          <div className="mt-3 text-sm text-white/80 text-center">
             {loading ? <SkeletonLine width="w-48" height="h-4" /> : getScoreMessage(vaaniScore)}
-          </p>
+          </div>
           
           {/* Grade Badge */}
           <div className="flex justify-center mt-4">

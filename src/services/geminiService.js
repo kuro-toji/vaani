@@ -1,27 +1,34 @@
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
+/**
+ * MiniMax M2.7 Service — Primary AI for Vaani chat responses.
+ *
+ * This file replaces Gemini but keeps the same export name (sendToGemini)
+ * so no other file in the codebase needs to change.
+ *
+ * MiniMax uses an OpenAI-compatible messages format with native system role.
+ */
+
+const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text/chatcompletion_v2';
+const MINIMAX_API_KEY = import.meta.env.VITE_MINIMAX_API_KEY;
 
 /**
- * Build the Gemini-format contents array from messages + systemPrompt.
- * Gemini has no native system prompt, so we simulate it with two prepended turns.
+ * Build the MiniMax messages array from conversation + systemPrompt.
+ * MiniMax supports a native system role — no need to fake it.
  */
-function buildContents(messages, systemPrompt) {
-  const contents = [];
+function buildMessages(messages, systemPrompt) {
+  const result = [];
 
   if (systemPrompt) {
-    contents.push(
-      { role: 'user', parts: [{ text: systemPrompt }] },
-      { role: 'model', parts: [{ text: 'Understood. I am Vaani. I will follow all these instructions.' }] }
-    );
+    result.push({ role: 'system', content: systemPrompt });
   }
 
   for (const msg of messages) {
-    contents.push({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
+    result.push({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content,
     });
   }
 
-  return contents;
+  return result;
 }
 
 /**
@@ -48,14 +55,14 @@ async function tryLocalServer(messages, systemPrompt) {
 }
 
 /**
- * Send a conversation to Gemini 1.5 Flash.
+ * Send a conversation to MiniMax M2.7.
  *
  * Strategy:
  * 1. Try local Express server first (if running via npm run dev:full)
- * 2. Fall back to direct Gemini API call from the browser
+ * 2. Fall back to direct MiniMax API call from the browser
  *
  * @param {Array<{role: 'user'|'assistant', content: string}>} messages - Conversation history.
- * @param {string} systemPrompt - System-level instructions (simulated via prepended turns).
+ * @param {string} systemPrompt - System-level instructions.
  * @returns {Promise<string>} The model's response text.
  */
 export async function sendToGemini(messages, systemPrompt) {
@@ -63,21 +70,21 @@ export async function sendToGemini(messages, systemPrompt) {
   const localResult = await tryLocalServer(messages, systemPrompt);
   if (localResult) return localResult;
 
-  // 2. Fall back to direct Gemini API call
-  const contents = buildContents(messages, systemPrompt);
-
+  // 2. Fall back to direct MiniMax API call
   const body = {
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 1024,
-      topP: 0.9,
-    },
+    model: 'MiniMax-Text-01',
+    messages: buildMessages(messages, systemPrompt),
+    max_tokens: 1024,
+    temperature: 0.7,
+    top_p: 0.9,
   };
 
-  const response = await fetch(GEMINI_API_URL, {
+  const response = await fetch(MINIMAX_API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${MINIMAX_API_KEY}`,
+    },
     body: JSON.stringify(body),
   });
 
@@ -88,14 +95,14 @@ export async function sendToGemini(messages, systemPrompt) {
       throw new Error(`429 Rate limit exceeded: ${errorBody}`);
     }
 
-    throw new Error(`Gemini API error ${response.status}: ${errorBody}`);
+    throw new Error(`MiniMax API error ${response.status}: ${errorBody}`);
   }
 
   const data = await response.json();
 
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = data?.choices?.[0]?.message?.content;
   if (!text) {
-    throw new Error('Gemini returned an empty response');
+    throw new Error('MiniMax returned an empty response');
   }
 
   return text;

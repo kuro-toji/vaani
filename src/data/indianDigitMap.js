@@ -137,11 +137,16 @@ export const langToSpeechLocale = {
 };
 
 /**
- * Get sorted digit map keys for regex replacement.
- * Sorts by length descending to prevent shorter words from matching first.
+ * Returns digit-map keys sorted by length descending, each tagged with
+ * isAscii flag so callers can use the correct regex flag.
  */
 export function getSortedDigitKeys() {
-  return Object.keys(indianDigitMap).sort((a, b) => b.length - a.length);
+  return Object.keys(indianDigitMap)
+    .sort((a, b) => b.length - a.length)
+    .map(word => ({
+      word,
+      isAscii: /^[a-z]+$/i.test(word), // true only for pure ASCII (English digit words)
+    }));
 }
 
 /**
@@ -150,13 +155,29 @@ export function getSortedDigitKeys() {
  * @returns {string} - String containing only extracted digit characters
  */
 export function extractDigitsFromText(text) {
-  let processed = text.toLowerCase().trim();
-  
+  if (!text) return '';
+
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  // If transcript is already all digits (6 chars), return it directly
+  const pureDigits = trimmed.replace(/\s/g, '').replace(/\D/g, '');
+  if (pureDigits.length === 6) return pureDigits;
+
   const sortedKeys = getSortedDigitKeys();
-  for (const word of sortedKeys) {
-    processed = processed.replace(new RegExp(word, 'gi'), indianDigitMap[word]);
+
+  let result = trimmed;
+
+  for (const { word, isAscii } of sortedKeys) {
+    if (isAscii) {
+      // ASCII words: case-insensitive replacement against lowercase version
+      result = result.toLowerCase().replace(new RegExp(word, 'gi'), indianDigitMap[word]);
+    } else {
+      // Unicode words: match as-is, no case folding needed
+      result = result.replace(new RegExp(word, 'g'), indianDigitMap[word]);
+    }
   }
-  
+
   // Extract only digit characters
-  return processed.replace(/\D/g, '');
+  return result.replace(/\D/g, '');
 }

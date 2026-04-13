@@ -91,23 +91,21 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
     )
   };
 
+  const hasContent = message.trim().length > 0;
+
   return (
     <>
     <div style={{
       display: 'flex', alignItems: 'flex-end', gap: '10px',
-      padding: '12px 16px',
-      background: 'var(--vaani-bg)',
+      padding: '8px 12px',
+      background: 'transparent',
     }}>
       <div style={{
         flex: 1, display: 'flex', alignItems: 'flex-end',
-        background: '#F3F4F6', borderRadius: '24px',
-        padding: '4px 16px', minHeight: largeText ? '64px' : '48px',
-        border: '1px solid transparent',
+        background: '#EBEBF0', borderRadius: '20px',
+        padding: '4px 12px', minHeight: largeText ? '64px' : '48px',
         transition: 'border-color 0.2s ease',
-      }}
-        onFocus={e => e.currentTarget.style.borderColor = '#0F6E56'}
-        onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
-      >
+      }}>
         <textarea
           ref={textareaRef}
           dir="auto"
@@ -127,12 +125,12 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         />
       </div>
 
-      {/* Mic Button */}
+      {/* Mic Button — 40×40 */}
       <button
         onClick={isListening ? stopListening : handleStartListening}
         disabled={isLoading || isMuted || isModelLoading}
         style={{
-          width: '48px', height: '48px', borderRadius: '50%',
+          width: '40px', height: '40px', borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0, border: 'none', cursor: 'pointer',
           background: isListening ? '#EF4444' : isMuted ? '#9CA3AF' : 'linear-gradient(135deg, #0F6E56, #10B981)',
@@ -147,24 +145,25 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         {isModelLoading ? (
           <span style={{ color: 'white', fontSize: '12px' }}>...</span>
         ) : isListening ? (
-          <MicOff size={20} color="white" />
+          <MicOff size={18} color="white" />
         ) : (
-          <Mic size={20} color="white" />
+          <Mic size={18} color="white" />
         )}
       </button>
 
-      {/* Send Button */}
+      {/* Send Button — 40×40, only visible when content exists */}
       <button
         onClick={handleSend}
-        disabled={!message.trim() || isLoading}
+        disabled={!hasContent || isLoading}
         style={{
-          width: '48px', height: '48px', borderRadius: '50%',
+          width: '40px', height: '40px', borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, border: 'none', cursor: 'pointer',
-          background: message.trim() ? 'linear-gradient(135deg, #0F6E56, #10B981)' : '#E5E7EB',
-          boxShadow: message.trim() ? '0 2px 8px rgba(15, 110, 86, 0.3)' : 'none',
+          flexShrink: 0, border: 'none', cursor: hasContent ? 'pointer' : 'default',
+          background: hasContent ? 'linear-gradient(135deg, #0F6E56, #10B981)' : '#E5E7EB',
+          boxShadow: hasContent ? '0 2px 8px rgba(15, 110, 86, 0.3)' : 'none',
           transition: 'all 0.2s ease',
-          opacity: (!message.trim() || isLoading) ? 0.4 : 1,
+          opacity: (!hasContent || isLoading) ? 0.4 : 1,
+          visibility: hasContent ? 'visible' : 'hidden',
         }}
         aria-label="संदेश भेजें"
       >
@@ -200,7 +199,6 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         onConfirm={() => {
           setMessage(transcribedText)
           setShowConfirmation(false)
-          // Auto-send after confirm - this was a voice message
           if (transcribedText.trim()) {
             onSend(transcribedText, true) // fromVoice = true
             setTranscribedText('')
@@ -209,7 +207,6 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
         onRetry={() => {
           setShowConfirmation(false)
           setTranscribedText('')
-          // Auto-open mic again after retry
           setTimeout(() => {
             vibrateOnRecordingStart();
             startListening(

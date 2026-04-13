@@ -3,6 +3,11 @@ import { webSpeechSupported, whisperOnly, whisperLangMap } from '../data/speechL
 import { speakWithElevenLabs, isElevenLabsConfigured } from '../services/elevenLabsService.js'
 
 /* ─────────────────────────────────────────────
+ * Module-level Brave detection
+ * ───────────────────────────────────────────── */
+const IS_BRAVE = typeof navigator !== 'undefined' && !!navigator.brave
+
+/* ─────────────────────────────────────────────
  * Module-level Whisper singleton
  * ───────────────────────────────────────────── */
 let whisperPipeline = null
@@ -254,7 +259,7 @@ export function useVoice() {
     }
 
     recognition.onerror = (e) => {
-      if (e.error === 'network') {
+      if (e.error === 'network' || e.error === 'service-not-allowed') {
         // Silently mark for Whisper fallback and retry
         whisperOnlyRef.current.add(language)
         setIsListening(false)
@@ -282,8 +287,9 @@ export function useVoice() {
       setIsListening(true)
       setIsWhisperMode(false)
     } catch (err) {
-      setSttError(err.message)
-      onError?.(err.message)
+      // Recognition failed to start — fall back to Whisper
+      whisperOnlyRef.current.add(language)
+      startWhisper(onResult, onError, language)
     }
   }, [])
 
@@ -494,7 +500,10 @@ export function useVoice() {
     onResultCallbackRef.current = onResult
     onErrorCallbackRef.current = onError
 
-    const useWhisper = whisperOnlyRef.current.has(language) || !webSpeechSupported[language]
+    // If Brave, always use Whisper — skip Web Speech entirely
+    const useWhisper = IS_BRAVE ||
+      whisperOnlyRef.current.has(language) ||
+      !webSpeechSupported[language]
 
     if (useWhisper) {
       startWhisper(onResult, onError, language)
@@ -649,6 +658,7 @@ export function useVoice() {
     isListening,
     isModelLoading,
     isWhisperMode,
+    isBraveMode: IS_BRAVE,  // consumers can show a notice
     transcript,          // Pre-send preview text
     sttError,
     countdown,           // Auto-send countdown (seconds remaining, null if inactive)

@@ -5,7 +5,6 @@ import { useAccessibility } from '../context/AccessibilityContext.jsx';
 /**
  * Parse simple markdown into React elements.
  * Handles: **bold**, *italic*, \n line breaks, - or • bullet lists.
- * No external library needed.
  */
 function parseMarkdown(text) {
   if (!text) return [null];
@@ -30,21 +29,18 @@ function parseMarkdown(text) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    // Empty line → spacer
     if (line === '') {
       flushList();
       elements.push(<br key={`br-${i}`} />);
       continue;
     }
 
-    // Bullet line: starts with - or • or *  (but not *italic*)
     const bulletMatch = line.match(/^[-•]\s+(.*)/);
     if (bulletMatch) {
       listBuffer.push(bulletMatch[1]);
       continue;
     }
 
-    // Regular paragraph
     flushList();
     elements.push(
       <p key={`p-${i}`} style={{ margin: '2px 0' }}>{parseInline(line)}</p>
@@ -55,13 +51,9 @@ function parseMarkdown(text) {
   return elements;
 }
 
-/**
- * Parse inline markdown: **bold** and *italic*
- */
 function parseInline(text) {
   if (!text) return null;
 
-  // Split on **bold** and *italic* patterns
   const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
 
   return parts.map((part, i) => {
@@ -75,9 +67,6 @@ function parseInline(text) {
   });
 }
 
-/**
- * Safe timestamp parser — handles string dates from localStorage.
- */
 function safeFormatTime(timestamp) {
   if (!timestamp) return '';
   try {
@@ -94,7 +83,7 @@ function safeFormatTime(timestamp) {
 }
 
 /**
- * MessageBubble — Chat message bubble with markdown rendering and accessibility.
+ * MessageBubble — iMessage-style chat bubble.
  */
 function MessageBubble({ message, language }) {
   const isUser = message.role === 'user';
@@ -105,7 +94,6 @@ function MessageBubble({ message, language }) {
     if (isSpeaking) return;
     setIsSpeaking(true);
     try {
-      // Use global vaaniSpeak (exposed by App.jsx) or fallback to browser TTS
       if (typeof window.vaaniSpeak === 'function') {
         await window.vaaniSpeak(message.content, language);
       } else if ('speechSynthesis' in window) {
@@ -141,102 +129,108 @@ function MessageBubble({ message, language }) {
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       animation: 'messageSlideIn 0.3s ease forwards',
       opacity: 0,
+      position: 'relative',
     }}>
-      {/* Avatar for AI */}
+      {/* Avatar — AI (left) */}
       {!isUser && (
         <div style={{
           width: '32px', height: '32px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #0F6E56, #10B981)',
+          background: 'linear-gradient(135deg, #0F6E56, #00D4AA)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '14px', color: 'white', flexShrink: 0,
-          marginRight: '8px', marginTop: '4px',
+          fontSize: '14px', fontWeight: 700, color: 'white',
+          flexShrink: 0, marginRight: '8px', marginTop: '4px',
           boxShadow: '0 2px 8px rgba(15, 110, 86, 0.3)',
-        }}>🔊</div>
+        }}>V</div>
       )}
 
-      <div
-        dir="auto"
-        role="article"
-        tabIndex={0}
-        aria-label={ariaLabel}
-        onKeyDown={handleKeyDown}
-        className="message-bubble"
-        style={{
-          maxWidth: isUser ? '75%' : '80%',
-          padding: 'var(--vaani-bubble-padding, 12px) 16px',
-          borderRadius: isUser ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
-          backgroundColor: isUser ? 'var(--vaani-user-bubble)' : 'var(--vaani-ai-bubble-bg)',
-          color: isUser ? 'white' : 'var(--vaani-ai-bubble-text)',
-          border: isUser ? 'none' : '1px solid var(--vaani-border)',
-          boxShadow: isUser
-            ? '0 2px 12px rgba(15, 110, 86, 0.25)'
-            : '0 1px 4px rgba(0, 0, 0, 0.06)',
-          lineHeight: 1.6,
-          fontSize: largeText ? '20px' : 'var(--vaani-base-font-size, 15px)',
-          outline: 'none',
-          position: 'relative',
-        }}
-      >
-        {/* Rendered markdown content */}
-        <div style={{ wordBreak: 'break-word' }}>
-          {parseMarkdown(message.content)}
+      {/* Message column */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+        {/* Bubble */}
+        <div
+          dir="auto"
+          role="article"
+          tabIndex={0}
+          aria-label={ariaLabel}
+          onKeyDown={handleKeyDown}
+          className={isUser ? 'bubble-user' : 'bubble-ai'}
+          style={{
+            maxWidth: isUser ? '72%' : '80%',
+            padding: '10px 14px',
+            borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+            background: isUser
+              ? 'linear-gradient(135deg, #0F6E56, #1D9E75)'
+              : '#F2F2F7',
+            color: isUser ? 'white' : '#1C1C1E',
+            boxShadow: isUser
+              ? '0 1px 2px rgba(0,0,0,0.15)'
+              : '0 1px 2px rgba(0,0,0,0.08)',
+            lineHeight: 1.6,
+            fontSize: largeText ? '20px' : '15px',
+            outline: 'none',
+            position: 'relative',
+            overflow: 'visible',
+          }}
+        >
+          {/* Rendered markdown content */}
+          <div style={{ wordBreak: 'break-word' }}>
+            {parseMarkdown(message.content)}
+          </div>
         </div>
 
-        {/* Footer row: timestamp + speaker button */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: '4px',
-          gap: '8px',
+        {/* Timestamp — below bubble, outside */}
+        <span style={{
+          fontSize: '11px',
+          color: '#8E8E93',
+          marginTop: '3px',
+          marginLeft: isUser ? 0 : '4px',
+          marginRight: isUser ? '4px' : 0,
+          textAlign: isUser ? 'right' : 'left',
         }}>
-          <span style={{
-            fontSize: '11px',
-            color: isUser ? 'rgba(255,255,255,0.6)' : '#9CA3AF',
-          }}>
-            {safeFormatTime(message.timestamp)}
-          </span>
+          {safeFormatTime(message.timestamp)}
+        </span>
 
-          {/* Speaker icon — AI messages only, hover on desktop, always on mobile */}
-          {!isUser && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleSpeak(); }}
-              disabled={isSpeaking}
-              aria-label="यह संदेश सुनें"
-              title="सुनें"
-              className="speak-btn"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                border: 'none',
-                background: isSpeaking ? 'rgba(15, 110, 86, 0.2)' : 'transparent',
-                cursor: isSpeaking ? 'default' : 'pointer',
-                padding: 0,
-                transition: 'all 0.2s ease',
-                opacity: isSpeaking ? 0.8 : undefined,
-                flexShrink: 0,
-              }}
-            >
-              <Volume2 size={14} color="var(--vaani-primary, #0F6E56)" />
-            </button>
-          )}
-        </div>
+        {/* Speak button — below AI bubble, right-aligned, ghost style */}
+        {!isUser && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleSpeak(); }}
+            disabled={isSpeaking}
+            aria-label="यह संदेश सुनें"
+            title="सुनें"
+            className="speak-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              border: 'none',
+              background: 'transparent',
+              cursor: isSpeaking ? 'default' : 'pointer',
+              padding: 0,
+              transition: 'all 0.2s ease',
+              marginTop: '2px',
+              marginLeft: isUser ? 0 : '4px',
+              marginRight: isUser ? '4px' : 0,
+              alignSelf: isUser ? 'flex-end' : 'flex-start',
+              opacity: isSpeaking ? 0.8 : 0.6,
+            }}
+          >
+            <Volume2 size={14} color="#0F6E56" />
+          </button>
+        )}
       </div>
 
-      {/* Avatar for User */}
+      {/* Avatar — User (right) */}
       {isUser && (
         <div style={{
           width: '32px', height: '32px', borderRadius: '50%',
           background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '14px', color: 'white', flexShrink: 0,
-          marginLeft: '8px', marginTop: '4px',
+          fontSize: '14px', fontWeight: 700, color: 'white',
+          flexShrink: 0, marginLeft: '8px', marginTop: '4px',
           boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-        }}>👤</div>
+        }}>U</div>
       )}
 
       <style>{`
@@ -244,23 +238,51 @@ function MessageBubble({ message, language }) {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        /* Desktop: speaker button hidden until bubble hover */
-        .message-bubble .speak-btn {
+        /* Bubble tails */
+        .bubble-user {
+          position: relative;
+          overflow: visible;
+        }
+        .bubble-user::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          right: -6px;
+          width: 12px;
+          height: 12px;
+          background: #1D9E75;
+          clip-path: polygon(0 0, 0% 100%, 100% 100%);
+        }
+        .bubble-ai {
+          position: relative;
+          overflow: visible;
+        }
+        .bubble-ai::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: -6px;
+          width: 12px;
+          height: 12px;
+          background: #F2F2F7;
+          clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+        }
+        /* Desktop: speak button hidden until bubble hover */
+        .speak-btn {
           opacity: 0;
           transition: opacity 0.2s ease;
         }
-        .message-bubble:hover .speak-btn,
-        .message-bubble:focus-within .speak-btn {
-          opacity: 0.7;
+        .bubble-ai:hover .speak-btn {
+          opacity: 0.6;
         }
-        .message-bubble .speak-btn:hover {
+        .bubble-ai .speak-btn:hover {
           opacity: 1 !important;
-          background: rgba(15, 110, 86, 0.15) !important;
+          background: rgba(15, 110, 86, 0.1) !important;
         }
-        /* Mobile / touch: speaker always visible */
+        /* Mobile / touch: speak button always visible */
         @media (pointer: coarse) {
-          .message-bubble .speak-btn {
-            opacity: 0.7 !important;
+          .speak-btn {
+            opacity: 0.6 !important;
           }
         }
       `}</style>

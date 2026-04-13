@@ -66,7 +66,7 @@ export default function ChatWindow() {
     prevMessageCount.current = messages.length;
   }, [messages, language]);
 
-  // Auto-read new AI responses aloud when autoReadResponses is enabled (for blind users)
+  // Auto-read new AI responses aloud when autoReadResponses is enabled
   useEffect(() => {
     if (!autoReadResponses || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -155,53 +155,63 @@ export default function ChatWindow() {
       )}
 
       {/* ── Main Chat Container ── */}
-      <div className="flex flex-col flex-1 w-full bg-[var(--vaani-bg)] text-[var(--vaani-text)] overflow-hidden h-full min-h-screen transition"
+      <div className="flex flex-col flex-1 w-full text-[var(--vaani-text)] overflow-hidden h-full min-h-screen transition"
         style={{ fontSize: largeText ? '20px' : undefined }}
       >
-        {/* ── Header ── */}
-        <header className="flex items-center justify-between h-14 min-h-14 px-3 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] relative z-50 flex-shrink-0">
-          {/* Left: Title + Score */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <h1 className="text-xl font-bold text-primary">Vaani</h1>
-            {vaaniScore.score > 0 && (
-              <span className={`badge ${
-                vaaniScore.level === 'excellent' ? 'badge-success' : 
-                vaaniScore.level === 'good' ? 'badge-warning' : 'badge-error'
-              }`}>
-                {vaaniScore.emoji} {vaaniScore.score}
-              </span>
-            )}
+        {/* ── Apple-style Header ── */}
+        <header style={{
+          height: '56px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 8px',
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 50,
+        }}>
+          {/* Left: Back button */}
+          <button
+            aria-label="वापस"
+            style={{
+              width: '44px', height: '44px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              borderRadius: '50%',
+              color: '#8E8E93',
+              fontSize: '28px',
+              flexShrink: 0,
+            }}
+          >‹</button>
+
+          {/* Center: stacked title + online status */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '17px', fontWeight: 600, color: '#1C1C1E', lineHeight: 1.2 }}>
+              Vaani
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34C759', display: 'inline-block' }} />
+              <span style={{ fontSize: '12px', color: '#34C759', fontWeight: 400 }}>Online</span>
+            </div>
           </div>
 
-          {/* Right: Compact button group */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* Tools ⚡ */}
-            <button 
-              onClick={() => { setShowToolbar(!showToolbar); setShowAccessMenu(false); }}
-              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showToolbar ? 'bg-secondary' : ''}`}
-              aria-label="टूल्स" 
-              title="टूल्स"
-            >
-              ⚡
-            </button>
-
-            {/* Accessibility ♿ — opens sub-menu */}
-            <button 
-              onClick={() => { setShowAccessMenu(!showAccessMenu); setShowToolbar(false); }}
-              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showAccessMenu ? 'bg-secondary' : ''}`}
-              aria-label="सुलभता" 
-              title="सुलभता"
-            >
-              ♿
-            </button>
-
+          {/* Right: condensed icon buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
             {/* Mute */}
             <button 
               onClick={() => setMuted(!isMuted)}
-              className="btn btn-ghost btn-icon w-9 h-9 transition-fast"
+              style={{
+                width: '44px', height: '44px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderRadius: '50%',
+              }}
               aria-label={isMuted ? 'ध्वनि चालू' : 'ध्वनि बंद'}
             >
-              {isMuted ? <VolumeX size={18} className="text-muted" /> : <Volume2 size={18} className="text-primary" />}
+              {isMuted ? <VolumeX size={18} color="#8E8E93" /> : <Volume2 size={18} color="#0F6E56" />}
             </button>
 
             {/* Language Selector */}
@@ -210,54 +220,37 @@ export default function ChatWindow() {
             {/* Personal Dashboard */}
             <button 
               onClick={() => setShowPersonalDashboard(true)}
-              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showPersonalDashboard ? 'bg-secondary' : ''}`}
-              aria-label="डैशबोर्ड" 
-              title="मेरा डैशबोर्ड"
+              style={{
+                width: '44px', height: '44px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                borderRadius: '50%',
+                fontSize: '20px',
+              }}
+              aria-label="डैशबोर्ड"
             >
               📊
             </button>
           </div>
         </header>
 
-        {/* ── Accessibility sub-menu ── */}
-        {showAccessMenu && (
-          <div className="flex flex-wrap gap-2 p-2 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] flex-shrink-0 animate-fadeInDown">
-            <button onClick={toggleCognitiveMode} className={`chip-btn ${cognitiveMode ? 'chip-active' : ''}`}>🧠 सरल मोड</button>
-            <button onClick={toggleLargeText} className={`chip-btn ${largeText ? 'chip-active' : ''}`}>Aa बड़ा टेक्सट</button>
-            <button onClick={toggleFullScreenPTT} className={`chip-btn ${fullScreenPTT ? 'chip-active' : ''}`}>📱 फुल स्क्रीन माइक</button>
-            <button onClick={toggleHighContrast} className={`chip-btn ${highContrast ? 'chip-active' : ''}`}>◑ हाई कॉन्ट्रास्ट</button>
-            <button onClick={toggleAutoRead} className={`chip-btn ${autoReadResponses ? 'chip-active' : ''}`} aria-label="स्वचालित पठन चालू/बंद">🔊 ऑटो पढ़ें</button>
-            <button onClick={() => setShowIconMode(!showIconMode)} className={`chip-btn ${showIconMode ? 'chip-active' : ''}`}>⌨️ आइकन मोड</button>
-          </div>
-        )}
-
-        {/* ── Feature Toolbar ── */}
-        {showToolbar && (
-          <div className="flex gap-2 p-2 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] overflow-x-auto flex-shrink-0 animate-fadeInDown">
-            {toolbarButtons.map(btn => (
-              <button 
-                key={btn.id} 
-                onClick={() => { setActivePanel(btn.id); setShowToolbar(false); }}
-                className="toolbar-btn"
-              >
-                <span>{btn.emoji}</span> {btn.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ── Streak Banner ── */}
-        <div className="px-3 pt-2 flex-shrink-0">
-          <StreakBanner />
-        </div>
-
-        {/* ── Messages ── */}
+        {/* ── Messages (iOS grouped background) ── */}
         <div 
           role="log" 
           aria-live="polite" 
           aria-label="संदेश"
           id="chat-messages"
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 flex flex-col gap-3"
+          style={{
+            flex: 1, minHeight: 0,
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            background: '#F2F2F7',
+          }}
         >
           {messages.length === 0 && !isLoading && (
             <SuggestionChips language={language} onSend={sendMessage} />
@@ -278,12 +271,14 @@ export default function ChatWindow() {
           />
         )}
 
-        {/* ── Quick Icon Strip (always visible for non-readers) ── */}
+        {/* ── Quick Icon Strip ── */}
         <div style={{
           display: 'flex', justifyContent: 'center', gap: '8px',
           padding: '6px 12px',
-          borderTop: '1px solid var(--vaani-border)',
-          backgroundColor: 'var(--vaani-bg)',
+          borderTop: '1px solid rgba(0,0,0,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           flexShrink: 0,
         }}>
           {[
@@ -298,8 +293,8 @@ export default function ChatWindow() {
               aria-label={item.prompt.substring(0, 40)}
               style={{
                 width: '48px', height: '48px', borderRadius: '12px',
-                border: '1px solid var(--vaani-border)',
-                backgroundColor: 'var(--vaani-bg-secondary)',
+                border: '1px solid rgba(0,0,0,0.1)',
+                backgroundColor: 'rgba(255,255,255,0.8)',
                 fontSize: '24px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s',
@@ -308,8 +303,14 @@ export default function ChatWindow() {
           ))}
         </div>
 
-        {/* ── Input ── */}
-        <div role="form" aria-label="संदेश भेजें" className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] flex-shrink-0">
+        {/* ── Input (iOS Messages style) ── */}
+        <div role="form" aria-label="संदेश भेजें" style={{
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(0,0,0,0.1)',
+          flexShrink: 0,
+        }}>
           <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
         </div>
       </div>
@@ -395,16 +396,7 @@ const styles = `
   box-shadow: var(--vaani-shadow-sm);
 }
 
-.btn-ghost {
-  background: transparent;
-  color: var(--vaani-text);
-}
-
-.btn-ghost:hover {
-  background: var(--vaani-bg-secondary);
-}
-
-.bg-warning\/10 {
+.bg-warning\\/10 {
   background-color: rgba(245, 158, 11, 0.1);
 }
 
@@ -416,7 +408,7 @@ const styles = `
   color: var(--vaani-warning);
 }
 
-.bg-error\/10 {
+.bg-error\\/10 {
   background-color: rgba(239, 68, 68, 0.1);
 }
 
