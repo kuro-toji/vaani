@@ -65,6 +65,22 @@ const LANG_COLORS = [
 const WAVE_HEIGHTS = [8, 12, 18, 22, 18, 12, 8];
 const WAVE_DELAYS = [0, 0.1, 0.2, 0.3, 0.2, 0.1, 0];
 
+const LANG_HEADLINES = {
+  hi: { line1: 'आपकी आवाज़।', line2: 'आपकी भाषा।', sub: 'भारत का पहला वॉइस-फर्स्ट वित्तीय सलाहकार' },
+  bn: { line1: 'আপনার কণ্ঠস্বর।', line2: 'আপনার ভাষা।', sub: 'ভারতের প্রথম ভয়েস-ফার্স্ট আর্থিক উপদেষ্টা' },
+  te: { line1: 'మీ స్వరం।', line2: 'మీ భాష।', sub: 'భారతదేశ మొదటి వాయిస్-ఫస్ట్ ఆర్థిక సలహాదారు' },
+  ta: { line1: 'உங்கள் குரல்।', line2: 'உங்கள் மொழி।', sub: 'இந்தியாவின் முதல் குரல்-முதல் நிதி ஆலோசகர்' },
+  mr: { line1: 'तुमचा आवाज।', line2: 'तुमची भाषा।', sub: 'भारताचा पहिला व्हॉइस-ఫర్స్ట ఆर్థिक सल्लागार' },
+  gu: { line1: 'તમારો અવાજ।', line2: 'તમારી ભાષા।', sub: 'ભારતનો પ્રથમ વૉઇસ-ફર્સ્ટ નાણાકીય સલાહકાર' },
+  kn: { line1: 'ನಿಮ್ಮ ಧ್ವನಿ।', line2: 'ನಿಮ್ಮ ಭಾಷೆ।', sub: 'ಭಾರತದ ಮೊದಲ ವಾಯ್ಸ್-ఫస్ట్ హಣಕಾಸು ಸಲಹೆಗಾರ' },
+  ml: { line1: 'നിങ്ങളുടെ ശബ്ദം।', line2: 'നിങ്ങളുടെ ഭാഷ।', sub: 'ഇന്ത്യയുടെ ആദ്യ വോയ്സ്-ఫస్ఱ്റ് ధനകാര്യ ഉപദേഷ്ടാവ്' },
+  pa: { line1: 'ਤੁਹਾਡੀ ਆਵਾਜ਼।', line2: 'ਤੁਹਾਡੀ ਭਾਸ਼ਾ।', sub: 'ਭਾਰਤ ਦਾ ਪਹਿਲਾ ਵੌਇਸ-ਫਸਟ ਵਿੱਤੀ ਸਲਾਹਕਾਰ' },
+  or: { line1: 'ଆପଣଙ୍କ ସ୍ୱର।', line2: 'ଆପଣଙ୍କ ଭାଷା।', sub: 'ଭାରତର ପ୍ରଥମ ଭଏସ-ଫାର୍ଷ୍ଟ ଆର୍ଥିକ ସଲାହକାର' },
+  ur: { line1: 'آپ کی آواز۔', line2: 'آپ کی زبان۔', sub: 'بھارت کا پہلا وائس-فرسٹ مالیاتی مشیر' },
+  as: { line1: 'আপোনাৰ মাত।', line2: 'আপোনাৰ ভাষা।', sub: 'ভাৰতৰ প্ৰথম ভয়েচ-ফাৰ্ষ্ট বিত্তীয় পৰামৰ্শদাতা' },
+};
+const DEFAULT_HEADLINE = { line1: 'Your Voice.', line2: 'Your Language.', sub: "India's first voice-first financial advisor" };
+
 const HOW_STEPS = [
   { num: '1', emoji: '🎤', title: 'Tap & Speak', desc: "Say anything in your language. 'Mera 50,000 kahan lagaun?'" },
   { num: '2', emoji: '🤖', title: 'Vaani Understands', desc: 'AI listens, detects your language, finds the best answer from real bank data' },
@@ -95,6 +111,9 @@ export default function LandingPage({ onStart }) {
   const [isPincodeListening, setIsPincodeListening] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [headlineAnim, setHeadlineAnim] = useState('idle'); // 'idle' | 'out' | 'in'
+  const [activeHeadline, setActiveHeadline] = useState(DEFAULT_HEADLINE);
+  const [nextHeadline, setNextHeadline] = useState(null);
   const pincodeInputRef = useRef(null);
 
   const { isListening, startListening, stopListening } = useLandingVoice();
@@ -122,6 +141,7 @@ export default function LandingPage({ onStart }) {
           const langIndex = languages.findIndex(l => l.code === data.language);
           if (langIndex !== -1) setSelectedLangIndex(langIndex);
           try { sessionStorage.setItem('vaani_detected_language', data.language); } catch {}
+          try { localStorage.setItem('vaani_language', data.language); } catch {}
         }
       }).catch(() => { if (!cancelled) setPincodeLoading(false); });
       return () => { cancelled = true; };
@@ -130,10 +150,29 @@ export default function LandingPage({ onStart }) {
     }
   }, [pincode]);
 
+  // ── Language change headline animation ─────────────────────────────
+  useEffect(() => {
+    const langCode = languages[selectedLangIndex]?.code || 'hi';
+    const newHeadline = LANG_HEADLINES[langCode] || DEFAULT_HEADLINE;
+    if (JSON.stringify(newHeadline) === JSON.stringify(activeHeadline)) return;
+
+    setHeadlineAnim('out');
+    setNextHeadline(newHeadline);
+
+    const timer = setTimeout(() => {
+      setActiveHeadline(newHeadline);
+      setHeadlineAnim('in');
+      const timer2 = setTimeout(() => setHeadlineAnim('idle'), 600);
+      return () => clearTimeout(timer2);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [selectedLangIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleLanguageSelect = (lang, index) => {
     setSelectedLangIndex(index);
     setDetectedLang(lang.name);
     try { sessionStorage.setItem('vaani_detected_language', lang.code); } catch {}
+    try { localStorage.setItem('vaani_language', lang.code); } catch {}
   };
 
   const handleVoicePincode = useCallback(() => {
@@ -172,6 +211,15 @@ export default function LandingPage({ onStart }) {
         @keyframes wave { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.05)} }
         @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes bubbleOut { 
+          0% { opacity:1; transform:scale(1); } 
+          100% { opacity:0; transform:scale(1.15); } 
+        }
+        @keyframes bubbleIn { 
+          0% { opacity:0; transform:scale(0.75); } 
+          60% { transform:scale(1.05); } 
+          100% { opacity:1; transform:scale(1); } 
+        }
         input::placeholder { color: rgba(255,255,255,0.35) !important; }
       `}</style>
 
@@ -231,22 +279,36 @@ export default function LandingPage({ onStart }) {
         <h2 style={{
           fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
           margin: 0, color: '#ffffff',
-          animation: 'fadeUp 0.6s ease both', animationDelay: '0.1s', animationFillMode: 'both',
-        }}>Your Voice.</h2>
+          animation: headlineAnim === 'out' ? 'bubbleOut 0.35s ease forwards' :
+                     headlineAnim === 'in'  ? 'bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both' :
+                     'fadeUp 0.6s ease both',
+          animationDelay: headlineAnim === 'idle' ? '0.1s' : '0s',
+          animationFillMode: 'both',
+          transformOrigin: 'center center',
+        }}>
+          {activeHeadline.line1}
+        </h2>
         <h2 style={{
           fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
           margin: 0,
           background: 'linear-gradient(135deg,#00D4AA,#10B981)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          animation: 'fadeUp 0.6s ease both', animationDelay: '0.2s', animationFillMode: 'both',
-        }}>Your Language.</h2>
+          animation: headlineAnim === 'out' ? 'bubbleOut 0.35s ease forwards' :
+                     headlineAnim === 'in'  ? 'bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both' :
+                     'fadeUp 0.6s ease both',
+          animationDelay: headlineAnim === 'in' ? '0.07s' : headlineAnim === 'idle' ? '0.2s' : '0s',
+          animationFillMode: 'both',
+          transformOrigin: 'center center',
+        }}>
+          {activeHeadline.line2}
+        </h2>
 
         {/* Subheadline */}
         <p style={{
           fontSize: 'clamp(16px,2.5vw,20px)', color: 'rgba(255,255,255,0.6)',
           maxWidth: '520px', margin: '20px auto 0', lineHeight: 1.6,
           animation: 'fadeUp 0.6s ease both', animationDelay: '0.3s', animationFillMode: 'both',
-        }}>India's first voice-first financial advisor — free, in 28 languages, for everyone</p>
+        }}>{activeHeadline.sub}</p>
 
         {/* ── Siri Orb ── */}
         <div

@@ -180,3 +180,33 @@ export async function getRegionByPincode(pincode) {
   setCache(normalized, fallback);
   return fallback;
 }
+
+/**
+ * Search for pincode data by location name (city, district, or area).
+ * Checks cache and API as fallback.
+ */
+export async function searchByLocationName(locationName) {
+  if (!locationName || locationName.length < 2) return null;
+  const name = locationName.toLowerCase().trim();
+
+  // Check cache first
+  try {
+    const cached = sessionStorage.getItem(`vaani_loc_${name}`);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+
+  try {
+    const response = await fetch(
+      `https://api.postalpincode.in/postoffice/${encodeURIComponent(locationName)}`,
+      { signal: AbortSignal.timeout(4000) }
+    );
+    const data = await response.json();
+    if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length > 0) {
+      const po = data[0].PostOffice[0];
+      const result = { pincode: po.Pincode?.toString() || '', region: po.District, state: po.State };
+      try { sessionStorage.setItem(`vaani_loc_${name}`, JSON.stringify(result)); } catch {}
+      return result;
+    }
+  } catch {}
+  return null;
+}

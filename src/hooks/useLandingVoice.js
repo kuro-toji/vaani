@@ -120,7 +120,7 @@ export function useLandingVoice() {
         const formData = new FormData();
         formData.append('file', blob, 'pincode.webm');
         formData.append('model', 'whisper-large-v3');
-        formData.append('language', 'en');
+        formData.append('language', lang || 'en');
 
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
           method: 'POST',
@@ -139,7 +139,57 @@ export function useLandingVoice() {
 
         const data = await response.json();
         const digits = extractDigitsFromText(data.text || '');
-        onResult(digits);
+
+        // If digits found, return them directly
+        if (digits && digits.length > 0) {
+          onResult(digits);
+          return;
+        }
+
+        // If no digits found, the user may have spoken a district/city name
+        // Try to extract it and look it up via pincode service
+        const spokenText = data.text || '';
+        if (spokenText.trim().length > 1) {
+          // Stage 1: Try to find pincode from spoken location name
+          try {
+            const { searchByLocationName } = await import('../services/pincodeService.js');
+            if (typeof searchByLocationName === 'function') {
+              const result = await searchByLocationName(spokenText);
+              if (result && result.pincode) {
+                onResult(result.pincode);
+                return;
+              }
+            }
+          } catch (_) {}
+
+          // Stage 2: MiniMax TTS-based normalization fallback
+          // Ask MiniMax to normalize the location to standard English
+          try {
+            const { sendToGemini } = await import('../services/geminiService.js');
+            const normalized = await sendToGemini(
+              `The user spoke this text while searching for their Indian city/district/pincode: "${spokenText}".
+               Extract ONLY the city or district name in standard English. Reply with just the name, nothing else.
+               Examples: "Darbhanga", "Coimbatore", "Ahmedabad". If unsure, reply "unknown".`,
+              [], 'en'
+            );
+            const cleanName = (normalized || '').trim().replace(/[^a-zA-Z\s]/g, '').trim();
+            if (cleanName && cleanName.toLowerCase() !== 'unknown' && cleanName.length > 1) {
+              const { searchByLocationName } = await import('../services/pincodeService.js');
+              if (typeof searchByLocationName === 'function') {
+                const result2 = await searchByLocationName(cleanName);
+                if (result2 && result2.pincode) {
+                  onResult(result2.pincode);
+                  return;
+                }
+              }
+              // Even if pincode not found, dispatch a custom event so LandingPage can show the normalized location name
+              window.dispatchEvent(new CustomEvent('vaani:spokenLocation', { detail: { name: cleanName } }));
+            }
+          } catch (_) {}
+        }
+
+        // Nothing worked — return empty so user can type
+        onResult('');
       } catch (fetchErr) {
         console.error('Groq fetch failed:', fetchErr);
         setError('Voice transcription failed. Please type your pincode.');
@@ -179,7 +229,7 @@ export function useLandingVoice() {
    *     - On 'network' | 'not-allowed' | 'service-not-allowed' error → fall through to Groq.
    *  3. Groq Whisper fallback (covers Brave + all Web Speech failures).
    */
-  const startListening = useCallback((onResult, lang = 'en') => {
+  const startListening = useCallback((onResult, lang = 'en', onLanguageDetected = null) => {
     // Reset state
     setError(null);
     onResultCallbackRef.current = onResult;
@@ -217,6 +267,10 @@ export function useLandingVoice() {
       const digits = extractDigitsFromText(transcript);
       if (onResultCallbackRef.current) {
         onResultCallbackRef.current(digits);
+      }
+      // Notify consumer of detected language (for Web Speech path)
+      if (onLanguageDetected && lang) {
+        onLanguageDetected(lang);
       }
     };
 

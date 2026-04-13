@@ -5,6 +5,7 @@
  * prompt to Vaani without showing the internal prompt text to the user.
  * Large tap zones (80x80px min) with active:scale-95 for tremor feedback.
  */
+import { vibrateSuccess } from '../hooks/useVibration.js';
 
 const ICON_CARDS = [
   {
@@ -61,7 +62,7 @@ export default function IconCardGrid({ onSendMessage, isVisible, onClose }) {
   if (!isVisible) return null;
 
   const handleCardTap = (card) => {
-    // Send the hidden prompt — user only sees the emoji/label, not the prompt
+    vibrateSuccess();
     onSendMessage(card.prompt);
     onClose();
   };
@@ -141,20 +142,14 @@ export default function IconCardGrid({ onSendMessage, isVisible, onClose }) {
             tabIndex={0}
             aria-label={card.label}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              minWidth: '80px',
-              minHeight: '80px',
-              padding: '16px 8px',
-              borderRadius: '16px',
-              border: '2px solid var(--vaani-border, #E2E8F0)',
-              background: 'var(--vaani-bg-card, #fff)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              WebkitTapHighlightColor: 'transparent',
+              width: '120px', height: '120px',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              borderRadius: '20px', padding: '16px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '2px solid rgba(255,255,255,0.12)',
+              cursor: 'pointer', transition: 'all 0.2s',
+              fontSize: '48px', // emoji size
             }}
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -162,7 +157,7 @@ export default function IconCardGrid({ onSendMessage, isVisible, onClose }) {
             onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
             onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <span style={{ fontSize: '36px', lineHeight: 1 }} role="img" aria-hidden="true">
+            <span style={{ fontSize: '48px', lineHeight: 1 }} role="img" aria-hidden="true">
               {card.emoji}
             </span>
             <span style={{

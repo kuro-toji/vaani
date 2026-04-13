@@ -21,9 +21,11 @@ import ExportSummary from './ExportSummary.jsx';
 import FamilyManager from './FamilyManager.jsx';
 import SchemeMatcher from './SchemeMatcher.jsx';
 import AccountAggregator from './AccountAggregator.jsx';
+import TrafficLightDashboard from './TrafficLightDashboard.jsx';
 import { calculateVaaniScore } from '../services/vaaniScoreService.js';
 import { recordActivity } from '../services/streakService.js';
 import { detectAndCaptureLead } from '../services/leadService.js';
+import { vibrateAISpoke } from '../hooks/useVibration.js';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
@@ -33,6 +35,7 @@ export default function ChatWindow() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { largeText, highContrast, fullScreenPTT, autoReadResponses, toggleLargeText, toggleHighContrast, toggleFullScreenPTT, toggleAutoRead } = useAccessibility();
   const [showIconMode, setShowIconMode] = useState(false);
+  const [showTrafficLight, setShowTrafficLight] = useState(false);
   const [flashTrigger, setFlashTrigger] = useState(0);
   const prevMessageCount = useRef(messages.length);
 
@@ -74,6 +77,15 @@ export default function ChatWindow() {
       window.vaaniSpeak?.(last.content, language);
     }
   }, [messages, autoReadResponses, language]);
+
+  // Vibrate when AI responds (if auto-read is on)
+  useEffect(() => {
+    if (!autoReadResponses || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === 'assistant') {
+      vibrateAISpoke();
+    }
+  }, [messages, autoReadResponses]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -160,18 +172,14 @@ export default function ChatWindow() {
       >
         {/* ── Apple-style Header ── */}
         <header style={{
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 8px',
-          background: 'rgba(255,255,255,0.92)',
+          display: 'flex', alignItems: 'center',
+          padding: '12px 16px',
+          background: 'rgba(15,23,42,0.9)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(0,0,0,0.1)',
-          flexShrink: 0,
-          position: 'relative',
-          zIndex: 50,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          gap: '8px',
+          position: 'sticky', top: 0, zIndex: 10,
         }}>
           {/* Left: Back button */}
           <button
@@ -241,15 +249,15 @@ export default function ChatWindow() {
           aria-label="संदेश"
           id="chat-messages"
           style={{
-            flex: 1, minHeight: 0,
+            flex: 1,
             overflowY: 'auto',
-            overscrollBehavior: 'contain',
-            WebkitOverflowScrolling: 'touch',
-            padding: '12px 16px',
+            padding: '16px 16px 8px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
-            background: '#F2F2F7',
+            gap: '2px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.15) transparent',
           }}
         >
           {messages.length === 0 && !isLoading && (
@@ -261,6 +269,15 @@ export default function ChatWindow() {
           {isLoading && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* ── Traffic Light Dashboard ── */}
+        {showTrafficLight && (
+          <TrafficLightDashboard
+            balance={0}
+            lastMsg={messages[messages.length - 1]?.content || ''}
+            onAsk={(text) => { sendMessage(text); setShowTrafficLight(false); }}
+          />
+        )}
 
         {/* ── Icon Card Grid ── */}
         {showIconMode && (
@@ -282,6 +299,7 @@ export default function ChatWindow() {
           flexShrink: 0,
         }}>
           {[
+            { emoji: '🚦', prompt: '__TRAFFIC_LIGHT__' },
             { emoji: '🚜', prompt: 'मेरी खेती से जो आमदनी होती है उसे FD में लगाऊं या कहीं और? सबसे सुरक्षित विकल्प बताओ।' },
             { emoji: '🏥', prompt: 'इमरजेंसी फंड कितना रखना चाहिए और कहां रखूं? अगर अचानक हॉस्पिटल जाना पड़े तो?' },
             { emoji: '💒', prompt: 'शादी के लिए पैसे बचाना है। 2-3 साल में, सबसे अच्छा बचत विकल्प बताओ।' },
@@ -289,8 +307,14 @@ export default function ChatWindow() {
           ].map((item, i) => (
             <button
               key={i}
-              onClick={() => sendMessage(item.prompt)}
-              aria-label={item.prompt.substring(0, 40)}
+              onClick={() => {
+                if (item.prompt === '__TRAFFIC_LIGHT__') {
+                  setShowTrafficLight(p => !p);
+                } else {
+                  sendMessage(item.prompt);
+                }
+              }}
+              aria-label={item.prompt === '__TRAFFIC_LIGHT__' ? 'Traffic Light Dashboard' : item.prompt.substring(0, 40)}
               style={{
                 width: '48px', height: '48px', borderRadius: '12px',
                 border: '1px solid rgba(0,0,0,0.1)',
@@ -305,10 +329,12 @@ export default function ChatWindow() {
 
         {/* ── Input (iOS Messages style) ── */}
         <div role="form" aria-label="संदेश भेजें" style={{
-          background: 'rgba(255,255,255,0.95)',
+          padding: '12px 16px 20px',
+          background: 'rgba(15,23,42,0.85)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(0,0,0,0.1)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
           flexShrink: 0,
         }}>
           <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />

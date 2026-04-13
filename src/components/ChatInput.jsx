@@ -20,17 +20,18 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [transcribedText, setTranscribedText] = useState('');
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
-  const { vibrateOnRecordingStart, vibrateListeningLoop, stopVibration } = useVibration();
+  const { vibrateOnRecordingStart, stopVibration, vibrateAISpoke } = useVibration();
+  const { vibrateListeningPurr } = useVibration();
   const { largeText } = useAccessibility();
 
   // Handle listening vibration loop
   useEffect(() => {
     if (isListening) {
-      vibrateListeningLoop();
+      vibrateListeningPurr();
     } else {
       stopVibration();
     }
-  }, [isListening, vibrateListeningLoop, stopVibration]);
+  }, [isListening, vibrateListeningPurr, stopVibration]);
 
   // Reset message when language changes
   useEffect(() => {

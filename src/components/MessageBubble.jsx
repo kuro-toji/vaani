@@ -126,10 +126,12 @@ function MessageBubble({ message, language }) {
   return (
     <div style={{
       display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      animation: 'messageSlideIn 0.3s ease forwards',
-      opacity: 0,
-      position: 'relative',
+      flexDirection: isUser ? 'row-reverse' : 'row',
+      alignItems: 'flex-end',
+      gap: '8px',
+      marginBottom: '12px',
+      animation: 'msgSlideIn 0.3s cubic-bezier(0.34, 1.3, 0.64, 1) both',
+      animationFillMode: 'both',
     }}>
       {/* Avatar — AI (left) */}
       {!isUser && (
@@ -154,21 +156,23 @@ function MessageBubble({ message, language }) {
           onKeyDown={handleKeyDown}
           className={isUser ? 'bubble-user' : 'bubble-ai'}
           style={{
-            maxWidth: isUser ? '72%' : '80%',
-            padding: '10px 14px',
+            maxWidth: '72%',
+            padding: isUser ? '10px 16px' : '12px 16px',
             borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
             background: isUser
               ? 'linear-gradient(135deg, #0F6E56, #1D9E75)'
-              : '#F2F2F7',
-            color: isUser ? 'white' : '#1C1C1E',
+              : 'rgba(255,255,255,0.07)',
+            backdropFilter: isUser ? 'none' : 'blur(12px)',
+            WebkitBackdropFilter: isUser ? 'none' : 'blur(12px)',
+            border: isUser ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            color: '#ffffff',
+            fontSize: largeText ? '18px' : '15px',
+            lineHeight: 1.55,
+            letterSpacing: '0.1px',
+            wordBreak: 'break-word',
             boxShadow: isUser
-              ? '0 1px 2px rgba(0,0,0,0.15)'
-              : '0 1px 2px rgba(0,0,0,0.08)',
-            lineHeight: 1.6,
-            fontSize: largeText ? '20px' : '15px',
-            outline: 'none',
-            position: 'relative',
-            overflow: 'visible',
+              ? '0 2px 12px rgba(16,185,129,0.25)'
+              : '0 2px 8px rgba(0,0,0,0.3)',
           }}
         >
           {/* Rendered markdown content */}
@@ -234,9 +238,9 @@ function MessageBubble({ message, language }) {
       )}
 
       <style>{`
-        @keyframes messageSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes msgSlideIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
         /* Bubble tails */
         .bubble-user {
@@ -264,7 +268,7 @@ function MessageBubble({ message, language }) {
           left: -6px;
           width: 12px;
           height: 12px;
-          background: #F2F2F7;
+          background: rgba(255,255,255,0.07);
           clip-path: polygon(100% 0, 0% 100%, 100% 100%);
         }
         /* Desktop: speak button hidden until bubble hover */

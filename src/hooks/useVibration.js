@@ -56,8 +56,37 @@ export function useVibration() {
     vibrateOnRecordingStart,
     vibrateListeningLoop,
     vibrateThinking,
-    vibrateSpeakingLoop
+    vibrateSpeakingLoop,
+    vibrateListeningPurr,
+    vibrateAISpoke,
+    vibrateError,
+    vibrateSuccess,
   };
+}
+
+// Called when the app starts listening (continuous low purr)
+export function vibrateListeningPurr() {
+  if (!navigator.vibrate) return;
+  // Repeating pattern: 100ms on, 100ms off — creates a "purring" sensation
+  navigator.vibrate([100, 100, 100, 100, 100, 100, 100, 100, 100, 100]);
+}
+
+// Called when AI finishes speaking (sharp double-tap)
+export function vibrateAISpoke() {
+  if (!navigator.vibrate) return;
+  navigator.vibrate([40, 60, 40]);
+}
+
+// Called on error or warning
+export function vibrateError() {
+  if (!navigator.vibrate) return;
+  navigator.vibrate([200, 100, 200]);
+}
+
+// Called on success (single long pulse)
+export function vibrateSuccess() {
+  if (!navigator.vibrate) return;
+  navigator.vibrate(300);
 }
 
 export default useVibration;
