@@ -10,11 +10,13 @@ import IconCardGrid from './IconCardGrid.jsx';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useAccessibility } from '../context/AccessibilityContext.jsx';
 import { useCognitiveMode } from '../context/CognitiveModeContext.jsx';
+import useVibration from '../hooks/useVibration.js';
 import CognitiveDashboard from './CognitiveDashboard.jsx';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
   const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
+  const { vibrateOnTap } = useVibration();
   const messagesEndRef = useRef(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { largeText, highContrast, toggleLargeText, toggleHighContrast } = useAccessibility();
@@ -131,7 +133,7 @@ export default function ChatWindow() {
         <div className="flex items-center gap-2">
           {/* Cognitive Mode Toggle */}
           <button
-            onClick={toggleCognitiveMode}
+            onClick={() => { vibrateOnTap(); toggleCognitiveMode(); }}
             aria-pressed={cognitiveMode}
             aria-label="सरल मोड"
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
@@ -142,7 +144,7 @@ export default function ChatWindow() {
 
           {/* Large Text Toggle */}
           <button
-            onClick={toggleLargeText}
+            onClick={() => { vibrateOnTap(); toggleLargeText(); }}
             aria-pressed={largeText}
             aria-label="बड़ा टेक्सट मोड"
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
@@ -153,7 +155,7 @@ export default function ChatWindow() {
           
           {/* High Contrast Toggle */}
           <button
-            onClick={toggleHighContrast}
+            onClick={() => { vibrateOnTap(); toggleHighContrast(); }}
             aria-pressed={highContrast}
             aria-label="हाई कॉन्ट्रास्ट मोड"
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--vaani-border)] vaani-touch-target"
@@ -168,7 +170,7 @@ export default function ChatWindow() {
 
           {/* Icon Card Mode Toggle */}
           <button
-            onClick={() => setShowIconMode(!showIconMode)}
+            onClick={() => { vibrateOnTap(); setShowIconMode(!showIconMode); }}
             aria-pressed={showIconMode}
             aria-label="आइकन मोड"
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
@@ -178,7 +180,7 @@ export default function ChatWindow() {
           </button>
           
           <button
-            onClick={() => setMuted(!isMuted)}
+            onClick={() => { vibrateOnTap(); setMuted(!isMuted); }}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
             aria-label={isMuted ? 'ध्वनि बंद करें' : 'ध्वनि चालू करें'}
           >
@@ -223,7 +225,7 @@ export default function ChatWindow() {
       )}
 
       {/* Input */}
-      <div role="form" aria-label="संदेश भेजें" className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] px-4 py-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div role="form" aria-label="संदेश भेजें">
         <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
       </div>
     </div>
