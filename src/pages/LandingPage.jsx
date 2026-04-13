@@ -61,6 +61,10 @@ function LandingPage({ onStart }) {
   const { isListening: isListeningPincode, startListening: startPincodeVoice, stopListening: stopPincodeVoice } = useLandingVoice();
   const { isListening: isVoiceNavListening, startListening: startVoiceNav, stopListening: stopVoiceNav } = useVoiceNavigation();
 
+  const scrollToDemo = () => {
+    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -306,13 +310,32 @@ function LandingPage({ onStart }) {
               fontSize: 'clamp(16px, 3vw, 20px)',
               color: 'rgba(255,255,255,0.6)',
               maxWidth: '600px',
-              marginBottom: '48px',
+              marginBottom: '32px',
               lineHeight: 1.6,
             }}
           >
             VAANI breaks language barriers with voice AI that speaks your language,
             understands your context, and respects your privacy.
           </p>
+
+          {/* PROMINENT TAP TO SPEAK HERO - Immediate mic access */}
+          <div 
+            className="flex flex-col items-center justify-center mb-8"
+            style={{ minHeight: '30vh' }}
+          >
+            <button
+              onClick={onStart}
+              className="w-28 h-28 rounded-full bg-[#1D9E75] flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
+              style={{
+                boxShadow: '0 0 60px rgba(29, 158, 117, 0.5)',
+              }}
+              aria-label="Vaani से बात करें शुरू करें"
+            >
+              <Mic size={56} color="white" />
+            </button>
+            <p className="mt-4 text-white text-lg font-medium">Tap to Speak</p>
+            <p className="mt-1 text-white/70 text-sm">या बोलें और मदद पाएं</p>
+          </div>
 
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
