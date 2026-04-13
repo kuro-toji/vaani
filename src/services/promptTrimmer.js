@@ -116,17 +116,10 @@ IMPORTANT: If asked about a topic not listed above, say you don't have that data
  * only the topic-specific data section + conversation history.
  */
 export function buildTrimmedPrompt(languageCode, detectedTopic, messages) {
+  // Only return topic-specific instructions — conversation history is sent
+  // separately as the 'messages' array to MiniMax, not stuffed into the prompt
   const topicSection = buildTopicSection(detectedTopic, languageCode);
-  
-  // Sanitize user messages before adding to prompt
-  const sanitizedMessages = messages.map(msg => ({
-    ...msg,
-    content: sanitizeInput(msg.content, 300)
-  }));
-  
-  return `${topicSection}
-
-${buildConversationSection(sanitizedMessages)}`;
+  return topicSection;
 }
 
 function buildTopicSection(topic, languageCode) {
@@ -215,45 +208,4 @@ HARD RULES:
     default:
       return '';
   }
-}
-
-function buildConversationSection(messages) {
-  if (messages.length === 0) return '';
-  
-  const lastFew = messages.slice(-6);
-  const olderMessages = messages.slice(0, -6);
-  
-  let section = '\n\nCONVERSATION:\n';
-  
-  for (const msg of lastFew) {
-    const role = msg.role === 'user' ? 'User' : 'Vaani';
-    section += `${role}: ${msg.content}\n`;
-  }
-  
-  if (olderMessages.length > 0) {
-    const summary = summarizeHistory(olderMessages);
-    section += `\nEarlier context: ${summary}`;
-  }
-  
-  return section;
-}
-
-function summarizeHistory(messages) {
-  const topics = [];
-  const hasTopic = (kw) => messages.some(m => 
-    m.content.toLowerCase().includes(kw.toLowerCase())
-  );
-  
-  if (hasTopic('fd') || hasTopic('fixed deposit') || hasTopic('एफडी') || hasTopic('जमा')) topics.push('user asked about FD rates');
-  if (hasTopic('sip') || hasTopic('mutual fund') || hasTopic('म्यूचुअल') || hasTopic('निवेश')) topics.push('user asked about SIP/mutual funds');
-  if (hasTopic('ppf') || hasTopic('post office') || hasTopic('डाकघर') || hasTopic('पीपीएफ')) topics.push('user asked about PPF/post office');
-  if (hasTopic('gold') || hasTopic('SGB') || hasTopic('सोना') || hasTopic('गोल्ड')) topics.push('user asked about gold investments');
-  if (hasTopic('insurance') || hasTopic('term') || hasTopic('बीमा') || hasTopic('प्रीमियम')) topics.push('user asked about insurance');
-  
-  const first = messages[0];
-  const userLang = first?.content?.substring(0, 20) || '';
-  
-  return topics.length > 0 
-    ? topics.join(', ') + '. User started with: "' + userLang + '"'
-    : `User sent ${messages.length} messages. Topic unclear.`;
 }

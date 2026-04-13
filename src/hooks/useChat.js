@@ -181,8 +181,12 @@ export function useChat() {
       topic = detectTopic(text);
 
       // Build optimized prompt — only relevant category, trimmed history
-      const isFirstMessage = messagesRef.current.length === 0;
-      const systemPrompt = isFirstMessage 
+      // True first message = only greetings exist before this user message
+      const isFirstRealMessage = messagesRef.current.filter(
+        m => m.id !== 'greeting_user' && m.id !== 'greeting_assistant'
+      ).length === 0;
+
+      const systemPrompt = isFirstRealMessage
         ? buildCompactOverview(currentLanguage)
         : buildTrimmedPrompt(currentLanguage, topic, allMessages);
 
