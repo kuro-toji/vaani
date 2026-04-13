@@ -26,6 +26,7 @@ import { calculateVaaniScore } from '../services/vaaniScoreService.js';
 import { recordActivity } from '../services/streakService.js';
 import { detectAndCaptureLead } from '../services/leadService.js';
 import { vibrateAISpoke } from '../hooks/useVibration.js';
+import { useVoiceNavigation } from '../hooks/useVoiceNavigation.js';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
@@ -36,6 +37,7 @@ export default function ChatWindow() {
   const { largeText, highContrast, fullScreenPTT, autoReadResponses, toggleLargeText, toggleHighContrast, toggleFullScreenPTT, toggleAutoRead } = useAccessibility();
   const [showIconMode, setShowIconMode] = useState(false);
   const [showTrafficLight, setShowTrafficLight] = useState(false);
+  const [voiceNavEnabled, setVoiceNavEnabled] = useState(false);
   const [flashTrigger, setFlashTrigger] = useState(0);
   const prevMessageCount = useRef(messages.length);
 
@@ -103,6 +105,16 @@ export default function ChatWindow() {
 
   // VAANI Score
   const vaaniScore = calculateVaaniScore(messages);
+
+  const { isActive: voiceNavActive } = useVoiceNavigation({
+    enabled: voiceNavEnabled,
+    onBack: () => window.history.back(),
+    onSend: () => sendMessage(''),
+    onMute: () => setMuted(true),
+    onUnmute: () => setMuted(false),
+    onSimpleMode: () => setShowTrafficLight(p => !p),
+    onIconMode: () => setShowIconMode(p => !p),
+  });
 
   if (cognitiveMode) return <CognitiveDashboard />;
 
@@ -299,6 +311,7 @@ export default function ChatWindow() {
           flexShrink: 0,
         }}>
           {[
+            { emoji: '🎙️', prompt: '__VOICE_NAV__' },
             { emoji: '🚦', prompt: '__TRAFFIC_LIGHT__' },
             { emoji: '🚜', prompt: 'मेरी खेती से जो आमदनी होती है उसे FD में लगाऊं या कहीं और? सबसे सुरक्षित विकल्प बताओ।' },
             { emoji: '🏥', prompt: 'इमरजेंसी फंड कितना रखना चाहिए और कहां रखूं? अगर अचानक हॉस्पिटल जाना पड़े तो?' },
@@ -308,7 +321,9 @@ export default function ChatWindow() {
             <button
               key={i}
               onClick={() => {
-                if (item.prompt === '__TRAFFIC_LIGHT__') {
+                if (item.prompt === '__VOICE_NAV__') {
+                  setVoiceNavEnabled(p => !p);
+                } else if (item.prompt === '__TRAFFIC_LIGHT__') {
                   setShowTrafficLight(p => !p);
                 } else {
                   sendMessage(item.prompt);
