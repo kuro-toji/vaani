@@ -13,26 +13,37 @@ export default function PersonalDashboard({ onClose }) {
   const [recentTopics, setRecentTopics] = useState([]);
 
   useEffect(() => {
-    // Calculate VAANI Score from conversation
-    const userMessages = messages.filter(m => m.role === 'user');
-    const scoreData = calculateVaaniScore({
-      monthlyIncome: 30000, // Default assumption
-      savingsRatio: 15,
-      hasEmergencyFund: false,
-      hasInsurance: true,
-      hasInvestment: true,
-      lifeGoals: goals,
-      dependents: 0
-    }, messages);
+    try {
+      // Calculate VAANI Score from conversation
+      const userMessages = messages.filter(m => m.role === 'user');
+      const scoreData = calculateVaaniScore({
+        monthlyIncome: 30000, // Default assumption
+        savingsRatio: 15,
+        hasEmergencyFund: false,
+        hasInsurance: true,
+        hasInvestment: true,
+        lifeGoals: goals,
+        dependents: 0
+      }, messages);
+      
+      setVaaniScore(scoreData?.score ?? 50);
+      setScoreGrade(scoreData?.grade ?? 'C');
+    } catch (e) {
+      console.error('VAANI Score error:', e);
+      setVaaniScore(50);
+      setScoreGrade('C');
+    }
     
-    setVaaniScore(scoreData.score);
-    setScoreGrade(scoreData.grade);
-    
-    // Get streak
-    const streakData = getStreak();
-    setStreak(streakData.currentStreak);
+    try {
+      const streakData = getStreak();
+      setStreak(streakData?.currentStreak ?? 0);
+    } catch (e) {
+      console.error('Streak error:', e);
+      setStreak(0);
+    }
     
     // Extract recent topics from conversations
+    const userMessages = messages.filter(m => m.role === 'user');
     const topics = userMessages.slice(-5).map(m => {
       const text = m.content.substring(0, 50);
       return text.length < m.content.length ? text + '...' : text;
