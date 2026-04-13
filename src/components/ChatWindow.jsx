@@ -8,7 +8,7 @@ import ChatInput from './ChatInput.jsx';
 import FlashNotification from './FlashNotification.jsx';
 import IconCardGrid from './IconCardGrid.jsx';
 import PersonalDashboard from './PersonalDashboard.jsx';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, WifiOff, AlertCircle } from 'lucide-react';
 import { useAccessibility } from '../context/AccessibilityContext.jsx';
 import { useCognitiveMode } from '../context/CognitiveModeContext.jsx';
 import CognitiveDashboard from './CognitiveDashboard.jsx';
@@ -25,7 +25,7 @@ import { detectAndCaptureLead } from '../services/leadService.js';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
-  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted } = useChat();
+  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted, error } = useChat();
   const messagesEndRef = useRef(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { largeText, highContrast, fullScreenPTT, toggleLargeText, toggleHighContrast, toggleFullScreenPTT } = useAccessibility();
@@ -98,99 +98,114 @@ export default function ChatWindow() {
     <>
       <FlashNotification trigger={flashTrigger} />
       
-      {/* Offline Banner */}
+      {/* ── Offline Banner ── */}
       {!isOnline && (
-        <div role="alert" aria-live="assertive" style={{
-          background: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)',
-          borderBottom: '1px solid #F59E0B', padding: '10px 16px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '8px', fontSize: '13px', color: '#92400E',
-        }}>
-          <span>📶</span><span>ऑफलाइन है — संदेश कतार में जमा होंगे</span>
+        <div 
+          role="alert" 
+          aria-live="assertive" 
+          className="flex items-center justify-center gap-2 py-2 px-4 bg-warning/10 border-b border-warning text-warning text-sm font-medium animate-fadeIn"
+        >
+          <WifiOff size={16} className="text-warning" />
+          <span>ऑफलाइन है — संदेश कतार में जमा होंगे</span>
         </div>
       )}
 
-      <div style={{
-        flex: 1, width: '100%', display: 'flex', flexDirection: 'column',
-        background: 'var(--vaani-bg)', color: 'var(--vaani-text)',
-        overflow: 'hidden', height: '100dvh',
-        fontSize: largeText ? '20px' : undefined,
-      }}>
+      {/* ── Error Banner ── */}
+      {error && (
+        <div 
+          role="alert" 
+          aria-live="assertive" 
+          className="flex items-center justify-center gap-2 py-2 px-4 bg-error/10 border-b border-error text-error text-sm font-medium animate-fadeIn"
+        >
+          <AlertCircle size={16} className="text-error" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* ── Main Chat Container ── */}
+      <div className="flex flex-col flex-1 w-full bg-[var(--vaani-bg)] text-[var(--vaani-text)] overflow-hidden h-full min-h-screen transition"
+        style={{ fontSize: largeText ? '20px' : undefined }}
+      >
         {/* ── Header ── */}
-        <header style={{
-          height: '56px', minHeight: '56px',
-          borderBottom: '1px solid var(--vaani-border)',
-          padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'var(--vaani-bg)', flexShrink: 0, position: 'relative', zIndex: 50,
-        }}>
+        <header className="flex items-center justify-between h-14 min-h-14 px-3 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] relative z-50 flex-shrink-0">
           {/* Left: Title + Score */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--vaani-user-bubble)' }}>Vaani</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <h1 className="text-xl font-bold text-primary">Vaani</h1>
             {vaaniScore.score > 0 && (
-              <span style={{
-                padding: '2px 8px', borderRadius: '980px', fontSize: '11px', fontWeight: 700,
-                background: vaaniScore.level === 'excellent' ? '#D1FAE5' : vaaniScore.level === 'good' ? '#FEF3C7' : '#FEE2E2',
-                color: vaaniScore.level === 'excellent' ? '#065F46' : vaaniScore.level === 'good' ? '#92400E' : '#991B1B',
-              }}>
+              <span className={`badge ${
+                vaaniScore.level === 'excellent' ? 'badge-success' : 
+                vaaniScore.level === 'good' ? 'badge-warning' : 'badge-error'
+              }`}>
                 {vaaniScore.emoji} {vaaniScore.score}
               </span>
             )}
           </div>
 
           {/* Right: Compact button group */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Tools ⚡ */}
-            <button onClick={() => { setShowToolbar(!showToolbar); setShowAccessMenu(false); }}
-              style={headerBtn(showToolbar)} aria-label="टूल्स" title="टूल्स">⚡</button>
+            <button 
+              onClick={() => { setShowToolbar(!showToolbar); setShowAccessMenu(false); }}
+              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showToolbar ? 'bg-secondary' : ''}`}
+              aria-label="टूल्स" 
+              title="टूल्स"
+            >
+              ⚡
+            </button>
 
             {/* Accessibility ♿ — opens sub-menu */}
-            <button onClick={() => { setShowAccessMenu(!showAccessMenu); setShowToolbar(false); }}
-              style={headerBtn(showAccessMenu)} aria-label="सुलभता" title="सुलभता">♿</button>
+            <button 
+              onClick={() => { setShowAccessMenu(!showAccessMenu); setShowToolbar(false); }}
+              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showAccessMenu ? 'bg-secondary' : ''}`}
+              aria-label="सुलभता" 
+              title="सुलभता"
+            >
+              ♿
+            </button>
 
             {/* Mute */}
-            <button onClick={() => setMuted(!isMuted)}
-              style={headerBtn(false)} aria-label={isMuted ? 'ध्वनि चालू' : 'ध्वनि बंद'}>
-              {isMuted ? <VolumeX size={18} color="#9CA3AF" /> : <Volume2 size={18} color="var(--vaani-user-bubble)" />}
+            <button 
+              onClick={() => setMuted(!isMuted)}
+              className="btn btn-ghost btn-icon w-9 h-9 transition-fast"
+              aria-label={isMuted ? 'ध्वनि चालू' : 'ध्वनि बंद'}
+            >
+              {isMuted ? <VolumeX size={18} className="text-muted" /> : <Volume2 size={18} className="text-primary" />}
             </button>
 
             {/* Language Selector */}
             <LanguageSelector language={language} onSelect={setLanguageManual} isManual={isLanguageManual} />
 
             {/* Personal Dashboard */}
-            <button onClick={() => setShowPersonalDashboard(true)}
-              style={headerBtn(showPersonalDashboard)} aria-label="डैशबोर्ड" title="मेरा डैशबोर्ड">📊</button>
+            <button 
+              onClick={() => setShowPersonalDashboard(true)}
+              className={`btn btn-ghost btn-icon w-9 h-9 transition-fast ${showPersonalDashboard ? 'bg-secondary' : ''}`}
+              aria-label="डैशबोर्ड" 
+              title="मेरा डैशबोर्ड"
+            >
+              📊
+            </button>
           </div>
         </header>
 
         {/* ── Accessibility sub-menu ── */}
         {showAccessMenu && (
-          <div style={{
-            display: 'flex', gap: '6px', padding: '8px 12px', flexWrap: 'wrap',
-            borderBottom: '1px solid var(--vaani-border)', background: 'var(--vaani-bg)', flexShrink: 0,
-          }}>
-            <button onClick={toggleCognitiveMode} style={chipBtn(cognitiveMode)}>🧠 सरल मोड</button>
-            <button onClick={toggleLargeText} style={chipBtn(largeText)}>Aa बड़ा टेक्सट</button>
-            <button onClick={toggleFullScreenPTT} style={chipBtn(fullScreenPTT)}>📱 फुल स्क्रीन माइक</button>
-            <button onClick={toggleHighContrast} style={chipBtn(highContrast)}>◑ हाई कॉन्ट्रास्ट</button>
-            <button onClick={() => setShowIconMode(!showIconMode)} style={chipBtn(showIconMode)}>⌨️ आइकन मोड</button>
+          <div className="flex flex-wrap gap-2 p-2 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] flex-shrink-0 animate-fadeInDown">
+            <button onClick={toggleCognitiveMode} className={`chip-btn ${cognitiveMode ? 'chip-active' : ''}`}>🧠 सरल मोड</button>
+            <button onClick={toggleLargeText} className={`chip-btn ${largeText ? 'chip-active' : ''}`}>Aa बड़ा टेक्सट</button>
+            <button onClick={toggleFullScreenPTT} className={`chip-btn ${fullScreenPTT ? 'chip-active' : ''}`}>📱 फुल स्क्रीन माइक</button>
+            <button onClick={toggleHighContrast} className={`chip-btn ${highContrast ? 'chip-active' : ''}`}>◑ हाई कॉन्ट्रास्ट</button>
+            <button onClick={() => setShowIconMode(!showIconMode)} className={`chip-btn ${showIconMode ? 'chip-active' : ''}`}>⌨️ आइकन मोड</button>
           </div>
         )}
 
         {/* ── Feature Toolbar ── */}
         {showToolbar && (
-          <div style={{
-            display: 'flex', gap: '8px', padding: '8px 12px',
-            borderBottom: '1px solid var(--vaani-border)', background: 'var(--vaani-bg)',
-            overflowX: 'auto', flexShrink: 0,
-          }}>
+          <div className="flex gap-2 p-2 border-b border-[var(--vaani-border)] bg-[var(--vaani-bg)] overflow-x-auto flex-shrink-0 animate-fadeInDown">
             {toolbarButtons.map(btn => (
-              <button key={btn.id} onClick={() => { setActivePanel(btn.id); setShowToolbar(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 14px', borderRadius: '980px', border: '1px solid var(--vaani-border)',
-                  background: 'var(--vaani-bg)', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                  whiteSpace: 'nowrap', color: 'var(--vaani-text)',
-                }}
+              <button 
+                key={btn.id} 
+                onClick={() => { setActivePanel(btn.id); setShowToolbar(false); }}
+                className="toolbar-btn"
               >
                 <span>{btn.emoji}</span> {btn.label}
               </button>
@@ -199,16 +214,16 @@ export default function ChatWindow() {
         )}
 
         {/* ── Streak Banner ── */}
-        <div style={{ padding: '6px 12px 0', flexShrink: 0 }}>
+        <div className="px-3 pt-2 flex-shrink-0">
           <StreakBanner />
         </div>
 
         {/* ── Messages ── */}
-        <div role="log" aria-live="polite" aria-label="संदेश"
-          style={{
-            flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
-            padding: '12px 12px', display: 'flex', flexDirection: 'column', gap: '10px',
-          }}
+        <div 
+          role="log" 
+          aria-live="polite" 
+          aria-label="संदेश"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 flex flex-col gap-3"
         >
           {messages.length === 0 && !isLoading && (
             <SuggestionChips language={language} onSend={sendMessage} />
@@ -230,9 +245,7 @@ export default function ChatWindow() {
         )}
 
         {/* ── Input ── */}
-        <div role="form" aria-label="संदेश भेजें" style={{
-          background: 'var(--vaani-bg)', borderTop: '1px solid var(--vaani-border)',
-        }}>
+        <div role="form" aria-label="संदेश भेजें" className="bg-[var(--vaani-bg)] border-t border-[var(--vaani-border)] flex-shrink-0">
           <ChatInput onSend={sendMessage} isLoading={isLoading} language={language} isMuted={isMuted} />
         </div>
       </div>
@@ -269,21 +282,92 @@ export default function ChatWindow() {
   );
 }
 
-// ── Style helpers ──
-function headerBtn(active) {
-  return {
-    width: '36px', height: '36px', borderRadius: '50%', border: 'none',
-    background: active ? '#E5E7EB' : 'transparent', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '16px', transition: 'all 0.15s', flexShrink: 0,
-  };
+// ── Additional design system styles ──
+const styles = `
+.chip-btn {
+  padding: 6px 12px;
+  border-radius: var(--vaani-radius-full);
+  font-size: var(--vaani-text-sm);
+  font-weight: 600;
+  border: 1px solid var(--vaani-border);
+  background: var(--vaani-bg);
+  cursor: pointer;
+  color: var(--vaani-text);
+  white-space: nowrap;
+  transition: all var(--vaani-transition-fast);
 }
 
-function chipBtn(active) {
-  return {
-    padding: '6px 12px', borderRadius: '980px', fontSize: '13px', fontWeight: 600,
-    border: active ? '2px solid #0F6E56' : '1px solid var(--vaani-border)',
-    background: active ? '#E1F5EE' : 'var(--vaani-bg)', cursor: 'pointer',
-    color: active ? '#0F6E56' : 'var(--vaani-text)', whiteSpace: 'nowrap',
-  };
+.chip-btn:hover {
+  background: var(--vaani-bg-secondary);
+  border-color: var(--vaani-primary);
+}
+
+.chip-active {
+  border: 2px solid var(--vaani-primary);
+  background: rgba(15, 110, 86, 0.1);
+  color: var(--vaani-primary);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--vaani-radius-full);
+  border: 1px solid var(--vaani-border);
+  background: var(--vaani-bg);
+  cursor: pointer;
+  font-size: var(--vaani-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--vaani-text);
+  transition: all var(--vaani-transition-fast);
+}
+
+.toolbar-btn:hover {
+  background: var(--vaani-bg-secondary);
+  border-color: var(--vaani-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--vaani-shadow-sm);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--vaani-text);
+}
+
+.btn-ghost:hover {
+  background: var(--vaani-bg-secondary);
+}
+
+.bg-warning\/10 {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.border-warning {
+  border-color: var(--vaani-warning);
+}
+
+.text-warning {
+  color: var(--vaani-warning);
+}
+
+.bg-error\/10 {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.border-error {
+  border-color: var(--vaani-error);
+}
+
+.text-error {
+  color: var(--vaani-error);
+}
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = styles;
+  document.head.appendChild(styleEl);
 }
