@@ -161,7 +161,14 @@ function LandingPage({ onStart }) {
   };
 
   return (
-    <div className="min-h-screen bg-dark text-white font-sans overflow-x-hidden">
+    <div 
+      className="min-h-screen bg-dark text-white font-sans overflow-x-hidden"
+      style={{ 
+        position: 'relative',
+        zIndex: 1,
+        minHeight: '100vh'
+      }}
+    >
       <style>{`
         .gradient-text {
           background: linear-gradient(135deg, #00D4AA, #00A3FF);
