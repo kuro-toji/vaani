@@ -3,6 +3,7 @@ import { Mic } from 'lucide-react';
 import { languages } from '../data/languages.js';
 import { getRegionByPincode } from '../services/pincodeService.js';
 import { useLandingVoice } from '../hooks/useLandingVoice.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { extractDigitsFromText } from '../data/indianDigitMap.js';
 
 /* ─── SVG Waveform Logo ─── */
@@ -117,6 +118,7 @@ export default function LandingPage({ onStart }) {
   const pincodeInputRef = useRef(null);
 
   const { isListening, startListening, stopListening } = useLandingVoice();
+  const { language, setLanguage: setGlobalLanguage } = useLanguage();
   const currentLangCode = languages[selectedLangIndex]?.code || 'hi';
 
   // Responsive check
@@ -142,6 +144,7 @@ export default function LandingPage({ onStart }) {
           if (langIndex !== -1) setSelectedLangIndex(langIndex);
           try { sessionStorage.setItem('vaani_detected_language', data.language); } catch {}
           try { localStorage.setItem('vaani_language', data.language); } catch {}
+          try { setGlobalLanguage(data.language); } catch {}
         }
       }).catch(() => { if (!cancelled) setPincodeLoading(false); });
       return () => { cancelled = true; };
@@ -173,6 +176,7 @@ export default function LandingPage({ onStart }) {
     setDetectedLang(lang.name);
     try { sessionStorage.setItem('vaani_detected_language', lang.code); } catch {}
     try { localStorage.setItem('vaani_language', lang.code); } catch {}
+    try { setGlobalLanguage(lang.code); } catch {}
   };
 
   const handleVoicePincode = useCallback(() => {

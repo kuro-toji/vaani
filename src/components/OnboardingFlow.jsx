@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const LANG_PILLS = [
   'हिन्दी', 'বাংলা', 'తెలుగు', 'मराठी', 'தமிழ்', 'اردو', 'ગુજરાતી', 'ಕನ್ನಡ',
@@ -36,6 +37,7 @@ export default function OnboardingFlow({ onComplete }) {
   const [showTyping, setShowTyping] = useState(false);
   const [showVaaniBubble, setShowVaaniBubble] = useState(false);
   const [selectedA11y, setSelectedA11y] = useState(new Set());
+  const { setLanguage: setGlobalLanguage } = useLanguage();
 
   // Screen 2 demo animation
   useEffect(() => {

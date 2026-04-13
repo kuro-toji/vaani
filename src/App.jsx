@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 import { CognitiveModeProvider, useCognitiveMode } from './context/CognitiveModeContext';
 import { ToastProvider } from './context/ToastContext';
@@ -82,15 +83,17 @@ function AppContent() {
 
 function App() {
   return (
-    <AccessibilityProvider>
-      <CognitiveModeProvider>
-        <ToastProvider>
-          <ErrorBoundary>
-            <AppContent />
-          </ErrorBoundary>
-        </ToastProvider>
-      </CognitiveModeProvider>
-    </AccessibilityProvider>
+    <LanguageProvider>
+      <AccessibilityProvider>
+        <CognitiveModeProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </ToastProvider>
+        </CognitiveModeProvider>
+      </AccessibilityProvider>
+    </LanguageProvider>
   );
 }
 

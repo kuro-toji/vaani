@@ -7,6 +7,7 @@ import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../servic
 import { encryptData, decryptData } from '../services/cryptoService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { getGreeting } from '../data/greetings.js';
 
 export function useChat() {
@@ -31,7 +32,9 @@ export function useChat() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [language, setLanguage] = useState('hi');
+  // Subscribe to global language from LanguageContext
+  const { language: contextLanguage, setLanguage: setContextLanguage } = useLanguage();
+  const [language, setLanguage] = useState(contextLanguage || 'hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);
   const [isMuted, setMuted] = useState(false);
 
@@ -94,13 +97,14 @@ export function useChat() {
     }
   }, [messages]);
 
-  // Save language preference
+  // Save language preference + sync to global context
   useEffect(() => {
     try {
       localStorage.setItem('vaani_language', language);
       localStorage.setItem('vaani_isMuted', isMuted ? '1' : '0');
-    } catch (e) {}
-  }, [language, isMuted]);
+      setContextLanguage(language);
+    } catch {}
+  }, [language, isMuted, setContextLanguage]);
 
   // Load saved preferences on mount
   useEffect(() => {
@@ -259,9 +263,10 @@ export function useChat() {
   }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
 
   const setLanguageManual = useCallback((code) => {
-    setLanguage(code);
-    setIsLanguageManual(true);
-  }, []);
+    setLanguage(code);           // local state (for auto-detection guard)
+    setIsLanguageManual(true);  // mark manual
+    setContextLanguage(code);    // propagate globally
+  }, [setContextLanguage]);
 
   const resetLanguageToAuto = useCallback(() => {
     setIsLanguageManual(false);

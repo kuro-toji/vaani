@@ -27,14 +27,16 @@ import { recordActivity } from '../services/streakService.js';
 import { detectAndCaptureLead } from '../services/leadService.js';
 import { vibrateAISpoke } from '../hooks/useVibration.js';
 import { useVoiceNavigation } from '../hooks/useVoiceNavigation.js';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 export default function ChatWindow() {
   const { cognitiveMode, toggleCognitiveMode } = useCognitiveMode();
-  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, isMuted, setMuted, error } = useChat();
+  const { messages, isLoading, language, isLanguageManual, sendMessage, setLanguageManual, setMuted, isMuted, error } = useChat();
   const { speak } = useVoice();
+  const { largeText, highContrast, fullScreenPTT, autoReadResponses, toggleLargeText, toggleHighContrast, toggleFullScreenPTT, toggleAutoRead } = useAccessibility();
+  const { language: globalLanguage, setLanguage: setGlobalLanguage } = useLanguage();
   const messagesEndRef = useRef(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { largeText, highContrast, fullScreenPTT, autoReadResponses, toggleLargeText, toggleHighContrast, toggleFullScreenPTT, toggleAutoRead } = useAccessibility();
   const [showIconMode, setShowIconMode] = useState(false);
   const [showTrafficLight, setShowTrafficLight] = useState(false);
   const [voiceNavEnabled, setVoiceNavEnabled] = useState(false);
@@ -102,6 +104,13 @@ export default function ChatWindow() {
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
+
+  // Sync global language changes (from LandingPage detection) → useChat's manual mode
+  useEffect(() => {
+    if (globalLanguage) {
+      setLanguageManual(globalLanguage);
+    }
+  }, [globalLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // VAANI Score
   const vaaniScore = calculateVaaniScore(messages);
@@ -235,7 +244,7 @@ export default function ChatWindow() {
             </button>
 
             {/* Language Selector */}
-            <LanguageSelector language={language} onSelect={setLanguageManual} isManual={isLanguageManual} />
+            <LanguageSelector language={language} onSelect={(code) => { setLanguageManual(code); setGlobalLanguage(code); }} isManual={isLanguageManual} />
 
             {/* Personal Dashboard */}
             <button 
