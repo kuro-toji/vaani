@@ -4,8 +4,11 @@
  * @param {Object} props.message - Message object with { id, role, content, timestamp }
  * @param {string} props.language - Language code for potential i18n
  */
+import useVibration from '../hooks/useVibration.js';
+
 function MessageBubble({ message, language }) {
   const isUser = message.role === 'user';
+  const { vibrateOnTap } = useVibration();
   
   // Format timestamp to HH:MM
   const formatTime = (timestamp) => {
@@ -54,6 +57,7 @@ function MessageBubble({ message, language }) {
         role="region"
         aria-label={isUser ? 'आपका संदेश' : 'Vaani का जवाब'}
         className={`${isUser ? 'max-w-[75%]' : 'max-w-[85%]'} ${bubbleClasses} px-4 py-3`}
+        onClick={() => vibrateOnTap()}
       >
         <p className="whitespace-pre-wrap">
           {parseContent(message.content)}

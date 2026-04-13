@@ -136,7 +136,8 @@ export default function ChatWindow() {
             onClick={() => { vibrateOnTap(); toggleCognitiveMode(); }}
             aria-pressed={cognitiveMode}
             aria-label="सरल मोड"
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] header-btn"
+            style={{ minWidth: '52px', minHeight: '52px' }}
             title="सरल मोड"
           >
             <span className="text-lg">🧠</span>
@@ -147,7 +148,8 @@ export default function ChatWindow() {
             onClick={() => { vibrateOnTap(); toggleLargeText(); }}
             aria-pressed={largeText}
             aria-label="बड़ा टेक्सट मोड"
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] header-btn"
+            style={{ minWidth: '52px', minHeight: '52px' }}
             title="बड़ा टेक्सट"
           >
             <span className="text-sm font-bold text-[#0F6E56]">Aa</span>
@@ -158,7 +160,8 @@ export default function ChatWindow() {
             onClick={() => { vibrateOnTap(); toggleHighContrast(); }}
             aria-pressed={highContrast}
             aria-label="हाई कॉन्ट्रास्ट मोड"
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--vaani-border)] vaani-touch-target"
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--vaani-border)] header-btn"
+            style={{ minWidth: '52px', minHeight: '52px' }}
             title="हाई कॉन्ट्रास्ट"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--vaani-user-bubble)]">
@@ -173,7 +176,8 @@ export default function ChatWindow() {
             onClick={() => { vibrateOnTap(); setShowIconMode(!showIconMode); }}
             aria-pressed={showIconMode}
             aria-label="आइकन मोड"
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] header-btn"
+            style={{ minWidth: '52px', minHeight: '52px' }}
             title="आइकन से बोलें"
           >
             <span className="text-lg">⌨️</span>
@@ -181,7 +185,8 @@ export default function ChatWindow() {
           
           <button
             onClick={() => { vibrateOnTap(); setMuted(!isMuted); }}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] vaani-touch-target"
+            className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-[#F3F4F6] header-btn"
+            style={{ minWidth: '52px', minHeight: '52px' }}
             aria-label={isMuted ? 'ध्वनि बंद करें' : 'ध्वनि चालू करें'}
           >
             {isMuted ? (

@@ -48,8 +48,7 @@ export default function LanguageSelector({ language, onSelect, isManual }) {
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label="भाषा चुनें"
-        className="flex items-center gap-1.5 bg-[#E1F5EE] text-[#0F6E56] text-xs px-3 py-2 rounded-full font-medium hover:bg-[#d1e9df] transition-colors vaani-touch-target"
-        style={{ minWidth: '56px', minHeight: '56px' }}
+        className="flex items-center gap-2 px-4 py-3 rounded-full border border-[var(--vaani-border)] bg-white hover:bg-gray-50 transition-colors min-h-[52px]"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

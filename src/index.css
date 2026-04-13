@@ -91,6 +91,41 @@ html.vaani-large-text .text-\[20px\] {
   min-height: 56px;
 }
 
+/* Mobile-first touch targets - minimum 48px (Android guideline) */
+@media (max-width: 768px) {
+  /* Buttons in header - compact on mobile */
+  .header-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  
+  /* Language cards - bigger on mobile */
+  .language-card-btn {
+    min-height: 60px !important;
+    padding: 12px 8px !important;
+  }
+  
+  /* Suggestion chips - larger touch */
+  .suggestion-chip {
+    min-height: 52px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Icon cards - grid touch targets */
+  .icon-card {
+    min-width: 80px !important;
+    min-height: 80px !important;
+  }
+}
+
+/* Desktop still gets 56px for accessibility */
+@media (min-width: 769px) {
+  .header-btn {
+    min-width: 56px !important;
+    min-height: 56px !important;
+  }
+}
+
 /* Ensure all clickable elements meet 56px touch target */
 button, 
 [role="button"],
