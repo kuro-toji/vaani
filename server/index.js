@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import geminiRoute from './routes/gemini.js';
+import minimaxRoute from './routes/minimax.js';
 import ttsRoute from './routes/tts.js';
 import detectRoute from './routes/detect.js';
 import sttRoute from './routes/stt.js';
@@ -21,7 +21,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/gemini', geminiRoute);
+app.use('/api/minimax', minimaxRoute);
 app.use('/api/tts', ttsRoute);
 app.use('/api/detect', detectRoute);
 app.use('/api/stt', sttRoute);

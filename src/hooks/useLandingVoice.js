@@ -14,7 +14,7 @@ import { langToSpeechLocale, extractDigitsFromText } from '../data/indianDigitMa
    *   - Supports ALL Indian languages — Telugu, Bengali, Marathi, etc.
    *   - Auto-stops recording after 5 seconds (pincode is max 6 digits).
    *   - Works in Brave, Firefox, Safari, and any browser with getUserMedia support.
- */
+   */
 export function useLandingVoice() {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState(null);
@@ -172,8 +172,8 @@ export function useLandingVoice() {
           // Stage 2: MiniMax TTS-based normalization fallback
           // Ask MiniMax to normalize the location to standard English
           try {
-            const { sendToGemini } = await import('../services/geminiService.js');
-            const normalized = await sendToGemini(
+            const { sendToMiniMax } = await import('../services/minimaxService.js');
+            const normalized = await sendToMiniMax(
               `The user spoke this text while searching for their Indian city/district/pincode: "${spokenText}".
                Extract ONLY the city or district name in standard English. Reply with just the name, nothing else.
                Examples: "Darbhanga", "Coimbatore", "Ahmedabad". If unsure, reply "unknown".`,

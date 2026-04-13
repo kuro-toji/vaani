@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // Skip API calls (Gemini, Groq, ElevenLabs, Ollama)
+  // Skip API calls (MiniMax, Groq, ElevenLabs, Ollama)
   const url = event.request.url;
   if (
     url.includes('generativelanguage.googleapis.com') ||

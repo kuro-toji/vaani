@@ -48,13 +48,32 @@ export default function ChatWindow() {
   const [showToolbar, setShowToolbar] = useState(false);
   const [showAccessMenu, setShowAccessMenu] = useState(false);
   const [showPersonalDashboard, setShowPersonalDashboard] = useState(false);
+  const [pttCountdown, setPttCountdown] = useState(null); // null = not showing, number = seconds remaining
 
-  // Record streak on mount + auto-activate fullScreenPTT if set during onboarding
+  // Record streak on mount + auto-activate fullScreenPTT after 5-second countdown (if setting was saved)
   useEffect(() => {
     recordActivity();
     try {
       if (localStorage.getItem('vaani_fullScreenPTT') === '1' && !fullScreenPTT) {
-        toggleFullScreenPTT();
+        // Start 5-second countdown
+        let remaining = 5;
+        setPttCountdown(remaining);
+        
+        const interval = setInterval(() => {
+          remaining -= 1;
+          setPttCountdown(remaining);
+          if (remaining <= 0) {
+            clearInterval(interval);
+            setPttCountdown(null);
+            toggleFullScreenPTT();
+          }
+        }, 1000);
+        
+        // Return cleanup
+        return () => {
+          clearInterval(interval);
+          setPttCountdown(null);
+        };
       }
     } catch {}
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -124,6 +143,40 @@ export default function ChatWindow() {
     onSimpleMode: () => setShowTrafficLight(p => !p),
     onIconMode: () => setShowIconMode(p => !p),
   });
+
+  // 5-second fullScreenPTT countdown overlay
+  if (pttCountdown !== null) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(15,23,42,0.95)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        color: '#fff', fontFamily: 'inherit',
+      }}>
+        <div style={{
+          fontSize: '80px', fontWeight: 800,
+          color: '#00D4AA', marginBottom: '16px',
+          animation: 'pulse 1s ease-in-out infinite',
+        }}>{pttCountdown}</div>
+        <p style={{ fontSize: '20px', color: 'rgba(255,255,255,0.8)', marginBottom: '8px' }}>
+          Voice mode activating…
+        </p>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>
+          Tap anywhere to cancel
+        </p>
+        <button
+          onClick={() => setPttCountdown(null)}
+          style={{
+            position: 'absolute', inset: 0,
+            background: 'transparent', border: 'none',
+            cursor: 'pointer',
+          }}
+          aria-label="Cancel voice mode"
+        />
+      </div>
+    );
+  }
 
   if (cognitiveMode) return <CognitiveDashboard />;
 
@@ -288,6 +341,7 @@ export default function ChatWindow() {
             <MessageBubble key={msg.id} message={msg} language={language} />
           ))}
           {isLoading && <TypingIndicator />}
+
           <div ref={messagesEndRef} />
         </div>
 

@@ -202,10 +202,35 @@ export default function LandingPage({ onStart }) {
   const [nextHeadline, setNextHeadline] = useState(null);
   const [waterDropKey, setWaterDropKey] = useState(0);
   const pincodeInputRef = useRef(null);
+  const audioRef = useRef(null);
+  const [welcomePlayed, setWelcomePlayed] = useState(false);
 
   const { isListening, startListening, stopListening } = useLandingVoice();
   const { language, setLanguage: setGlobalLanguage } = useLanguage();
   const currentLangCode = languages[selectedLangIndex]?.code || 'hi';
+
+  // Play pre-recorded welcome audio
+  const playWelcomeAudio = useCallback((lang) => {
+    const langCode = lang?.code || currentLangCode || 'hi';
+    const isHindi = langCode === 'hi' || langCode === 'mr' || langCode === 'bn' || langCode === 'pa' || langCode === 'gu' || langCode === 'kn' || langCode === 'ml' || langCode === 'ta' || langCode === 'te' || langCode === 'or' || langCode === 'as';
+    const audioFile = isHindi ? '/audio/welcome_hi.mp3' : '/audio/welcome_en.mp3';
+    
+    const audio = new Audio(audioFile);
+    audioRef.current = audio;
+    
+    audio.onended = () => setWelcomePlayed(true);
+    audio.onerror = () => setWelcomePlayed(true); // If audio fails, continue anyway
+    
+    audio.play().catch(() => setWelcomePlayed(true));
+  }, [currentLangCode]);
+
+  // Play welcome audio on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      playWelcomeAudio(languages[selectedLangIndex]);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Responsive check
   useEffect(() => {
@@ -264,12 +289,22 @@ export default function LandingPage({ onStart }) {
     setWaterDropKey(prev => prev + 1);
   }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Play pre-recorded pincode prompt audio after language selection
+  const playPincodeAudio = useCallback((langCode) => {
+    const isHindi = langCode === 'hi' || langCode === 'mr' || langCode === 'bn' || langCode === 'pa' || langCode === 'gu' || langCode === 'kn' || langCode === 'ml' || langCode === 'ta' || langCode === 'te' || langCode === 'or' || langCode === 'as';
+    const audioFile = isHindi ? '/audio/ask_pincode_hi.mp3' : '/audio/ask_pincode_en.mp3';
+    
+    const audio = new Audio(audioFile);
+    audio.play().catch(() => {});
+  }, []);
+
   const handleLanguageSelect = (lang, index) => {
     setSelectedLangIndex(index);
     setDetectedLang(lang.name);
     try { sessionStorage.setItem('vaani_detected_language', lang.code); } catch {}
     try { localStorage.setItem('vaani_language', lang.code); } catch {}
     try { setGlobalLanguage(lang.code); } catch {}
+    playPincodeAudio(lang.code);
   };
 
   const handleVoicePincode = useCallback(() => {

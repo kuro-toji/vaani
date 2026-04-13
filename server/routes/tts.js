@@ -17,7 +17,7 @@ router.post('/speak', async (req, res) => {
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice_id || '21m00Tcm4TlvDq8ikHAM'}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voice_id || 'EXAVITQu4vr4xnSDxMaL'}`,
       {
         method: 'POST',
         headers: {

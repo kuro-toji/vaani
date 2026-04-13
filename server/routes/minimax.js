@@ -1,6 +1,6 @@
 import express from 'express';
 
-const router = express.Router();
+const minimaxRouter = express.Router();
 
 const MINIMAX_API_URL = 'https://api.minimax.io/v1/text/chatcompletion_v2';
 const MINIMAX_MODEL = 'MiniMax-M2.7';
@@ -28,7 +28,7 @@ function buildMessages(messages, systemPrompt) {
   return result;
 }
 
-router.post('/chat', async (req, res) => {
+minimaxRouter.post('/chat', async (req, res) => {
   try {
     const { messages, systemPrompt } = req.body;
 
@@ -88,4 +88,4 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-export default router;
+export default minimaxRouter;

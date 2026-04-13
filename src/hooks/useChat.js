@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
-import { sendToGemini } from '../services/geminiService.js';
+import { sendToMiniMax } from '../services/minimaxService.js';
 import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
@@ -191,7 +191,7 @@ export function useChat() {
         : buildTrimmedPrompt(currentLanguage, topic, allMessages);
 
       // Enqueue the request (auto-spaces calls, retries on 429)
-      const response = await enqueueRequest(() => sendToGemini(allMessages, systemPrompt));
+      const response = await enqueueRequest(() => sendToMiniMax(allMessages, systemPrompt));
 
       // Add AI response
       const aiMessage = {

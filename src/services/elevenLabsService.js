@@ -11,30 +11,29 @@ const API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
 // One consistent multilingual voice for all Indian languages.
 // The eleven_multilingual_v2 model handles accent/language automatically.
 const VOICE_IDS = {
-  hi: 'pFZP5JQG7iVDjFUM49ud',
-  ta: 'pFZP5JQG7iVDjFUM49ud',
-  te: 'pFZP5JQG7iVDjFUM49ud',
-  bn: 'pFZP5JQG7iVDjFUM49ud',
-  mr: 'pFZP5JQG7iVDjFUM49ud',
-  gu: 'pFZP5JQG7iVDjFUM49ud',
-  kn: 'pFZP5JQG7iVDjFUM49ud',
-  ml: 'pFZP5JQG7iVDjFUM49ud',
-  pa: 'pFZP5JQG7iVDjFUM49ud',
-  en: 'pFZP5JQG7iVDjFUM49ud',
-  default: 'pFZP5JQG7iVDjFUM49ud',
+  hi: 'EXAVITQu4vr4xnSDxMaL',
+  ta: 'EXAVITQu4vr4xnSDxMaL',
+  te: 'EXAVITQu4vr4xnSDxMaL',
+  bn: 'EXAVITQu4vr4xnSDxMaL',
+  mr: 'EXAVITQu4vr4xnSDxMaL',
+  gu: 'EXAVITQu4vr4xnSDxMaL',
+  kn: 'EXAVITQu4vr4xnSDxMaL',
+  ml: 'EXAVITQu4vr4xnSDxMaL',
+  pa: 'EXAVITQu4vr4xnSDxMaL',
+  en: 'EXAVITQu4vr4xnSDxMaL',
+  default: 'EXAVITQu4vr4xnSDxMaL',
 };
 
+// Pre-recorded MP3s handle greetings; browser TTS for all chat.
+let elevenLabsExhausted = true;
+
 /**
- * Check if ElevenLabs API key is configured and valid.
- * Used by useVoice to decide whether to try ElevenLabs before Web Speech API.
+ * Check if ElevenLabs API key is configured.
+ * Always returns false since pre-recorded MP3s handle greetings
+ * and browser TTS handles all chat responses.
  */
 export function isElevenLabsConfigured() {
-  return !!(
-    API_KEY &&
-    API_KEY.length > 0 &&
-    API_KEY !== 'your_elevenlabs_api_key_here' &&
-    API_KEY !== 'your_elevenlabs_key_here'
-  );
+  return false; // ElevenLabs not used — pre-recorded audio + browser TTS only
 }
 
 /**
