@@ -86,6 +86,27 @@ function LandingPage({ onStart }) {
     }
   }, [pincode]);
 
+  // Disable smooth scroll if user prefers reduced motion
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    const disableSmoothScroll = () => {
+      document.documentElement.style.scrollBehavior = 'auto';
+    };
+    
+    if (prefersReducedMotion.matches) {
+      disableSmoothScroll();
+    }
+    
+    prefersReducedMotion.addEventListener('change', (e) => {
+      if (e.matches) {
+        disableSmoothScroll();
+      } else {
+        document.documentElement.style.scrollBehavior = 'smooth';
+      }
+    });
+  }, []);
+
   const scrollToDemo = () => {
     document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
   };

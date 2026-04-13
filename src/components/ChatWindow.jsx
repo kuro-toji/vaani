@@ -24,9 +24,25 @@ export default function ChatWindow() {
   const [flashTrigger, setFlashTrigger] = useState(0);
   const prevMessageCount = useRef(messages.length);
 
+  // Respect reduced motion preferences
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    if (prefersReducedMotion.matches) {
+      document.documentElement.style.scrollBehavior = 'auto';
+    }
+    
+    prefersReducedMotion.addEventListener('change', (e) => {
+      document.documentElement.style.scrollBehavior = e.matches ? 'auto' : 'smooth';
+    });
+  }, []);
+
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior: prefersReducedMotion ? 'auto' : 'smooth' 
+    });
   }, [messages, isLoading]);
 
   // Detect new AI messages for flash notification
