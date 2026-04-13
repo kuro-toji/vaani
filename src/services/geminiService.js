@@ -35,21 +35,30 @@ function buildMessages(messages, systemPrompt) {
  * Try calling the local Express backend at /api/gemini/chat.
  * Returns the response text if successful, or null if the server is not running.
  */
+let localServerAvailable = null; // null = unknown, true/false = cached result
+
 async function tryLocalServer(messages, systemPrompt) {
+  // If we already know the server is down, skip immediately
+  if (localServerAvailable === false) return null;
+
   try {
     const response = await fetch('/api/gemini/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, systemPrompt }),
-      signal: AbortSignal.timeout(3000), // 3s timeout — if server isn't up, fail fast
+      signal: AbortSignal.timeout(1500), // 1.5s timeout
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      localServerAvailable = false; // Cache: server returned error
+      return null;
+    }
 
+    localServerAvailable = true;
     const data = await response.json();
     return data?.reply || data?.response || data?.text || null;
   } catch {
-    // Server not running or network error — fall back to direct API
+    localServerAvailable = false; // Cache: server not running
     return null;
   }
 }

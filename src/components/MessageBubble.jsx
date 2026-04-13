@@ -147,7 +147,7 @@ function MessageBubble({ message, language }) {
       )}
 
       {/* Message column */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
         {/* Bubble */}
         <div
           dir="auto"
@@ -157,23 +157,22 @@ function MessageBubble({ message, language }) {
           onKeyDown={handleKeyDown}
           className={isUser ? 'bubble-user' : 'bubble-ai'}
           style={{
-            maxWidth: '72%',
-            padding: isUser ? '10px 16px' : '12px 16px',
-            borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+            padding: isUser ? 'var(--vaani-space-3) var(--vaani-space-4)' : 'var(--vaani-space-4) var(--vaani-space-5)',
+            borderRadius: isUser ? 'var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-sm) var(--vaani-radius-xl)' : 'var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-sm)',
             background: isUser
-              ? 'linear-gradient(135deg, #0F6E56, #1D9E75)'
-              : 'rgba(255,255,255,0.07)',
-            backdropFilter: isUser ? 'none' : 'blur(12px)',
-            WebkitBackdropFilter: isUser ? 'none' : 'blur(12px)',
-            border: isUser ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              ? 'var(--vaani-gradient-primary)'
+              : 'rgba(255,255,255,0.05)',
+            backdropFilter: isUser ? 'none' : 'blur(16px)',
+            WebkitBackdropFilter: isUser ? 'none' : 'blur(16px)',
+            border: isUser ? 'none' : '1px solid rgba(255,255,255,0.08)',
             color: '#ffffff',
-            fontSize: largeText ? '18px' : '15px',
-            lineHeight: 1.55,
-            letterSpacing: '0.1px',
+            fontSize: largeText ? 'var(--vaani-text-lg)' : 'var(--vaani-text-base)',
+            lineHeight: 1.6,
+            letterSpacing: '0.15px',
             wordBreak: 'break-word',
             boxShadow: isUser
-              ? '0 2px 12px rgba(16,185,129,0.25)'
-              : '0 2px 8px rgba(0,0,0,0.3)',
+              ? '0 4px 14px rgba(16,185,129,0.3)'
+              : '0 4px 12px rgba(0,0,0,0.15)',
             // High-contrast override
             ...(highContrast && {
               background: isUser ? '#004400' : '#FFFFFF',

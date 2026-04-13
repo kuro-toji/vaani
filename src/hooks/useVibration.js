@@ -49,6 +49,26 @@ export function useVibration() {
     vibrate(SPEAKING_LOOP_PATTERN);
   }, [vibrate]);
 
+  const vibrateListeningPurr = useCallback(() => {
+    if (!navigator?.vibrate) return;
+    navigator.vibrate([100, 100, 100, 100, 100, 100, 100, 100, 100, 100]);
+  }, []);
+
+  const vibrateAISpoke = useCallback(() => {
+    if (!navigator?.vibrate) return;
+    navigator.vibrate([40, 60, 40]);
+  }, []);
+
+  const vibrateError = useCallback(() => {
+    if (!navigator?.vibrate) return;
+    navigator.vibrate([200, 100, 200]);
+  }, []);
+
+  const vibrateSuccess = useCallback(() => {
+    if (!navigator?.vibrate) return;
+    navigator.vibrate(300);
+  }, []);
+
   return {
     vibrate,
     stopVibration,

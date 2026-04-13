@@ -121,6 +121,7 @@ export function useLandingVoice() {
         const formData = new FormData();
         formData.append('file', blob, 'pincode.webm');
         formData.append('model', 'whisper-large-v3');
+        formData.append('response_format', 'verbose_json');
         // Omit language param → Whisper auto-detects the spoken language.
         // This is critical for Indian languages: "one two three" spoken in Tamil
         // or Telugu will be transcribed correctly without us guessing the locale.
@@ -141,11 +142,14 @@ export function useLandingVoice() {
         }
 
         const data = await response.json();
-        const digits = extractDigitsFromText(data.text || '');
+        const transcribedText = data.text || '';
+        const detectedLanguage = data.language; // ISO language code e.g. "hi", "te", "en"
+        
+        const digits = extractDigitsFromText(transcribedText);
 
         // If digits found, return them directly
         if (digits && digits.length > 0) {
-          onResult(digits);
+          onResult(digits, detectedLanguage);
           return;
         }
 
@@ -159,7 +163,7 @@ export function useLandingVoice() {
             if (typeof searchByLocationName === 'function') {
               const result = await searchByLocationName(spokenText);
               if (result && result.pincode) {
-                onResult(result.pincode);
+                onResult(result.pincode, detectedLanguage);
                 return;
               }
             }
@@ -181,7 +185,7 @@ export function useLandingVoice() {
               if (typeof searchByLocationName === 'function') {
                 const result2 = await searchByLocationName(cleanName);
                 if (result2 && result2.pincode) {
-                  onResult(result2.pincode);
+                  onResult(result2.pincode, detectedLanguage);
                   return;
                 }
               }
@@ -192,7 +196,7 @@ export function useLandingVoice() {
         }
 
         // Nothing worked — return empty so user can type
-        onResult('');
+        onResult('', detectedLanguage);
       } catch (fetchErr) {
         console.error('Groq fetch failed:', fetchErr);
         setError('Voice transcription failed. Please type your pincode.');
@@ -267,13 +271,8 @@ export function useLandingVoice() {
       for (let i = 0; i < e.results.length; i++) {
         transcript += e.results[i][0].transcript;
       }
-      const digits = extractDigitsFromText(transcript);
       if (onResultCallbackRef.current) {
-        onResultCallbackRef.current(digits);
-      }
-      // Notify consumer of detected language (for Web Speech path)
-      if (onLanguageDetected && lang) {
-        onLanguageDetected(lang);
+        onResultCallbackRef.current(transcript, lang);
       }
     };
 

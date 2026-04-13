@@ -78,8 +78,9 @@ const LANG_HEADLINES = {
   ml: { line1: 'നിങ്ങളുടെ ശബ്ദം।', line2: 'നിങ്ങളുടെ ഭാഷ।', sub: 'ഇന്ത്യയുടെ ആദ്യ വോയ്സ്-ఫస్ఱ്റ് ధനകാര്യ ഉപദേഷ്ടാവ്' },
   pa: { line1: 'ਤੁਹਾਡੀ ਆਵਾਜ਼।', line2: 'ਤੁਹਾਡੀ ਭਾਸ਼ਾ।', sub: 'ਭਾਰਤ ਦਾ ਪਹਿਲਾ ਵੌਇਸ-ਫਸਟ ਵਿੱਤੀ ਸਲਾਹਕਾਰ' },
   or: { line1: 'ଆପଣଙ୍କ ସ୍ୱର।', line2: 'ଆପଣଙ୍କ ଭାଷା।', sub: 'ଭାରତର ପ୍ରଥମ ଭଏସ-ଫାର୍ଷ୍ଟ ଆର୍ଥିକ ସଲାହକାର' },
-  ur: { line1: 'آپ کی آواز۔', line2: 'آپ کی زبان۔', sub: 'بھارت کا پہلا وائس-فرسٹ مالیاتی مشیر' },
-  as: { line1: 'আপোনাৰ মাত।', line2: 'আপোনাৰ ভাষা।', sub: 'ভাৰতৰ প্ৰথম ভয়েচ-ফাৰ্ষ্ট বিত্তীয় পৰামৰ্শদাতা' },
+  ur: { line1: 'آپ کی آواز۔', line2: 'آپ کی زبان۔', sub: 'ہندوستان کا پہلا وائس فرسٹ مالی مددگار' },
+  as: { line1: 'আপোনাৰ মাত।', line2: 'আপোনাৰ ভাষা।', sub: 'ভাৰতৰ প্ৰথম ভইচ-ফাৰ্ষ্ট বিত্তীয় সহায়ক' },
+  en: { line1: 'Your Voice.', line2: 'Your Language.', sub: "India's first voice-first financial advisor" },
 };
 
 const HOW_STEPS = [
@@ -137,6 +138,45 @@ function WaterDropTransition({ isActive, children }) {
 
   return (
     <>
+      <style>{`
+        .water-drop-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .water-drop-ripple {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(0, 212, 170, 0.6) 0%, rgba(16, 185, 129, 0.3) 60%, transparent 100%);
+          transform: scale(0);
+          transition: none;
+        }
+
+        .water-drop-ripple.animating {
+          animation: waterDropExpand 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .water-drop-ripple.collapsing {
+          animation: waterDropCollapse 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes waterDropExpand {
+          0%   { transform: scale(0); opacity: 0.9; }
+          100% { transform: scale(300); opacity: 0; }
+        }
+
+        @keyframes waterDropCollapse {
+          0%   { transform: scale(300); opacity: 0; }
+          100% { transform: scale(0); opacity: 0; }
+        }
+      `}</style>
       {children}
       {phase !== 'idle' && (
         <div className="water-drop-overlay" aria-hidden="true">
@@ -344,27 +384,43 @@ export default function LandingPage({ onStart }) {
 
         {/* Headline */}
         <h2 style={{
-          fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
-          margin: 0, color: '#ffffff',
-          animation: headlineAnim === 'out' ? 'bubbleOut 0.35s ease forwards' :
-                     headlineAnim === 'in'  ? 'bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both' :
-                     'fadeUp 0.6s ease both',
+          fontSize: 'clamp(42px,8vw,80px)',
+          fontWeight: 800,
+          lineHeight: 1.05,
+          margin: 0,
+          color: '#ffffff',
+          animationName: headlineAnim === 'out' ? 'bubbleOut' :
+                         headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
+          animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
+          animationTimingFunction: headlineAnim === 'in'
+            ? 'cubic-bezier(0.34,1.56,0.64,1)'
+            : headlineAnim === 'out' ? 'ease' : 'ease',
           animationDelay: headlineAnim === 'idle' ? '0.1s' : '0s',
           animationFillMode: 'both',
+          animationIterationCount: 1,
           transformOrigin: 'center center',
         }}>
           {activeHeadline.line1}
         </h2>
         <h2 style={{
-          fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
+          fontSize: 'clamp(42px,8vw,80px)',
+          fontWeight: 800,
+          lineHeight: 1.05,
           margin: 0,
           background: 'linear-gradient(135deg,#00D4AA,#10B981)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          animation: headlineAnim === 'out' ? 'bubbleOut 0.35s ease forwards' :
-                     headlineAnim === 'in'  ? 'bubbleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both' :
-                     'fadeUp 0.6s ease both',
-          animationDelay: headlineAnim === 'in' ? '0.07s' : headlineAnim === 'idle' ? '0.2s' : '0s',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          animationName: headlineAnim === 'out' ? 'bubbleOut' :
+                         headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
+          animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
+          animationTimingFunction: headlineAnim === 'in'
+            ? 'cubic-bezier(0.34,1.56,0.64,1)'
+            : 'ease',
+          animationDelay: headlineAnim === 'in' ? '0.07s'
+                        : headlineAnim === 'idle' ? '0.2s' : '0s',
           animationFillMode: 'both',
+          animationIterationCount: 1,
           transformOrigin: 'center center',
         }}>
           {activeHeadline.line2}

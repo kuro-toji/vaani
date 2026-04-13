@@ -26,6 +26,43 @@ const COMMAND_PATTERNS = {
   stop: [/\b(stop|ruko|रुको|நிறுத்து|ఆపు|থামো)\b/i],
 };
 
+let globalAudioCtx = null;
+
+function playConfirmationBeep() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    if (!globalAudioCtx) {
+      globalAudioCtx = new AudioContext();
+    }
+    
+    const ctx = globalAudioCtx;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.02);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (err) {
+    console.warn('Silent beep playback failed:', err);
+  }
+}
+
 function matchCommand(transcript) {
   const t = transcript.toLowerCase().trim();
   for (const [cmd, patterns] of Object.entries(COMMAND_PATTERNS)) {
@@ -71,6 +108,8 @@ export function useVoiceNavigation({
       const transcript = e.results[e.results.length - 1][0].transcript;
       const cmd = matchCommand(transcript);
       if (!cmd) return;
+
+      playConfirmationBeep();
 
       switch (cmd) {
         case 'back':       onBack?.();       break;

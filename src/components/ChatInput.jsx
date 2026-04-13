@@ -20,8 +20,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const [transcribedText, setTranscribedText] = useState('');
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
-  const { vibrateOnRecordingStart, stopVibration, vibrateAISpoke } = useVibration();
-  const { vibrateListeningPurr } = useVibration();
+  const { vibrateOnRecordingStart, stopVibration, vibrateListeningPurr } = useVibration();
   const { largeText, highContrast } = useAccessibility();
 
   // Handle listening vibration loop
