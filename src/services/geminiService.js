@@ -1,3 +1,7 @@
+// SECURITY NOTE: API keys are in URL for client-side app without backend proxy.
+// For production, use a backend that proxies requests with keys in headers.
+// This is acceptable for demo/prototype but not production.
+
 // Cache for API responses — keyed by hash of messages + system prompt
 const responseCache = new Map();
 

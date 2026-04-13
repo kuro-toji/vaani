@@ -3,6 +3,21 @@
  * Cuts token usage by 60-70% by not sending unrelated content
  */
 
+// Sanitize user input to prevent prompt injection
+export function sanitizeInput(text, maxLength = 500) {
+  if (!text) return '';
+  // Truncate to max length
+  const truncated = text.substring(0, maxLength);
+  // Remove control characters and potential injection patterns
+  const sanitized = truncated
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control chars
+    .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
+    .replace(/javascript:/gi, '') // Remove javascript: URLs
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers
+    .trim();
+  return sanitized;
+}
+
 import { ratesData } from '../data/ratesData.js';
 import { languages } from '../data/languages.js';
 import { getMetaphor } from '../data/dialectMetaphors.js';
@@ -21,7 +36,8 @@ const TOPIC_KEYWORDS = {
 const LANGUAGE_KEYWORDS = ['hindi', 'tamil', 'telugu', 'language', 'भाषा', 'மொழி', 'భాష'];
 
 export function detectTopic(text) {
-  const lower = text.toLowerCase();
+  const truncated = sanitizeInput(text, 500);
+  const lower = truncated.toLowerCase();
   
   for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
     for (const keyword of keywords) {
@@ -72,9 +88,16 @@ IMPORTANT: If asked about a topic not listed above, say you don't have that data
 
 export function buildTrimmedPrompt(languageCode, detectedTopic, messages) {
   const topicSection = buildTopicSection(detectedTopic, languageCode);
+  
+  // Sanitize user messages before adding to prompt
+  const sanitizedMessages = messages.map(msg => ({
+    ...msg,
+    content: sanitizeInput(msg.content, 300)
+  }));
+  
   return `${topicSection}
 
-${buildConversationSection(messages)}`;
+${buildConversationSection(sanitizedMessages)}`;
 }
 
 function buildTopicSection(topic, languageCode) {

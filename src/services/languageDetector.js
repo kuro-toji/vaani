@@ -11,7 +11,17 @@ for (const lang of languages) {
 // Languages that franc might confuse with Indian languages
 const ambiguousCodes = new Set(['urd', 'pan', 'ben', 'hin']);
 
+// Rate limiting
+let lastDetectionTime = 0;
+const MIN_GAP_MS = 2000; // 2 seconds between detections
+
 export async function detectLanguage(text) {
+  // Rate limit check
+  const now = Date.now();
+  if (now - lastDetectionTime < MIN_GAP_MS) {
+    return 'hi'; // Default during rate limit
+  }
+  lastDetectionTime = now;
   // Return 'hi' for empty or very short text
   if (!text || text.length < 2) {
     return 'hi';
