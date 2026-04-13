@@ -10,9 +10,10 @@ import { langToSpeechLocale, extractDigitsFromText } from '../data/indianDigitMa
  *
  * Mode 2 — Groq Whisper: records audio with MediaRecorder, sends to
  *   Groq Whisper API (https://api.groq.com/openai/v1/audio/transcriptions).
- *   - Language always 'en' — pincode digits are universally spoken in English.
- *   - Auto-stops recording after 5 seconds (pincode is max 6 digits).
- *   - Works in Brave, Firefox, Safari, and any browser with getUserMedia support.
+   *   - Groq Whisper auto-detects the spoken language (omitting language param).
+   *   - Supports ALL Indian languages — Telugu, Bengali, Marathi, etc.
+   *   - Auto-stops recording after 5 seconds (pincode is max 6 digits).
+   *   - Works in Brave, Firefox, Safari, and any browser with getUserMedia support.
  */
 export function useLandingVoice() {
   const [isListening, setIsListening] = useState(false);
@@ -120,7 +121,9 @@ export function useLandingVoice() {
         const formData = new FormData();
         formData.append('file', blob, 'pincode.webm');
         formData.append('model', 'whisper-large-v3');
-        formData.append('language', lang || 'en');
+        // Omit language param → Whisper auto-detects the spoken language.
+        // This is critical for Indian languages: "one two three" spoken in Tamil
+        // or Telugu will be transcribed correctly without us guessing the locale.
 
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
           method: 'POST',
@@ -276,7 +279,7 @@ export function useLandingVoice() {
 
     recognition.onerror = (e) => {
       // Only fall through to Groq for genuine failures, not user-abort scenarios
-      const fallThroughErrors = ['network', 'not-allowed', 'service-not-allowed'];
+      const fallThroughErrors = ['network', 'not-allowed', 'service-not-allowed', 'language-not-supported'];
       if (fallThroughErrors.includes(e.error)) {
         stopRecognition();
         startGroqWhisperFallback(onResult, lang);

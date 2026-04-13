@@ -103,7 +103,15 @@ const ROMANIZED_OTHER = [
   },
   {
     code: 'mr',
-    patterns: [/\b(mi|tumhi|kasa|aahe|namaskar|mala|kaay|kasa)\b/i],
+    patterns: [/\b(mi|tumhi|kasa|aahe|namaskar|mala|kaay|kasa|aapan|tevha)\b/i],
+  },
+  {
+    code: 'or',
+    patterns: [/\b(emu|apana|ketebahut|kaha|kaile|nahin|baba|gopal|laxmi)\b/i],
+  },
+  {
+    code: 'ne',
+    patterns: [/\b(ma|malai|timro|ka|haina|ho|chan|paap|naam|baba|kaha)\b/i],
   },
 ];
 

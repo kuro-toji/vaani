@@ -45,10 +45,10 @@ export const indianDigitMap = {
   '౦': '0', '౧': '1', '౨': '2', '౩': '3', '౪': '4',
   '౫': '5', '౬': '6', '౭': '7', '౮': '8', '౯': '9',
 
-  // ── Marathi (uses Devanagari script, different spoken words) ─
-  'शुन्य': '0', 'एक्क': '1', 'दोन': '2', 'तीन्': '3', 
-  'चार्': '4', 'पाच': '5', 'सहा': '6',
-  'आठ्': '8', 'नऊ': '9',
+  // ── Marathi (uses Devanagari script, spoken words differ from Hindi) ─
+  'शून्य': '0', 'एक': '1', 'दोन': '2', 'तीन': '3',
+  'चार': '4', 'पाच': '5', 'सहा': '6', 'सात': '7',
+  'आठ': '8', 'नऊ': '9',
 
   // ── Gujarati / ગુજરાતી ──────────────────────────────────
   'શૂન્ય': '0', 'એક': '1', 'બે': '2', 'ત્રણ': '3', 'ચાર': '4',
@@ -132,7 +132,7 @@ export const langToSpeechLocale = {
   'mni': 'bn-IN',
   'ks': 'ur-IN',
   'sd': 'ur-IN',
-  'sat': 'hi-IN',
+  'sat': 'or-IN',  // Santali — use Odia as closest match
   'tcy': 'kn-IN',
 };
 
@@ -151,6 +151,14 @@ export function getSortedDigitKeys() {
 
 /**
  * Convert a text containing spoken digit words in any Indian language to ASCII digits.
+ * Handles:
+ *   - English digit words ("one", "two") — case-insensitive
+ *   - Devanagari digit words (Hindi, Marathi, Nepali, Sanskrit)
+ *   - Bengali digit words
+ *   - Telugu digit words
+ *   - Tamil digit words
+ *   - All other Indic script native numerals
+ *   - Pure digit strings (spoken as one sequence)
  * @param {string} text - Raw transcript text
  * @returns {string} - String containing only extracted digit characters
  */
@@ -174,10 +182,29 @@ export function extractDigitsFromText(text) {
       result = result.toLowerCase().replace(new RegExp(word, 'gi'), indianDigitMap[word]);
     } else {
       // Unicode words: match as-is, no case folding needed
-      result = result.replace(new RegExp(word, 'g'), indianDigitMap[word]);
+      // Use \p{Nd} in character class to catch native numerals
+      // Devanagari: \u0966-\u096F (०-९)
+      // Bengali:    \u09E6-\u09EF (০-৯)
+      // Tamil:     \u0BE6-\u0BEF (௦-௯)
+      // Telugu:    \u0C66-\u0C6F (౦-౯)
+      // Kannada:   \u0CE6-\u0CEF (೦-೯)
+      // Malayalam: \u0D66-\u0D6F (൦-൯)
+      // Odia:      \u0B66-\u0B6F (୦-୯)
+      // Gurmukhi:  \u0A66-\u0A6F (੦-੯)
+      // Gujarati:  \u0AE6-\u0AEF (૦-૯)
+      // Urdu/Arabic Eastern Arabic: \u0660-\u0669 (۰-۹)
+      // Use negative lookahead/lookbehind to avoid matching numerals within words
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = `(?<![\\p{L}\\p{N}\\p{M}])${escaped}(?![\\p{L}\\p{N}\\p{M}])`;
+      result = result.replace(new RegExp(pattern, 'gu'), indianDigitMap[word]);
     }
   }
 
-  // Extract only digit characters
+  // Final pass: extract ALL Unicode decimal digits using \p{Nd} (covers ALL scripts)
+  // This catches any native numerals we may have missed
+  const digitOnly = result.replace(/[^\p{Nd}]/gu, '');
+  if (digitOnly.length > 0) return digitOnly;
+
+  // Extract only ASCII digit characters as last resort
   return result.replace(/\D/g, '');
 }
