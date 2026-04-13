@@ -3,41 +3,54 @@ import { useCognitiveMode } from '../context/CognitiveModeContext';
 import { useChat } from '../hooks/useChat';
 import { useVoice } from '../hooks/useVoice';
 import { Mic, MicOff } from 'lucide-react';
-import { detectLifeEvents, buildInvestmentLadder } from '../services/lifeEventService';
 
+/**
+ * CognitiveDashboard — Full-screen traffic light UI for cognitively impaired users.
+ * 
+ * Three states: green (safe), yellow (attention needed), red (warning).
+ * Entire screen is tappable for motor-impaired users.
+ * Minimum 24px font size throughout, high contrast.
+ */
 export default function CognitiveDashboard() {
-  const { cognitiveMode, toggleCognitiveMode, financialStatus, setFinancialStatus } = useCognitiveMode();
+  const { toggleCognitiveMode, financialStatus, setFinancialStatus } = useCognitiveMode();
   const { messages, isLoading, sendMessage } = useChat();
   const { isListening, startListening, stopListening } = useVoice();
   const [statusMessage, setStatusMessage] = useState('अपनी बात बोलिए');
   const [transcript, setTranscript] = useState('');
-  const [activeLadder, setActiveLadder] = useState(null);
-  const messagesEndRef = useRef(null);
   const isRecording = isListening;
 
-  // Analyze financial status from messages
+  // Determine financial status from messages
   useEffect(() => {
-    // Simple heuristic based on conversation
-    // In real app, this would be ML-based
-    if (messages && messages.length > 0) {
-      // 1. Detect Financial Status
-      const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-      if (lastUserMessage?.content.includes('शादी') || lastUserMessage?.content.includes('बच्चे') || lastUserMessage?.content.includes('विवाह')) {
-        setFinancialStatus('yellow');
-      } else if (lastUserMessage?.content.includes('आपातकाल') || lastUserMessage?.content.includes('emergency') || lastUserMessage?.content.includes('मर')) {
-        setFinancialStatus('red');
-      } else {
-        setFinancialStatus('green');
-      }
-
-      // 2. Detect Life Events and Build Ladder
-      const event = detectLifeEvents(messages);
-      if (event) {
-        const ladder = buildInvestmentLadder(event);
-        setActiveLadder(ladder);
-      }
+    if (!messages || messages.length <= 2) {
+      // No real messages yet (only greeting) — default to green
+      setFinancialStatus('green');
+      return;
     }
+
+    const userMessages = messages.filter(m => m.role === 'user');
+    const lastUserMsg = userMessages[userMessages.length - 1]?.content?.toLowerCase() || '';
+
+    // Red triggers: emergency, danger keywords
+    const redKeywords = ['आपातकाल', 'emergency', 'मर', 'कर्ज', 'लोन', 'कर्जा', 'खतरा', 'नुकसान', 'चीट', 'fraud', 'scam'];
+    if (redKeywords.some(kw => lastUserMsg.includes(kw))) {
+      setFinancialStatus('red');
+      return;
+    }
+
+    // Yellow triggers: life events needing planning
+    const yellowKeywords = ['शादी', 'बच्चे', 'विवाह', 'पढ़ाई', 'इलाज', 'घर', 'home loan', 'wedding', 'hospital'];
+    if (yellowKeywords.some(kw => lastUserMsg.includes(kw))) {
+      setFinancialStatus('yellow');
+      return;
+    }
+
+    // Default: green
+    setFinancialStatus('green');
   }, [messages, setFinancialStatus]);
+
+  // Get last AI recommendation for yellow/red states
+  const lastAiMessage = messages?.filter(m => m.role === 'assistant').pop();
+  const lastRecommendation = lastAiMessage?.content?.substring(0, 120) || '';
 
   const handleMicClick = useCallback(async () => {
     if (isRecording) {
@@ -70,219 +83,208 @@ export default function CognitiveDashboard() {
     }
   }, [transcript, isLoading, sendMessage]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const statusColors = {
-    green: { bg: '#10B981', shadow: '0 0 30px rgba(16, 185, 129, 0.5)' },
-    yellow: { bg: '#F59E0B', shadow: '0 0 30px rgba(245, 158, 11, 0.5)' },
-    red: { bg: '#EF4444', shadow: '0 0 30px rgba(239, 68, 68, 0.5)' },
+  // Status display config
+  const STATUS = {
+    green: {
+      color: '#10B981',
+      shadow: '0 0 60px rgba(16, 185, 129, 0.5)',
+      title: 'अच्छा है ✓',
+      subtext: 'आपका पैसा बढ़ रहा है',
+      defaultSubtext: 'आपका पैसा सुरक्षित है',
+      buttonText: 'Vaani से पूछें',
+    },
+    yellow: {
+      color: '#F59E0B',
+      shadow: '0 0 60px rgba(245, 158, 11, 0.5)',
+      title: 'ध्यान दें ⚠',
+      subtext: 'कुछ सुझाव हैं',
+      buttonText: 'Vaani से पूछें',
+    },
+    red: {
+      color: '#EF4444',
+      shadow: '0 0 60px rgba(239, 68, 68, 0.5)',
+      title: 'जरूरी है !',
+      subtext: lastRecommendation || 'तुरंत ध्यान दें',
+      buttonText: 'Vaani से बात करें',
+    },
   };
 
-  const statusLabels = {
-    green: '✅ आप ठीक हैं',
-    yellow: '⚠️ ध्यान दें',
-    red: '🚨 काम करें',
-  };
+  const status = financialStatus || 'green';
+  const current = STATUS[status] || STATUS.green;
+  const hasRealMessages = messages && messages.length > 2;
+
+  // Tap anywhere handler for motor-impaired users
+  const handleScreenTap = useCallback(() => {
+    toggleCognitiveMode();
+  }, [toggleCognitiveMode]);
 
   return (
-    <div style={{
-      height: '100dvh',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'var(--vaani-bg)',
-      padding: '20px',
-      overflowY: 'auto'
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-      }}>
-        <span style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--vaani-text)' }}>
-          Vaani
-        </span>
-        <button
-          onClick={toggleCognitiveMode}
-          style={{
-            padding: '12px 20px',
-            backgroundColor: 'var(--vaani-border)',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            color: 'var(--vaani-text)',
-          }}
-        >
-          विस्तृत मोड ↗
-        </button>
-      </div>
-
-      {/* Traffic Light Status */}
-      <div style={{
-        flex: 1,
+    <div
+      onClick={handleScreenTap}
+      role="button"
+      tabIndex={0}
+      aria-label="Vaani चैट पर जाएं — कहीं भी टैप करें"
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleScreenTap(); }}
+      style={{
+        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '30px',
-      }}>
-        {/* Large Traffic Light */}
-        <div style={{
-          width: '120px',
-          height: '320px',
-          backgroundColor: '#1F2937',
-          borderRadius: '60px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-          boxShadow: financialStatus !== 'unknown' ? statusColors[financialStatus].shadow : 'none',
-        }}>
-          {/* Green */}
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: financialStatus === 'green' ? '#10B981' : '#374151',
-            transition: 'all 0.3s ease',
-          }} />
-          {/* Yellow */}
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: financialStatus === 'yellow' ? '#F59E0B' : '#374151',
-            transition: 'all 0.3s ease',
-          }} />
-          {/* Red */}
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: financialStatus === 'red' ? '#EF4444' : '#374151',
-            transition: 'all 0.3s ease',
-          }} />
-        </div>
-
-        {/* Status Label */}
-        <div style={{
-          fontSize: '32px',
-          fontWeight: 'bold',
-          color: 'var(--vaani-text)',
-          textAlign: 'center',
-        }}>
-          {statusLabels[financialStatus] || 'Vaani शुरू करें'}
-        </div>
-
-        {/* Large PTT Button */}
-        <button
-          onClick={handleMicClick}
-          disabled={isLoading}
-          style={{
-            width: '160px',
-            height: '160px',
-            borderRadius: '50%',
-            backgroundColor: isRecording ? '#EF4444' : '#10B981',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: isRecording 
-              ? '0 0 40px rgba(239, 68, 68, 0.6)' 
-              : '0 0 40px rgba(16, 185, 129, 0.4)',
-            transition: 'all 0.2s ease',
-            transform: isRecording ? 'scale(1.1)' : 'scale(1)',
-          }}
-        >
-          {isRecording ? (
-            <MicOff size={64} color="white" />
-          ) : (
-            <Mic size={64} color="white" />
-          )}
-        </button>
-
-        {/* Status Message */}
-        <div style={{
+        backgroundColor: '#0F172A',
+        padding: '32px 24px',
+        gap: '32px',
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+        userSelect: 'none',
+      }}
+    >
+      {/* Back button — prevent event propagation */}
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleCognitiveMode(); }}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          padding: '14px 24px',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          border: 'none',
+          borderRadius: '16px',
           fontSize: '24px',
-          color: 'var(--vaani-text)',
-          opacity: 0.8,
-        }}>
-          {statusMessage}
-        </div>
+          cursor: 'pointer',
+          color: '#fff',
+        }}
+        aria-label="विस्तृत मोड पर जाएं"
+      >
+        विस्तृत मोड ↗
+      </button>
+
+      {/* Large status circle */}
+      <div
+        style={{
+          width: '180px',
+          height: '180px',
+          borderRadius: '50%',
+          backgroundColor: current.color,
+          boxShadow: current.shadow,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.5s ease',
+          animation: status === 'red' ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+        }}
+      >
+        <span style={{ fontSize: '64px', lineHeight: 1 }}>
+          {status === 'green' ? '✓' : status === 'yellow' ? '⚠' : '!'}
+        </span>
       </div>
 
-      {/* Investment Ladder Display */}
-      {activeLadder && (
+      {/* Title */}
+      <div style={{
+        fontSize: '48px',
+        fontWeight: 700,
+        color: current.color,
+        textAlign: 'center',
+        lineHeight: 1.2,
+      }}>
+        {current.title}
+      </div>
+
+      {/* Subtext */}
+      <div style={{
+        fontSize: '28px',
+        color: 'rgba(255,255,255,0.8)',
+        textAlign: 'center',
+        maxWidth: '360px',
+        lineHeight: 1.5,
+      }}>
+        {!hasRealMessages ? current.defaultSubtext || current.subtext : current.subtext}
+      </div>
+
+      {/* Last AI recommendation for yellow/red */}
+      {hasRealMessages && status !== 'green' && lastRecommendation && (
         <div style={{
-          backgroundColor: 'white',
+          fontSize: '24px',
+          color: 'rgba(255,255,255,0.6)',
+          textAlign: 'center',
+          maxWidth: '400px',
+          padding: '16px 20px',
           borderRadius: '16px',
-          padding: '20px',
-          margin: '20px 0',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          border: '1px solid var(--vaani-border)'
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          lineHeight: 1.5,
         }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>📈</span> {activeLadder.title}
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {activeLadder.allocations.map((alloc, idx) => (
-              <div key={idx} style={{ 
-                backgroundColor: '#F3F4F6', 
-                padding: '12px 16px', 
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 'bold', color: '#111827', fontSize: '16px' }}>{alloc.purpose}</div>
-                  <div style={{ color: '#4B5563', fontSize: '14px' }}>{alloc.instrument} • {alloc.timeline}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 'bold', color: '#0F6E56', fontSize: '16px' }}>{alloc.percentage}%</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          🤖 {lastRecommendation}{lastRecommendation.length >= 120 ? '...' : ''}
         </div>
       )}
 
-      {/* Simple Messages */}
+      {/* Encouragement for new users */}
+      {!hasRealMessages && (
+        <div style={{
+          fontSize: '24px',
+          color: 'rgba(255,255,255,0.5)',
+          textAlign: 'center',
+          maxWidth: '320px',
+          lineHeight: 1.5,
+        }}>
+          नीचे माइक दबाकर बात शुरू करें 👇
+        </div>
+      )}
+
+      {/* Large PTT Mic Button — prevent event propagation */}
+      <button
+        onClick={(e) => { e.stopPropagation(); handleMicClick(); }}
+        disabled={isLoading}
+        style={{
+          width: '140px',
+          height: '140px',
+          borderRadius: '50%',
+          backgroundColor: isRecording ? '#EF4444' : '#10B981',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: isRecording
+            ? '0 0 50px rgba(239, 68, 68, 0.6)'
+            : '0 0 50px rgba(16, 185, 129, 0.4)',
+          transition: 'all 0.2s ease',
+          transform: isRecording ? 'scale(1.1)' : 'scale(1)',
+          flexShrink: 0,
+        }}
+        aria-label={isRecording ? 'रिकॉर्डिंग बंद करें' : 'बोलें'}
+      >
+        {isRecording ? (
+          <MicOff size={56} color="white" />
+        ) : (
+          <Mic size={56} color="white" />
+        )}
+      </button>
+
+      {/* Status message */}
       <div style={{
-        maxHeight: '200px',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        padding: '16px',
-        backgroundColor: 'var(--vaani-ai-bubble-bg)',
-        borderRadius: '16px',
+        fontSize: '28px',
+        color: 'rgba(255,255,255,0.7)',
+        textAlign: 'center',
       }}>
-        {messages.slice(-4).map((msg) => (
-          <div key={msg.id} style={{
-            padding: '12px 16px',
-            borderRadius: '12px',
-            backgroundColor: msg.role === 'user' 
-              ? 'var(--vaani-user-bubble)' 
-              : 'var(--vaani-ai-bubble-bg)',
-            color: msg.role === 'user' ? 'white' : 'var(--vaani-text)',
-            fontSize: '18px',
-            maxWidth: '85%',
-            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-          }}>
-            {msg.role === 'user' ? '👤 ' : '🤖 '}
-            {msg.content.substring(0, 100)}
-            {msg.content.length > 100 ? '...' : ''}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+        {statusMessage}
       </div>
+
+      {/* CTA text */}
+      <div style={{
+        fontSize: '24px',
+        color: current.color,
+        fontWeight: 600,
+        textAlign: 'center',
+      }}>
+        {current.buttonText}
+      </div>
+
+      <style>{`
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 60px rgba(239, 68, 68, 0.5); }
+          50% { box-shadow: 0 0 100px rgba(239, 68, 68, 0.8); }
+        }
+      `}</style>
     </div>
   );
 }

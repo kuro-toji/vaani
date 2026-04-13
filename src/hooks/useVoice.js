@@ -2,6 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { webSpeechSupported, whisperOnly, whisperLangMap } from '../data/speechLanguages'
 import { speakWithElevenLabs, isElevenLabsConfigured } from '../services/elevenLabsService.js'
 
+/* ─────────────────────────────────────────────
+ * Module-level Whisper singleton
+ * ───────────────────────────────────────────── */
 let whisperPipeline = null
 let whisperLoading = false
 
@@ -26,80 +29,207 @@ async function loadWhisper() {
       break
     } catch (err) {
       attempts++
-      if (attempts >= 2) throw err
-      await new Promise(r => setTimeout(r, 3000)) // wait 3s before retry
+      if (attempts >= 2) { whisperLoading = false; throw err }
+      await new Promise(r => setTimeout(r, 3000))
     }
   }
   whisperLoading = false
   return whisperPipeline
 }
 
+/* ─────────────────────────────────────────────
+ * Script-range detection for hallucination guard
+ * ───────────────────────────────────────────── */
+const SCRIPT_RANGES = {
+  hindi:     /[\u0900-\u097F]/,   // Devanagari
+  bengali:   /[\u0980-\u09FF]/,
+  telugu:    /[\u0C00-\u0C7F]/,
+  tamil:     /[\u0B80-\u0BFF]/,
+  marathi:   /[\u0900-\u097F]/,   // Devanagari
+  gujarati:  /[\u0A80-\u0AFF]/,
+  kannada:   /[\u0C80-\u0CFF]/,
+  malayalam: /[\u0D00-\u0D7F]/,
+  punjabi:   /[\u0A00-\u0A7F]/,   // Gurmukhi
+  odia:      /[\u0B00-\u0B7F]/,
+  assamese:  /[\u0980-\u09FF]/,   // Bengali script
+  urdu:      /[\u0600-\u06FF]/,   // Arabic
+  english:   /[a-zA-Z]/,
+  nepali:    /[\u0900-\u097F]/,
+  kashmiri:  /[\u0600-\u06FF]/,
+  sindhi:    /[\u0600-\u06FF]/,
+  maithili:  /[\u0900-\u097F]/,
+  konkani:   /[\u0900-\u097F]/,
+  sanskrit:  /[\u0900-\u097F]/,
+}
+
+function isHallucination(text, whisperLang) {
+  if (!text || text.length < 2) return true
+
+  // Check 1: same word repeated 3+ times
+  const words = text.trim().split(/\s+/)
+  if (words.length >= 3) {
+    const counts = {}
+    for (const w of words) {
+      const lower = w.toLowerCase()
+      counts[lower] = (counts[lower] || 0) + 1
+      if (counts[lower] >= 3) return true
+    }
+  }
+
+  // Check 2: wrong script (e.g. Korean/Chinese/Japanese when Hindi expected)
+  // CJK ranges: \u3000-\u9FFF, \uAC00-\uD7AF
+  if (/[\u3000-\u9FFF\uAC00-\uD7AF]/.test(text) && whisperLang !== 'korean' && whisperLang !== 'chinese' && whisperLang !== 'japanese') {
+    return true
+  }
+
+  // Check 3: expected script not found at all (for non-English/non-Latin languages)
+  const expectedRange = SCRIPT_RANGES[whisperLang]
+  if (expectedRange && whisperLang !== 'english') {
+    // If text has zero characters in the expected script and is more than a few chars, suspect hallucination
+    if (text.length > 5 && !expectedRange.test(text)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/* ─────────────────────────────────────────────
+ * Mic audio constraints (shared)
+ * ───────────────────────────────────────────── */
+const MIC_CONSTRAINTS = {
+  audio: {
+    noiseSuppression: true,
+    echoCancellation: true,
+    autoGainControl: true,
+  }
+}
+
+/* ─────────────────────────────────────────────
+ * Pad audio buffer with silence
+ * ───────────────────────────────────────────── */
+function padWithSilence(float32, sampleRate, padSeconds = 0.5) {
+  const padSamples = Math.floor(sampleRate * padSeconds)
+  const padded = new Float32Array(padSamples + float32.length + padSamples)
+  // Leading silence is already 0; copy audio; trailing silence is already 0
+  padded.set(float32, padSamples)
+  return padded
+}
+
+/* ─────────────────────────────────────────────
+ * Groq language code mapping
+ * ───────────────────────────────────────────── */
+function mapToGroqLanguage(langCode) {
+  const map = {
+    hi: 'hi', bn: 'bn', te: 'te', ta: 'ta', mr: 'mr',
+    ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa',
+    or: 'or', ne: 'ne', as: 'as', en: 'en',
+    mai: 'hi', sat: 'hi', ks: 'ks', sd: 'sd',
+    kok: 'hi', dgo: 'hi', brx: 'hi', mni: 'hi',
+    sa: 'hi', bho: 'hi', raj: 'hi', hne: 'hi',
+    tcy: 'kn', bgc: 'hi', mag: 'hi',
+  }
+  return map[langCode] || 'auto'
+}
+
+/* ═════════════════════════════════════════════
+ * useVoice hook
+ * ═════════════════════════════════════════════ */
 export function useVoice() {
   const [isListening, setIsListening] = useState(false)
   const [isModelLoading, setIsModelLoading] = useState(false)
+  const [isWhisperMode, setIsWhisperMode] = useState(false)
+  const [transcript, setTranscript] = useState('')     // Pre-send preview
   const [sttError, setSttError] = useState(null)
+  const [countdown, setCountdown] = useState(null)      // Seconds until auto-send
+
   const recognitionRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const streamRef = useRef(null)
+  const recordingStartTimeRef = useRef(null)
   const whisperOnlyRef = useRef(new Set(whisperOnly))
+  const onResultCallbackRef = useRef(null)
+  const onErrorCallbackRef = useRef(null)
+  const countdownTimerRef = useRef(null)
+  const autoSendTimerRef = useRef(null)
 
-  const startListening = useCallback((onResult, onError, language = 'hi') => {
-    setSttError(null)
-
-    const useWhisper = whisperOnlyRef.current.has(language) || !webSpeechSupported[language]
-
-    if (useWhisper) {
-      startWhisper(onResult, onError, language)
-    } else {
-      startWebSpeech(onResult, onError, language)
+  /* ── Cleanup on unmount ── */
+  useEffect(() => {
+    return () => {
+      clearTimers()
+      if (recognitionRef.current) { try { recognitionRef.current.abort() } catch (e) {} }
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()) }
     }
   }, [])
 
-  function mapToGroqLanguage(langCode) {
-    const map = {
-      hi: 'hi', bn: 'bn', te: 'te', ta: 'ta', mr: 'mr',
-      ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa',
-      or: 'or', ne: 'ne', as: 'as', en: 'en',
-      mai: 'hi', sat: 'hi', ks: 'ks', sd: 'sd',
-      kok: 'hi', dgo: 'hi', brx: 'hi', mni: 'hi',
-      sa: 'hi', bho: 'hi', raj: 'hi', hne: 'hi',
-      tcy: 'kn', bgc: 'hi', mag: 'hi',
-    };
-    return map[langCode] || 'auto';
+  function clearTimers() {
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current)
+    countdownTimerRef.current = null
+    autoSendTimerRef.current = null
+    setCountdown(null)
   }
 
+  /* ── Start auto-send countdown (2 seconds) ── */
+  function startAutoSendCountdown(text) {
+    clearTimers()
+    let remaining = 2
+    setCountdown(remaining)
+
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1
+      setCountdown(remaining)
+      if (remaining <= 0) {
+        clearInterval(countdownTimerRef.current)
+        countdownTimerRef.current = null
+      }
+    }, 1000)
+
+    autoSendTimerRef.current = setTimeout(() => {
+      setCountdown(null)
+      // Fire the final result — the consumer should send it
+      onResultCallbackRef.current?.(text, true)
+      setTranscript('')
+    }, 2000)
+  }
+
+  /* ═══════════════════════════════════════════
+   * MODE 1: Web Speech API
+   * ═══════════════════════════════════════════ */
   const startWebSpeech = useCallback(async (onResult, onError, language) => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
       setSttError('Voice not supported in this browser. Use Chrome.')
       onError?.('Voice not supported')
       return
     }
 
+    // Mic permission check
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Mic access requires HTTPS (or localhost)');
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Mic access requires HTTPS (or localhost)')
       }
-      const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      tempStream.getTracks().forEach(t => t.stop());
+      const tempStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+      tempStream.getTracks().forEach(t => t.stop())
     } catch (err) {
-      console.error('WebSpeech mic permission err:', err);
+      console.error('WebSpeech mic permission err:', err)
       if (err.name === 'NotAllowedError') {
-        setSttError('Microphone permission restricted. Allow in browser settings.');
+        setSttError('Microphone permission restricted. Allow in browser settings.')
       } else if (err.name === 'NotFoundError') {
-        setSttError('No microphone found on device.');
+        setSttError('No microphone found on device.')
       } else {
-        setSttError(err.message || 'Microphone access failed.');
+        setSttError(err.message || 'Microphone access failed.')
       }
-      onError?.(err.message);
-      return;
+      onError?.(err.message)
+      return
     }
 
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch (e) {}
-    }
+    // Stop previous
+    if (recognitionRef.current) { try { recognitionRef.current.stop() } catch (e) {} }
+
+    // 400ms delay to avoid capturing the tap noise
+    await new Promise(r => setTimeout(r, 400))
 
     const recognition = new SpeechRecognition()
     recognition.lang = webSpeechSupported[language] || 'hi-IN'
@@ -108,24 +238,35 @@ export function useVoice() {
     recognition.maxAlternatives = 1
 
     recognition.onresult = (e) => {
-      let transcript = ''
+      let currentTranscript = ''
       let isFinal = false
       for (let i = 0; i < e.results.length; i++) {
-        transcript += e.results[i][0].transcript
-        isFinal = e.results[i].isFinal
+        currentTranscript += e.results[i][0].transcript
+        if (e.results[i].isFinal) isFinal = true
       }
-      onResult?.(transcript, isFinal)
+      // Show interim results as preview
+      setTranscript(currentTranscript)
+      if (isFinal) {
+        setIsListening(false)
+        // Start auto-send countdown — user can edit/cancel during this time
+        startAutoSendCountdown(currentTranscript)
+      }
     }
 
     recognition.onerror = (e) => {
       if (e.error === 'network') {
-        // Self-heal: mark this language as whisper-only for rest of session
+        // Silently mark for Whisper fallback and retry
         whisperOnlyRef.current.add(language)
-        setSttError('Switched to offline mode. Click mic again to try.')
+        setIsListening(false)
+        // Auto-retry with Whisper — no error shown to user
+        startWhisper(onResult, onError, language)
+        return
+      } else if (e.error === 'no-speech') {
+        setSttError('कुछ सुनाई नहीं दिया, दोबारा बोलें')
       } else if (e.error === 'not-allowed') {
         setSttError('Microphone permission denied.')
-      } else if (e.error === 'no-speech') {
-        setSttError('No speech detected. Try again.')
+      } else if (e.error === 'aborted') {
+        // User stopped — not an error
       } else {
         setSttError(`Error: ${e.error}`)
       }
@@ -139,23 +280,29 @@ export function useVoice() {
     try {
       recognition.start()
       setIsListening(true)
+      setIsWhisperMode(false)
     } catch (err) {
       setSttError(err.message)
       onError?.(err.message)
     }
   }, [])
 
+  /* ═══════════════════════════════════════════
+   * MODE 2: Whisper (Groq cloud → local fallback)
+   * ═══════════════════════════════════════════ */
   const startWhisper = useCallback(async (onResult, onError, language) => {
     setSttError(null)
+    setIsWhisperMode(true)
+
     const apiKey = import.meta.env.VITE_GROQ_API_KEY
 
     // Request microphone
     let stream
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Mic access requires HTTPS (or localhost)');
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Mic access requires HTTPS (or localhost)')
       }
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
     } catch (err) {
       console.error('Whisper mic err:', err)
       if (err.name === 'NotAllowedError') {
@@ -170,14 +317,16 @@ export function useVoice() {
     }
     streamRef.current = stream
 
-    // VAD + noise gate — wait for voice before recording
+    // 400ms delay to skip tap noise
+    await new Promise(r => setTimeout(r, 400))
+
+    // VAD + noise gate
     const audioContext = new AudioContext()
     const source = audioContext.createMediaStreamSource(stream)
     const analyser = audioContext.createAnalyser()
     analyser.fftSize = 256
     source.connect(analyser)
 
-    // Add lowpass filter to reduce hiss/hum
     const lowpass = audioContext.createBiquadFilter()
     lowpass.type = 'lowpass'
     lowpass.frequency.value = 4000
@@ -185,34 +334,27 @@ export function useVoice() {
     lowpass.connect(analyser)
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount)
-    const VOLUME_THRESHOLD = 50 // -50dB approximately
-    const WAIT_TIME = 2000 // Stop 2s after speech ends
+    const VOLUME_THRESHOLD = 50
+    const WAIT_TIME = 2000
 
-    // Wait for voice activity
     const waitForVoice = () => {
       return new Promise((resolve, reject) => {
         let silenceTimer = null
-        
         const checkVolume = () => {
           analyser.getByteFrequencyData(dataArray)
           const volume = Math.max(...dataArray)
-          
           if (volume > VOLUME_THRESHOLD) {
             clearTimeout(silenceTimer)
             resolve()
           } else {
-            silenceTimer = setTimeout(() => {
-              reject(new Error('No speech detected'))
-            }, 10000) // 10s timeout
+            silenceTimer = setTimeout(() => reject(new Error('No speech detected')), 10000)
             requestAnimationFrame(checkVolume)
           }
         }
-        
         checkVolume()
       })
     }
 
-    // Start recording with VAD
     audioChunksRef.current = []
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -222,9 +364,7 @@ export function useVoice() {
     mediaRecorderRef.current = mediaRecorder
 
     mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) {
-        audioChunksRef.current.push(e.data)
-      }
+      if (e.data?.size > 0) audioChunksRef.current.push(e.data)
     }
 
     mediaRecorder.onstop = async () => {
@@ -232,9 +372,18 @@ export function useVoice() {
       try { audioContext.close() } catch (e) {}
       setIsListening(false)
 
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      // ── Minimum duration check (1.5s) ──
+      const elapsed = Date.now() - (recordingStartTimeRef.current || 0)
+      if (elapsed < 1500) {
+        setSttError('थोड़ा और बोलें')
+        onError?.('Recording too short')
+        return
+      }
 
-      // Try Groq first (faster, more reliable)
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      const whisperLang = whisperLangMap[language] || 'hindi'
+
+      // ── Try Groq Cloud first ──
       if (apiKey) {
         try {
           const formData = new FormData()
@@ -250,33 +399,26 @@ export function useVoice() {
 
           if (response.ok) {
             const data = await response.json()
-            const text = data.text?.trim() || '';
-            
-            // If text is too short or looks like gibberish, retry once
-            const isLowConfidence = text.length < 3 || 
-              (text.length < 10 && /^[a-zA-Z\s]*$/.test(text) && !/[ऀ-ॿ০-৯]/.test(text));
-            
-            if (isLowConfidence) {
-              // Silently retry - try local Whisper instead
-              console.log('Low confidence STT, retrying with local Whisper');
-              // Fall through to local Whisper
-            } else {
-              onResult?.(text, true);
-              return;
+            const text = data.text?.trim() || ''
+
+            if (text && !isHallucination(text, whisperLang)) {
+              setTranscript(text)
+              startAutoSendCountdown(text)
+              return
             }
+            // Hallucination detected — fall through to local Whisper
+            console.log('Groq hallucination detected, trying local Whisper')
           }
         } catch {
-          // Groq failed, fall through to local Whisper
+          // Groq failed — fall through
         }
       }
 
-      // Fallback: local transformers.js Whisper
+      // ── Fallback: local Whisper via @xenova/transformers ──
       try {
-        // Load model if needed
         if (!whisperPipeline) {
           setIsModelLoading(true)
-          let loaded = false
-          let attempts = 0
+          let loaded = false, attempts = 0
           while (!loaded && attempts < 2) {
             try {
               await loadWhisper()
@@ -296,26 +438,40 @@ export function useVoice() {
         }
 
         const arrayBuffer = await audioBlob.arrayBuffer()
-        const audioContext = new AudioContext({ sampleRate: 16000 })
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-        const float32 = audioBuffer.getChannelData(0)
+        const decodeCtx = new AudioContext({ sampleRate: 16000 })
+        const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer)
+        const rawFloat32 = audioBuffer.getChannelData(0)
+        try { decodeCtx.close() } catch (e) {}
 
-        const whisperLang = whisperLangMap[language] || 'hindi'
+        // Pad 0.5s silence at start and end to reduce edge hallucinations
+        const float32 = padWithSilence(rawFloat32, 16000, 0.5)
+
         const result = await whisperPipeline(float32, {
           language: whisperLang,
           task: 'transcribe',
           chunk_length_s: 30,
         })
-        onResult?.(result.text.trim(), true)
+
+        const text = result.text?.trim() || ''
+
+        if (!text || isHallucination(text, whisperLang)) {
+          setSttError('ठीक से सुनाई नहीं दिया, दोबारा बोलें')
+          onError?.('Hallucination detected')
+          return
+        }
+
+        setTranscript(text)
+        startAutoSendCountdown(text)
       } catch {
         setSttError('Could not transcribe. Please type instead.')
         onError?.('Transcription failed')
       }
     }
 
-    // Start recording only after voice is detected
+    // Start recording only after voice detected
     try {
       await waitForVoice()
+      recordingStartTimeRef.current = Date.now()
       mediaRecorder.start(1000)
       setIsListening(true)
     } catch {
@@ -323,9 +479,29 @@ export function useVoice() {
       onError?.('No speech detected')
       stream.getTracks().forEach(t => t.stop())
       try { audioContext.close() } catch (e) {}
-      return
     }
   }, [])
+
+  /* ═══════════════════════════════════════════
+   * Public API: startListening / stopListening
+   * ═══════════════════════════════════════════ */
+  const startListening = useCallback((onResult, onError, language = 'hi') => {
+    setSttError(null)
+    setTranscript('')
+    clearTimers()
+
+    // Store callbacks for auto-send
+    onResultCallbackRef.current = onResult
+    onErrorCallbackRef.current = onError
+
+    const useWhisper = whisperOnlyRef.current.has(language) || !webSpeechSupported[language]
+
+    if (useWhisper) {
+      startWhisper(onResult, onError, language)
+    } else {
+      startWebSpeech(onResult, onError, language)
+    }
+  }, [startWebSpeech, startWhisper])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -342,74 +518,114 @@ export function useVoice() {
     setIsListening(false)
   }, [])
 
-  const speak = useCallback(async (text, language = 'hi') => {
-    if (!text) return;
+  /* ── Confirm / Cancel pre-send preview ── */
+  const confirmSend = useCallback(() => {
+    clearTimers()
+    const text = transcript
+    if (text) {
+      onResultCallbackRef.current?.(text, true)
+    }
+    setTranscript('')
+  }, [transcript])
 
-    // Try ElevenLabs first if configured (works best for English, limited Indian script)
-    if (isElevenLabsConfigured() && (language === 'en' || !/[\u0900-\u0D7F\u0B80-\u0BFF]/.test(text))) {
-      try {
-        const audioBuffer = await speakWithElevenLabs(text, language);
-        const audioContext = new AudioContext();
-        const audioBufferDecoded = await audioContext.decodeAudioData(audioBuffer);
-        const audioSource = audioContext.createBufferSource();
-        audioSource.buffer = audioBufferDecoded;
-        audioSource.connect(audioContext.destination);
-        audioSource.start(0);
-        audioSource.onended = () => {
-          audioContext.close().catch(() => {});
-        };
-        return;
-      } catch (error) {
-        console.warn('ElevenLabs TTS failed, falling back:', error);
+  const cancelSend = useCallback(() => {
+    clearTimers()
+    setTranscript('')
+  }, [])
+
+  /* ═══════════════════════════════════════════
+   * TTS: speak / stopSpeaking — Pure Web Speech API
+   * ═══════════════════════════════════════════ */
+
+  /**
+   * Split text on sentence boundaries for reliable long-text TTS.
+   * Indian scripts use '।' (devanagari danda), others use '.'
+   */
+  function splitIntoSentences(text) {
+    // Split on ।, ?, !, or . followed by whitespace/end, but keep short fragments together
+    const raw = text.split(/(?<=[।\?\!\.])\s+/g).filter(s => s.trim().length > 0)
+    // Merge very short fragments (< 10 chars) with the next sentence
+    const merged = []
+    for (const s of raw) {
+      if (merged.length > 0 && merged[merged.length - 1].length < 10) {
+        merged[merged.length - 1] += ' ' + s
+      } else {
+        merged.push(s)
       }
     }
+    return merged.length > 0 ? merged : [text]
+  }
 
-    // Google Translate TTS fallback for Indian languages (works for all scripts)
-    // This uses the free Google Translate audio endpoint
-    const googleTTSLangs = ['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur'];
-    if (googleTTSLangs.includes(language) && text.length < 200) {
-      try {
-        const encodedText = encodeURIComponent(text.substring(0, 200));
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${language}&q=${encodedText}`;
-        const audio = new Audio(url);
-        audio.playbackRate = 0.9;
-        await audio.play();
-        return;
-      } catch (error) {
-        console.warn('Google TTS failed, using browser TTS:', error);
-      }
-    }
-
-    // Browser native TTS fallback (decent on Android/Chrome for Indian languages)
-    if (!('speechSynthesis' in window)) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    const targetLang = webSpeechSupported[language] || 'hi-IN';
-    utterance.lang = targetLang;
-    
-    // Wait for voices to load if needed
-    let voices = window.speechSynthesis.getVoices();
+  /**
+   * Resolve the best matching voice for a BCP-47 locale.
+   */
+  async function resolveVoice(targetLang) {
+    let voices = window.speechSynthesis.getVoices()
     if (voices.length === 0) {
       await new Promise((resolve) => {
         window.speechSynthesis.onvoiceschanged = () => {
-          voices = window.speechSynthesis.getVoices();
-          resolve();
-        };
-        setTimeout(resolve, 500);
-      });
+          voices = window.speechSynthesis.getVoices()
+          resolve()
+        }
+        setTimeout(resolve, 500)
+      })
+    }
+    const exactMatch = voices.find(v => v.lang === targetLang)
+    if (exactMatch) return exactMatch
+    const prefix = targetLang.split('-')[0]
+    const prefixMatch = voices.find(v => v.lang.startsWith(prefix))
+    if (prefixMatch) return prefixMatch
+    const indianVoice = voices.find(v => v.lang.includes('IN'))
+    return indianVoice || null
+  }
+
+  /**
+   * Speak a single sentence and return a promise that resolves when done.
+   */
+  function speakSentence(sentence, targetLang, voice) {
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(sentence)
+      utterance.lang = targetLang
+      utterance.rate = 0.9
+      utterance.pitch = 1.0
+      utterance.volume = 1.0
+      if (voice) utterance.voice = voice
+      utterance.onend = resolve
+      utterance.onerror = resolve  // Don't block the chain on error
+      window.speechSynthesis.speak(utterance)
+    })
+  }
+
+  const speak = useCallback(async (text, language = 'hi') => {
+    if (!text) return
+
+    // Cancel any ongoing browser speech
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
     }
 
-    // Find best matching voice: prefer native Indian voices over generic ones
-    const exactMatch = voices.find(v => v.lang === targetLang);
-    const prefixMatch = voices.find(v => v.lang.startsWith(language));
-    const indianVoice = voices.find(v => v.lang.includes('IN'));
-    
-    if (exactMatch) utterance.voice = exactMatch;
-    else if (prefixMatch) utterance.voice = prefixMatch;
-    else if (indianVoice) utterance.voice = indianVoice;
-    
-    utterance.rate = 0.9;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    // Try ElevenLabs first if configured (premium multilingual TTS)
+    if (isElevenLabsConfigured()) {
+      try {
+        await speakWithElevenLabs(text, language)
+        return // Success — done
+      } catch (err) {
+        // ElevenLabs failed — fall back silently to Web Speech API
+        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', err)
+      }
+    }
+
+    // Fallback: Web Speech API (free, works in all browsers)
+    if (!('speechSynthesis' in window)) return
+
+    const targetLang = webSpeechSupported[language] || 'hi-IN'
+    const voice = await resolveVoice(targetLang)
+    const sentences = splitIntoSentences(text)
+
+    // Speak each sentence sequentially to avoid browser cutoff
+    for (const sentence of sentences) {
+      await speakSentence(sentence, targetLang, voice)
+    }
   }, [])
 
   const stopSpeaking = useCallback(() => {
@@ -418,7 +634,7 @@ export function useVoice() {
     }
   }, [])
 
-  // Preload whisper model for whisper-only languages on mount
+  /* ── Preload Whisper model on mount ── */
   useEffect(() => {
     if (!whisperPipeline && !whisperLoading) {
       setIsModelLoading(true)
@@ -429,11 +645,21 @@ export function useVoice() {
   }, [])
 
   return {
+    // STT state
     isListening,
     isModelLoading,
+    isWhisperMode,
+    transcript,          // Pre-send preview text
     sttError,
+    countdown,           // Auto-send countdown (seconds remaining, null if inactive)
+
+    // STT actions
     startListening,
     stopListening,
+    confirmSend,         // Immediately send transcript
+    cancelSend,          // Cancel pending auto-send
+
+    // TTS
     speak,
     stopSpeaking,
   }

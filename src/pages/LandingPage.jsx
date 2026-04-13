@@ -1,22 +1,130 @@
-import { useState, useEffect, useRef } from 'react';
-import { Mic, Globe, Shield, Zap, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Mic } from 'lucide-react';
 import { languages } from '../data/languages.js';
 import { getRegionByPincode } from '../services/pincodeService.js';
+import { useLandingVoice } from '../hooks/useLandingVoice.js';
+import { extractDigitsFromText } from '../data/indianDigitMap.js';
+
+/* ─── SVG Waveform Logo ─── */
+function VaaniLogo({ size = 32 }) {
+  const barHeights = [8, 14, 20, 14, 8];
+  const barWidth = 3;
+  const barGap = 2;
+  const totalBarWidth = barHeights.length * barWidth + (barHeights.length - 1) * barGap;
+  const maxBarHeight = Math.max(...barHeights);
+  const svgHeight = size;
+  const scale = svgHeight / maxBarHeight;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      <svg
+        width={totalBarWidth * scale}
+        height={svgHeight}
+        viewBox={`0 0 ${totalBarWidth} ${maxBarHeight}`}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        {barHeights.map((h, i) => (
+          <rect
+            key={i}
+            x={i * (barWidth + barGap)}
+            y={maxBarHeight - h}
+            width={barWidth}
+            height={h}
+            rx={1.5}
+            fill="#0F6E56"
+          />
+        ))}
+      </svg>
+      <span
+        style={{
+          fontWeight: 700,
+          fontSize: `${size * 0.85}px`,
+          lineHeight: 1,
+          background: 'linear-gradient(135deg, #00D4AA, #10B981)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          letterSpacing: '0.5px',
+        }}
+      >
+        VAANI
+      </span>
+    </span>
+  );
+}
+
+/* ─── Fallback color palette for language circles ─── */
+const LANG_COLORS = [
+  '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
+  '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#A855F7',
+  '#E11D48', '#0EA5E9',
+];
+
+const WAVE_HEIGHTS = [8, 12, 18, 22, 18, 12, 8];
+const WAVE_DELAYS = [0, 0.1, 0.2, 0.3, 0.2, 0.1, 0];
+
+const HOW_STEPS = [
+  { num: '1', emoji: '🎤', title: 'Tap & Speak', desc: "Say anything in your language. 'Mera 50,000 kahan lagaun?'" },
+  { num: '2', emoji: '🤖', title: 'Vaani Understands', desc: 'AI listens, detects your language, finds the best answer from real bank data' },
+  { num: '3', emoji: '🔊', title: 'Hear Your Answer', desc: 'Response read aloud in your language. No reading needed.' },
+];
+
+const TRUST_CARDS = [
+  { emoji: '🏛️', title: 'No Hidden Charges', desc: 'Vaani is 100% free. We never ask for money, bank details, or OTP. Ever.' },
+  { emoji: '🔒', title: 'Your Data is Safe', desc: "We don't store your name, account number, or personal details. Nothing is saved after the conversation." },
+  { emoji: '📊', title: 'Real Bank Data', desc: 'All FD rates, post office rates, and scheme details are sourced from RBI and official bank websites.' },
+  { emoji: '👥', title: '1 Lakh+ Users Trust Us', desc: 'Farmers, homemakers, daily wage workers across India use Vaani every day.' },
+];
+
+const A11Y_CARDS = [
+  { emoji: '👁️', title: 'Blind Users', desc: 'Auto-reads all responses aloud. Complete voice-in, voice-out experience. No screen needed.' },
+  { emoji: '👂', title: 'Hearing Impaired', desc: 'All responses shown as large readable text. Icon-based shortcuts for common questions.' },
+  { emoji: '🤝', title: 'Motor Impaired', desc: 'Full-screen tap mode — tap ANYWHERE on screen to speak. No small buttons.' },
+  { emoji: '🧠', title: 'Simple Mode', desc: 'Traffic light UI (Green/Yellow/Red) — no charts, no numbers, just simple yes/no answers.' },
+  { emoji: '👴', title: 'Elderly Users', desc: "Large text mode, slow speech, simple words. Ask 'What is FD?' and get a story, not a chart." },
+  { emoji: '📖', title: 'Low Literacy', desc: 'Visual icon cards — tap a picture to get financial advice. No typing or reading needed.' },
+];
 
 export default function LandingPage({ onStart }) {
   const [pincode, setPincode] = useState('');
   const [region, setRegion] = useState(null);
   const [detectedLang, setDetectedLang] = useState('हिन्दी');
   const [selectedLangIndex, setSelectedLangIndex] = useState(0);
-  
+  const [isPincodeListening, setIsPincodeListening] = useState(false);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const pincodeInputRef = useRef(null);
+
+  const { isListening, startListening, stopListening } = useLandingVoice();
+  const currentLangCode = languages[selectedLangIndex]?.code || 'hi';
+
+  // Responsive check
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // Detect region from pincode
   useEffect(() => {
     if (pincode.length === 6) {
-      const data = getRegionByPincode(pincode);
-      if (data) {
-        setRegion(data);
-        setDetectedLang(data.language);
-      }
+      let cancelled = false;
+      setPincodeLoading(true);
+      getRegionByPincode(pincode).then(data => {
+        if (cancelled) return;
+        setPincodeLoading(false);
+        if (data) {
+          setRegion(data);
+          setDetectedLang(data.languageName || data.language);
+          const langIndex = languages.findIndex(l => l.code === data.language);
+          if (langIndex !== -1) setSelectedLangIndex(langIndex);
+          try { sessionStorage.setItem('vaani_detected_language', data.language); } catch {}
+        }
+      }).catch(() => { if (!cancelled) setPincodeLoading(false); });
+      return () => { cancelled = true; };
     } else {
       setRegion(null);
     }
@@ -25,151 +133,436 @@ export default function LandingPage({ onStart }) {
   const handleLanguageSelect = (lang, index) => {
     setSelectedLangIndex(index);
     setDetectedLang(lang.name);
+    try { sessionStorage.setItem('vaani_detected_language', lang.code); } catch {}
+  };
+
+  const handleVoicePincode = useCallback(() => {
+    if (isListening) {
+      stopListening();
+      setIsPincodeListening(false);
+      return;
+    }
+    setIsPincodeListening(true);
+    startListening((transcript) => {
+      const digits = extractDigitsFromText(transcript);
+      if (digits.length > 0) setPincode(digits.slice(0, 6));
+    }, currentLangCode);
+  }, [isListening, startListening, stopListening, currentLangCode]);
+
+  useEffect(() => {
+    if (!isListening) setIsPincodeListening(false);
+  }, [isListening]);
+
+  const scrollToA11y = () => {
+    document.getElementById('accessibility')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/90 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#00D4AA] to-[#10B981] bg-clip-text text-transparent">
-            VAANI
-          </h1>
-          <button
-            onClick={onStart}
-            className="px-6 py-2 bg-[#10B981] hover:bg-[#0F6E56] rounded-full font-semibold transition-all"
-          >
-            शुरू करें
-          </button>
+    <div role="main" className="vaani-landing" style={{
+      backgroundColor: '#0F172A',
+      color: '#ffffff',
+      minHeight: '100vh',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+    }}>
+      {/* ── Keyframes ── */}
+      <style>{`
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes orbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes orbGlow { 0%,100%{box-shadow:0 0 40px rgba(16,185,129,0.3),0 20px 60px rgba(0,0,0,0.5)} 50%{box-shadow:0 0 80px rgba(0,212,170,0.5),0 20px 80px rgba(0,0,0,0.4)} }
+        @keyframes wave { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.05)} }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        input::placeholder { color: rgba(255,255,255,0.35) !important; }
+      `}</style>
+
+      {/* ══════════════════════════════════════
+          SECTION 1 — FIXED HEADER
+          ══════════════════════════════════════ */}
+      <header role="banner" style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        backgroundColor: 'rgba(15,23,42,0.95)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <div style={{
+          maxWidth: '72rem', margin: '0 auto', padding: '12px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <VaaniLogo size={24} />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={scrollToA11y}
+              style={{
+                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                color: '#fff', padding: '8px 16px', borderRadius: '999px',
+                fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >♿ Accessibility</button>
+            <button
+              onClick={onStart}
+              style={{
+                background: 'linear-gradient(135deg,#0F6E56,#1D9E75)', border: 'none',
+                color: '#fff', padding: '8px 20px', borderRadius: '999px',
+                fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >शुरू करें / Start</button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Your Language.<br />Your Voice.
-          </h2>
-          <p className="text-lg text-white/70 mb-10">
-            28 Indian languages में financial guidance। बिना पढ़े, बिना लिखे।
-          </p>
+      {/* ══════════════════════════════════════
+          SECTION 2 — HERO
+          ══════════════════════════════════════ */}
+      <section style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '100px 24px 60px', textAlign: 'center',
+      }}>
+        {/* Badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
+          borderRadius: '999px', padding: '6px 16px', fontSize: '13px',
+          color: '#10B981', marginBottom: '24px',
+          animation: 'fadeUp 0.6s ease both',
+        }}>🇮🇳 Built for India's Next 800 Million</div>
 
-          {/* Big Mic Button */}
-          <button
-            onClick={onStart}
-            className="w-32 h-32 rounded-full bg-gradient-to-br from-[#10B981] to-[#0F6E56] flex items-center justify-center mx-auto mb-8 shadow-lg shadow-[#10B981]/30 hover:scale-105 transition-transform"
-          >
-            <Mic size={48} className="text-white" />
-          </button>
-          <p className="text-white/50 text-sm mb-8">Tap to Speak</p>
+        {/* Headline */}
+        <h2 style={{
+          fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
+          margin: 0, color: '#ffffff',
+          animation: 'fadeUp 0.6s ease both', animationDelay: '0.1s', animationFillMode: 'both',
+        }}>Your Voice.</h2>
+        <h2 style={{
+          fontSize: 'clamp(42px,8vw,80px)', fontWeight: 800, lineHeight: 1.05,
+          margin: 0,
+          background: 'linear-gradient(135deg,#00D4AA,#10B981)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          animation: 'fadeUp 0.6s ease both', animationDelay: '0.2s', animationFillMode: 'both',
+        }}>Your Language.</h2>
 
-          {/* Pincode Input */}
-          <div className="max-w-md mx-auto">
-            <label className="block text-sm text-white/60 mb-2">
-              Enter pincode (optional)
-            </label>
-            <div className="flex gap-2">
+        {/* Subheadline */}
+        <p style={{
+          fontSize: 'clamp(16px,2.5vw,20px)', color: 'rgba(255,255,255,0.6)',
+          maxWidth: '520px', margin: '20px auto 0', lineHeight: 1.6,
+          animation: 'fadeUp 0.6s ease both', animationDelay: '0.3s', animationFillMode: 'both',
+        }}>India's first voice-first financial advisor — free, in 28 languages, for everyone</p>
+
+        {/* ── Siri Orb ── */}
+        <div
+          role="button" tabIndex={0} aria-label="Tap to start speaking"
+          onClick={onStart}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onStart(); }}
+          style={{
+            position: 'relative', width: '200px', height: '200px',
+            margin: '48px auto 0', cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+            animation: 'fadeUp 0.6s ease both', animationDelay: '0.4s', animationFillMode: 'both',
+          }}
+        >
+          {/* Outer glow */}
+          <div style={{
+            position: 'absolute', inset: '-20px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0,212,170,0.1) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          {/* Outer ring */}
+          <div style={{
+            position: 'absolute', inset: '-4px', borderRadius: '50%',
+            border: '1px solid rgba(0,212,170,0.25)',
+            animation: 'pulse 3s ease-in-out infinite', pointerEvents: 'none',
+          }} />
+          {/* Main orb */}
+          <div style={{
+            width: '200px', height: '200px', borderRadius: '50%',
+            background: 'radial-gradient(circle at 35% 35%, #1D9E75, #0F6E56 55%, #052e1a)',
+            animation: 'orbFloat 4s ease-in-out infinite, orbGlow 3s ease-in-out infinite',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+          }}>
+            {/* Glass highlight */}
+            <div style={{
+              position: 'absolute', top: '20%', left: '22%',
+              width: '28%', height: '22%', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.15)', filter: 'blur(6px)',
+              pointerEvents: 'none',
+            }} />
+            <Mic size={56} color="#ffffff" style={{ opacity: 0.95, position: 'relative', zIndex: 1 }} />
+          </div>
+        </div>
+
+        {/* Wave bars */}
+        <div style={{
+          display: 'flex', gap: '4px', alignItems: 'center',
+          justifyContent: 'center', marginTop: '24px',
+        }}>
+          {WAVE_HEIGHTS.map((h, i) => (
+            <div key={i} style={{
+              width: '3px', height: `${h}px`, borderRadius: '3px',
+              background: 'linear-gradient(180deg,#00D4AA,#10B981)',
+              animation: `wave 0.9s ease-in-out infinite`,
+              animationDelay: `${WAVE_DELAYS[i]}s`,
+            }} />
+          ))}
+        </div>
+
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '12px', letterSpacing: '0.5px' }}>
+          Tap anywhere to start
+        </p>
+
+        {/* ── Pincode ── */}
+        <div style={{
+          marginTop: '40px',
+          animation: 'fadeUp 0.6s ease both', animationDelay: '0.5s', animationFillMode: 'both',
+        }}>
+          <p style={{
+            color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '10px',
+            textTransform: 'uppercase', letterSpacing: '1px',
+          }}>Where are you from? (Optional)</p>
+          <div style={{ maxWidth: '360px', margin: '0 auto', display: 'flex', gap: '8px' }}>
+            <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
               <input
-                type="text"
-                value={pincode}
+                id="pincode-input" ref={pincodeInputRef}
+                type="text" inputMode="numeric" value={pincode}
                 onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="110001"
-                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#00D4AA]"
-                maxLength={6}
+                placeholder="110001" maxLength={6}
+                style={{
+                  flex: 1, padding: '14px 48px 14px 18px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '16px', color: '#ffffff', fontSize: '16px',
+                  outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(0,212,170,0.7)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
               />
-              {region && (
-                <div className="px-4 py-3 bg-[#10B981]/20 border border-[#10B981]/40 rounded-xl text-sm">
-                  {region.region}
-                </div>
-              )}
+              <button
+                type="button" onClick={handleVoicePincode}
+                aria-label={isPincodeListening ? 'Stop voice input' : 'Speak your pincode'}
+                style={{
+                  position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                  width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                  background: isPincodeListening ? 'rgba(239,68,68,0.9)' : 'rgba(16,185,129,0.3)',
+                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  animation: isPincodeListening ? 'pulse 1.2s infinite' : 'none',
+                }}
+              ><Mic size={16} /></button>
             </div>
             {region && (
-              <p className="text-sm text-[#00D4AA] mt-2">
-                Detected: {region.language}
-              </p>
+              <div style={{
+                padding: '14px 16px',
+                background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: '16px', color: '#10B981', fontSize: '13px', whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center',
+              }}>{region.region}{region.state ? `, ${region.state}` : ''}</div>
             )}
           </div>
+          {isPincodeListening && (
+            <p style={{ color: '#F59E0B', fontSize: '13px', marginTop: '8px', animation: 'pulse 1s infinite' }}>
+              🎤 Listening… speak your pincode
+            </p>
+          )}
+          {region && (
+            <p style={{ color: '#00D4AA', fontSize: '13px', marginTop: '8px' }}>
+              🎯 Language detected: {region.languageName || region.language}
+            </p>
+          )}
         </div>
       </section>
 
-      {/* Language Selection */}
-      <section className="py-16 px-4 bg-white/5">
-        <div className="max-w-4xl mx-auto">
-          <h3 className="text-xl font-semibold text-center mb-8">
-            Choose Your Language
-          </h3>
-          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            {languages.slice(0, 12).map((lang, index) => (
+      {/* ══════════════════════════════════════
+          SECTION 3 — HOW IT WORKS
+          ══════════════════════════════════════ */}
+      <section style={{
+        background: 'rgba(255,255,255,0.03)', padding: '80px 24px',
+      }}>
+        <h3 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 700, textAlign: 'center', marginBottom: '8px' }}>How Vaani Works</h3>
+        <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: '48px', fontSize: '16px' }}>
+          No reading required. No forms. No bank jargon.
+        </p>
+        <div style={{
+          display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+          gap: '16px', maxWidth: '900px', margin: '0 auto', alignItems: 'stretch',
+        }}>
+          {HOW_STEPS.map((step, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', flex: 1, gap: isMobile ? '0' : '16px' }}>
+              <div style={{
+                flex: 1, textAlign: 'center', padding: '32px 24px',
+                background: 'rgba(255,255,255,0.04)', borderRadius: '20px',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <div style={{
+                  width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(16,185,129,0.2)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  color: '#10B981', fontSize: '28px', fontWeight: 800,
+                }}>{step.num}</div>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>{step.emoji}</div>
+                <h4 style={{ color: '#ffffff', fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>{step.title}</h4>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>{step.desc}</p>
+              </div>
+              {/* Arrow between steps (desktop only) */}
+              {!isMobile && i < HOW_STEPS.length - 1 && (
+                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '32px', alignSelf: 'center', flexShrink: 0 }}>→</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
+          SECTION 4 — TRUST SIGNALS
+          ══════════════════════════════════════ */}
+      <section style={{ padding: '60px 24px' }}>
+        <h3 style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, textAlign: 'center', marginBottom: '32px' }}>Why Trust Vaani?</h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+          gap: '16px', maxWidth: '720px', margin: '0 auto',
+        }}>
+          {TRUST_CARDS.map((card, i) => (
+            <div key={i} style={{
+              padding: '24px', background: 'rgba(255,255,255,0.05)',
+              borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>{card.emoji}</div>
+              <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '16px', marginBottom: '8px' }}>{card.title}</h4>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>{card.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
+          SECTION 5 — ALL 28 LANGUAGES
+          ══════════════════════════════════════ */}
+      <section role="region" aria-label="Choose your language" style={{
+        background: 'rgba(255,255,255,0.02)', padding: '60px 24px',
+      }}>
+        <h3 style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, textAlign: 'center', marginBottom: '8px' }}>28 Indian Languages</h3>
+        <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: '32px', fontSize: '15px' }}>
+          Tap your language to get started in your own script
+        </p>
+        <div role="radiogroup" aria-label="Select your language" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+          gap: '10px', maxWidth: '720px', margin: '0 auto',
+        }}>
+          {languages.map((lang, index) => {
+            const isSelected = selectedLangIndex === index;
+            return (
               <button
                 key={lang.code}
                 onClick={() => handleLanguageSelect(lang, index)}
-                className={`px-4 py-3 rounded-xl text-center transition-all ${
-                  selectedLangIndex === index
-                    ? 'bg-[#10B981] text-white'
-                    : 'bg-white/5 hover:bg-white/10 text-white/80'
-                }`}
+                tabIndex={0}
+                role="radio"
+                aria-pressed={isSelected}
+                aria-label={`${lang.name}${lang.nativeName ? ' - ' + lang.nativeName : ''}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLanguageSelect(lang, index); } }}
+                style={{
+                  padding: '16px 8px', borderRadius: '14px', textAlign: 'center',
+                  border: isSelected ? '2px solid #10B981' : '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: isSelected ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  color: '#ffffff',
+                }}
+                onMouseEnter={e => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                  }
+                }}
               >
-                <div className="text-lg mb-1">{lang.flag}</div>
-                <div className="text-xs">{lang.name}</div>
+                <div style={{
+                  fontSize: '18px', fontWeight: 600, marginBottom: '4px',
+                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.9)',
+                }}>
+                  {lang.nativeName || lang.name}
+                </div>
+                <div style={{
+                  fontSize: '11px',
+                  color: isSelected ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.45)',
+                }}>{lang.name}</div>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h3 className="text-xl font-semibold text-center mb-8">
-            Why VAANI?
-          </h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white/5 rounded-2xl p-6 text-center">
-              <div className="w-12 h-12 bg-[#10B981]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Globe className="text-[#10B981]" size={24} />
-              </div>
-              <h4 className="font-semibold mb-2">28 Languages</h4>
-              <p className="text-sm text-white/60">
-                Hindi, Tamil, Telugu, Bengali, Marathi & more
-              </p>
+      {/* ══════════════════════════════════════
+          SECTION 6 — ACCESSIBILITY
+          ══════════════════════════════════════ */}
+      <section id="accessibility" role="region" aria-label="Accessibility features" style={{
+        background: 'rgba(0,212,170,0.05)',
+        borderTop: '1px solid rgba(0,212,170,0.1)',
+        borderBottom: '1px solid rgba(0,212,170,0.1)',
+        padding: '60px 24px',
+      }}>
+        <h3 style={{ color: '#00D4AA', fontSize: '28px', fontWeight: 700, textAlign: 'center', marginBottom: '8px' }}>♿ Accessibility Features</h3>
+        <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: '40px', fontSize: '15px' }}>
+          Built for blind, deaf, elderly, and specially-abled users
+        </p>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gap: '16px', maxWidth: '900px', margin: '0 auto',
+        }}>
+          {A11Y_CARDS.map((card, i) => (
+            <div key={i} style={{
+              padding: '20px', background: 'rgba(255,255,255,0.04)',
+              borderRadius: '16px', border: '1px solid rgba(0,212,170,0.15)',
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '10px' }}>{card.emoji}</div>
+              <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '15px', marginBottom: '6px' }}>{card.title}</h4>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', lineHeight: 1.6 }}>{card.desc}</p>
             </div>
-            <div className="bg-white/5 rounded-2xl p-6 text-center">
-              <div className="w-12 h-12 bg-[#10B981]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mic className="text-[#10B981]" size={24} />
-              </div>
-              <h4 className="font-semibold mb-2">Voice First</h4>
-              <p className="text-sm text-white/60">
-                Speak in your language, get answers in your language
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-6 text-center">
-              <div className="w-12 h-12 bg-[#10B981]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="text-[#10B981]" size={24} />
-              </div>
-              <h4 className="font-semibold mb-2">Private & Secure</h4>
-              <p className="text-sm text-white/60">
-                Your data stays on your device
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-4 text-center">
-        <h3 className="text-3xl font-bold mb-4">Ready to start?</h3>
-        <p className="text-white/60 mb-8">No account needed. Just speak.</p>
+      {/* ══════════════════════════════════════
+          SECTION 7 — FINAL CTA
+          ══════════════════════════════════════ */}
+      <section style={{ padding: '80px 24px', textAlign: 'center' }}>
+        <h3 style={{ color: '#ffffff', fontSize: '36px', fontWeight: 800, marginBottom: '12px' }}>Ready to talk to Vaani?</h3>
+        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '32px', fontSize: '16px' }}>
+          Free forever. No sign-up. No bank details. Just speak.
+        </p>
         <button
           onClick={onStart}
-          className="px-8 py-4 bg-[#10B981] hover:bg-[#0F6E56] rounded-full font-semibold text-lg transition-all hover:scale-105"
-        >
-          Start VAANI Free
-        </button>
+          style={{
+            padding: '20px 60px',
+            background: 'linear-gradient(135deg,#0F6E56,#1D9E75)',
+            border: 'none', borderRadius: '999px', color: '#ffffff',
+            fontSize: '20px', fontWeight: 700, cursor: 'pointer',
+            boxShadow: '0 8px 40px rgba(16,185,129,0.4)',
+            letterSpacing: '0.3px', transition: 'all 0.3s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 48px rgba(16,185,129,0.55)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(16,185,129,0.4)'; }}
+        >Start Talking — Free</button>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '12px' }}>
+          Available in 28 Indian Languages
+        </p>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t border-white/10 text-center text-sm text-white/40">
-        <p>VAANI © 2026 • Built for India</p>
+      {/* ── Footer ── */}
+      <footer style={{
+        padding: '32px 24px',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '12px',
+      }}>
+        <VaaniLogo size={20} />
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>VAANI © 2026 • Made for Bharat</span>
+        <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px' }}>Not a bank. Not financial advice.</span>
       </footer>
     </div>
   );

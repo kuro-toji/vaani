@@ -51,6 +51,7 @@ export async function isOllamaAvailable() {
   try {
     const response = await fetch('http://localhost:11434/api/tags', {
       method: 'GET',
+      signal: AbortSignal.timeout(2000), // 2s timeout — fail fast if not running
     });
     return response.ok;
   } catch {

@@ -3,6 +3,7 @@ import { Mic, MicOff } from 'lucide-react';
 import { useVoice } from '../hooks/useVoice.js';
 import useVibration from '../hooks/useVibration.js';
 import ConfirmationModal from './ConfirmationModal.jsx';
+import { useAccessibility } from '../context/AccessibilityContext.jsx';
 
 const placeholders = [
   "Vaani से बात करें...",
@@ -20,6 +21,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
   const textareaRef = useRef(null);
   const { isListening, isModelLoading, sttError, startListening, stopListening, stopSpeaking } = useVoice();
   const { vibrateOnRecordingStart, vibrateListeningLoop, stopVibration } = useVibration();
+  const { largeText } = useAccessibility();
 
   // Handle listening vibration loop
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
       <div style={{
         flex: 1, display: 'flex', alignItems: 'flex-end',
         background: '#F3F4F6', borderRadius: '24px',
-        padding: '4px 16px', minHeight: '48px',
+        padding: '4px 16px', minHeight: largeText ? '64px' : '48px',
         border: '1px solid transparent',
         transition: 'border-color 0.2s ease',
       }}
@@ -116,7 +118,7 @@ export default function ChatInput({ onSend, isLoading, language, isMuted = false
           disabled={isLoading}
           maxLength={5000}
           style={{
-            flex: 1, background: 'transparent', fontSize: '15px',
+            flex: 1, background: 'transparent', fontSize: largeText ? '20px' : '15px',
             resize: 'none', outline: 'none', border: 'none',
             minHeight: '24px', padding: '10px 0', lineHeight: '24px',
             fontFamily: 'inherit', color: 'var(--vaani-text)',

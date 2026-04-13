@@ -30,6 +30,7 @@ export function useChat() {
     ];
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [language, setLanguage] = useState('hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);
   const [isMuted, setMuted] = useState(false);
@@ -104,9 +105,20 @@ export function useChat() {
   // Load saved preferences on mount
   useEffect(() => {
     try {
+      // Landing page detection takes priority (most recent user action)
+      const detectedLang = sessionStorage.getItem('vaani_detected_language');
       const savedLang = localStorage.getItem('vaani_language');
       const savedMuted = localStorage.getItem('vaani_isMuted');
-      if (savedLang) setLanguage(savedLang);
+
+      if (detectedLang) {
+        setLanguage(detectedLang);
+        setIsLanguageManual(true);
+        // Clear so it doesn't override future auto-detection on reload
+        sessionStorage.removeItem('vaani_detected_language');
+      } else if (savedLang) {
+        setLanguage(savedLang);
+      }
+
       if (savedMuted === '1') setMuted(true);
     } catch (e) {}
   }, []);
@@ -132,27 +144,29 @@ export function useChat() {
     // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    setError(null);
     if (!isMuted) vibrateThinking();
+
+    // Declare outside try so catch block can access them
+    let currentLanguage = language;
+    let topic = null;
+    let allMessages = [...messagesRef.current, userMessage];
 
     try {
       // Detect language if not manually set
-      let currentLanguage = language;
       if (!isLanguageManual) {
         currentLanguage = await detectLanguage(text);
         setLanguage(currentLanguage);
       }
 
       // Detect topic from user's message
-      const topic = detectTopic(text);
+      topic = detectTopic(text);
 
       // Build optimized prompt — only relevant category, trimmed history
       const isFirstMessage = messagesRef.current.length === 0;
       const systemPrompt = isFirstMessage 
         ? buildCompactOverview(currentLanguage)
-        : buildTrimmedPrompt(currentLanguage, topic, [...messagesRef.current, userMessage]);
-
-      // Get all messages including the new user message  
-      const allMessages = [...messagesRef.current, userMessage];
+        : buildTrimmedPrompt(currentLanguage, topic, allMessages);
 
       // Enqueue the request (auto-spaces calls, retries on 429)
       const response = await enqueueRequest(() => sendToGemini(allMessages, systemPrompt));
@@ -223,6 +237,8 @@ export function useChat() {
               ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।'
               : 'Something went wrong, please try again.';
 
+        setError(error.message || 'Unknown error');
+
         const errorMessage = {
           id: generateId(),
           role: 'assistant',
@@ -259,6 +275,7 @@ export function useChat() {
   return {
     messages,
     isLoading,
+    error,
     language,
     isLanguageManual,
     sendMessage,

@@ -132,6 +132,27 @@ export const dialectMetaphors = {
       suggestion: 'Kisan Vikas Patra, post office schemes',
       metaphors: ['Gaon Ka Samudaya']
     }
+  ],
+  // Trust metaphors for rural users
+  'trust': [
+    {
+      concept: 'Vaani',
+      metaphor: 'Gaon Ka Sarpanch',
+      dialect: 'Hindi',
+      language: 'Hindi',
+      literalMeaning: 'Village head',
+      explanation: 'Vaani is like the sarpanch of your village who knows about money — free advice, no hidden agenda.',
+      usage: 'Rural Hindi-speaking areas'
+    },
+    {
+      concept: 'Vaani',
+      metaphor: 'Padha-Likha Rishtedar',
+      dialect: 'Hindi',
+      language: 'Hindi',
+      literalMeaning: 'Educated relative',
+      explanation: 'Using Vaani is like asking your most educated relative for money advice — no cost, no judgment.',
+      usage: 'Pan-India'
+    }
   ]
 };
 

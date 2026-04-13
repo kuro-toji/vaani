@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 import { CognitiveModeProvider, useCognitiveMode } from './context/CognitiveModeContext';
 import { ToastProvider } from './context/ToastContext';
+import { useVoice } from './hooks/useVoice.js';
 import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
@@ -14,6 +15,13 @@ function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const { cognitiveMode } = useCognitiveMode();
+  const { speak } = useVoice();
+
+  // Expose speak globally so MessageBubble can use it without prop drilling
+  useEffect(() => {
+    window.vaaniSpeak = speak;
+    return () => { delete window.vaaniSpeak; };
+  }, [speak]);
 
   // Check for first visit (onboarding) and hash routes
   useEffect(() => {

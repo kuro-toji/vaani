@@ -113,10 +113,36 @@ html {
 body {
   font-family: var(--vaani-font-sans);
   color: var(--vaani-text);
-  background: var(--vaani-bg);
+  background-color: #0F172A;
+  margin: 0;
+  padding: 0;
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+/* Landing page dark background — backup for inline styles */
+.vaani-landing {
+  background-color: #0F172A !important;
+  color: #ffffff !important;
+}
+
+/* High-contrast mode for accessibility */
+html.vaani-high-contrast {
+  --vaani-bg: #000000;
+  --vaani-bg-secondary: #111111;
+  --vaani-text: #FFFFFF;
+  --vaani-text-secondary: #DDDDDD;
+  --vaani-border: #FFFFFF;
+  --vaani-primary: #00FF88;
+  --vaani-primary-light: #00FFAA;
+}
+html.vaani-high-contrast .message-bubble {
+  border: 2px solid #FFFFFF !important;
+}
+html.vaani-high-contrast [style*="--vaani-user-bubble"] {
+  background: #004400 !important;
+  border: 2px solid #00FF88 !important;
 }
 
 /* Root element overflow control */

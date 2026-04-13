@@ -10,6 +10,22 @@ export default {
   plugins: [],
   safelist: [
     'vaani-large-text',
-    'vaani-high-contrast'
+    'vaani-high-contrast',
+    'vaani-landing',
+    'badge',
+    'badge-success',
+    'badge-warning',
+    'badge-error',
+    'btn',
+    'btn-ghost',
+    'btn-icon',
+    'text-primary',
+    'text-muted',
+    'bg-secondary',
+    'chip-btn',
+    'chip-active',
+    'toolbar-btn',
+    'animate-fadeIn',
+    'animate-fadeInDown',
   ],
 }

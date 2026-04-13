@@ -8,15 +8,18 @@ import { createContext, useContext, useState, useEffect } from 'react';
  * - Components read these via var(--vaani-*) in their inline styles
  * - Large text: components check `largeText` prop and increase their own font sizes
  * - High contrast: CSS variables change, components using var() auto-update
+ * - Auto-read responses: when enabled, every AI message is spoken aloud (for blind users)
  * - Default UI is 100% unaffected — no global font overrides
  */
 const AccessibilityContext = createContext({
   largeText: false,
   highContrast: false,
   fullScreenPTT: false,
+  autoReadResponses: false,
   toggleLargeText: () => {},
   toggleHighContrast: () => {},
   toggleFullScreenPTT: () => {},
+  toggleAutoRead: () => {},
 });
 
 const loadPref = (key, fallback) => {
@@ -32,6 +35,7 @@ export function AccessibilityProvider({ children }) {
   const [largeText, setLargeText] = useState(() => loadPref('vaani_largeText', false));
   const [highContrast, setHighContrast] = useState(() => loadPref('vaani_highContrast', false));
   const [fullScreenPTT, setFullScreenPTT] = useState(() => loadPref('vaani_fullScreenPTT', false));
+  const [autoReadResponses, setAutoReadResponses] = useState(() => loadPref('vaani_autoRead', false));
   const [announcement, setAnnouncement] = useState('');
 
   // Apply high-contrast class to <html> (this flips CSS variables)
@@ -51,6 +55,10 @@ export function AccessibilityProvider({ children }) {
     try { localStorage.setItem('vaani_fullScreenPTT', fullScreenPTT ? '1' : '0'); } catch {}
   }, [fullScreenPTT]);
 
+  useEffect(() => {
+    try { localStorage.setItem('vaani_autoRead', autoReadResponses ? '1' : '0'); } catch {}
+  }, [autoReadResponses]);
+
   const announce = (msg) => {
     setAnnouncement(msg);
     setTimeout(() => setAnnouncement(''), 3000);
@@ -59,9 +67,10 @@ export function AccessibilityProvider({ children }) {
   const toggleLargeText = () => setLargeText(p => { const n = !p; announce(n ? 'बड़ा टेक्सट चालू' : 'बड़ा टेक्सट बंद'); return n; });
   const toggleHighContrast = () => setHighContrast(p => { const n = !p; announce(n ? 'हाई कॉन्ट्रास्ट चालू' : 'हाई कॉन्ट्रास्ट बंद'); return n; });
   const toggleFullScreenPTT = () => setFullScreenPTT(p => { const n = !p; announce(n ? 'फुल स्क्रीन माइक चालू' : 'फुल स्क्रीन माइक बंद'); return n; });
+  const toggleAutoRead = () => setAutoReadResponses(p => { const n = !p; announce(n ? 'सभी जवाब सुनें चालू' : 'सभी जवाब सुनें बंद'); return n; });
 
   return (
-    <AccessibilityContext.Provider value={{ largeText, highContrast, fullScreenPTT, toggleLargeText, toggleHighContrast, toggleFullScreenPTT }}>
+    <AccessibilityContext.Provider value={{ largeText, highContrast, fullScreenPTT, autoReadResponses, toggleLargeText, toggleHighContrast, toggleFullScreenPTT, toggleAutoRead }}>
       {children}
       <div role="status" aria-live="assertive" aria-atomic="true"
         style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>

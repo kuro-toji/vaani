@@ -21,15 +21,48 @@ export function sanitizeInput(text, maxLength = 500) {
 import { ratesData } from '../data/ratesData.js';
 import { languages } from '../data/languages.js';
 import { getMetaphor } from '../data/dialectMetaphors.js';
+import { buildSystemPrompt } from './promptBuilder.js';
 
-// Keywords to detect investment topics
+// Keywords to detect investment topics — includes Hindi, Bhojpuri, and regional terms
 const TOPIC_KEYWORDS = {
-  fd: ['fd', 'fixed deposit', 'fixed deposits', 'bank deposit', 'fd rates', 'deposit rates', 'term deposit', 'तयार पैसा', 'बैंक में जमा', 'सावधि जमा'],
-  postOffice: ['post office', 'ppf', 'nsc', 'kvp', 'rd', 'sukanya', 'scss', 'mahila samman', 'पोस्ट ऑफिस', 'डाकघर', 'पब्लिक प्रॉविडेंट', 'रिकरिंग डिपॉजिट'],
-  mutualFunds: ['mutual fund', 'sip', 'equity', 'debt', 'elss', 'index fund', 'liquid fund', 'mf', 'म्यूचुअल फंड', 'सिप', 'इक्विटी', 'डेट'],
-  gold: ['gold', 'sbg', 'sovereign gold', 'gold bond', 'gold etf', 'digital gold', 'physical gold', 'चांदी', 'सोना', 'गोल्ड', 'बंद पैसा'],
-  insurance: ['insurance', 'term insurance', 'life insurance', 'health insurance', 'ulip', 'endowment', 'mediclaim', 'बीमा', 'जीवन बीमा', 'स्वास्थ्य बीमा'],
-  general: ['loan', 'home loan', 'personal loan', 'education loan', 'loan emi', 'ब्याज', 'कर्ज', 'गृह कर्ज', 'EMI', 'loan'],
+  fd: [
+    'fd', 'fixed deposit', 'fixed deposits', 'bank deposit', 'fd rates',
+    'deposit rates', 'term deposit',
+    // Hindi / Bhojpuri / Regional
+    'तयार पैसा', 'बैंक में जमा', 'सावधि जमा',
+    'बचत', 'ब्याज', 'जमा', 'एफडी', 'गल्ला बंद',
+  ],
+  postOffice: [
+    'post office', 'ppf', 'nsc', 'kvp', 'rd', 'sukanya', 'scss',
+    'mahila samman',
+    // Hindi / Regional
+    'पोस्ट ऑफिस', 'पब्लिक प्रॉविडेंट', 'रिकरिंग डिपॉजिट',
+    'डाकघर', 'पीपीएफ', 'बचत खाता',
+  ],
+  mutualFunds: [
+    'mutual fund', 'sip', 'equity', 'debt', 'elss', 'index fund',
+    'liquid fund', 'mf',
+    // Hindi / Regional
+    'म्यूचुअल फंड', 'सिप', 'इक्विटी', 'डेट',
+    'म्यूचुअल', 'एसआईपी', 'निवेश', 'गुल्लक',
+  ],
+  gold: [
+    'gold', 'sbg', 'sovereign gold', 'gold bond', 'gold etf',
+    'digital gold', 'physical gold',
+    // Hindi / Regional
+    'चांदी', 'सोना', 'सोने', 'गोल्ड', 'बंद पैसा',
+  ],
+  insurance: [
+    'insurance', 'term insurance', 'life insurance', 'health insurance',
+    'ulip', 'endowment', 'mediclaim',
+    // Hindi / Regional
+    'बीमा', 'जीवन बीमा', 'स्वास्थ्य बीमा',
+    'टर्म', 'प्रीमियम',
+  ],
+  general: [
+    'loan', 'home loan', 'personal loan', 'education loan', 'loan emi',
+    'ब्याज', 'कर्ज', 'गृह कर्ज', 'EMI',
+  ],
 };
 
 // Also detect language-related queries
@@ -50,24 +83,15 @@ export function detectTopic(text) {
   return 'general';
 }
 
+/**
+ * Build a compact overview prompt for first messages.
+ * Delegates to buildSystemPrompt from promptBuilder.js for the core instructions,
+ * then appends a concise topic list.
+ */
 export function buildCompactOverview(languageCode) {
-  const language = languages.find(lang => lang.code === languageCode) || languages[0];
-  const SCRIPT_INSTRUCTION = language.direction === 'rtl'
-    ? `Write in ${language.name} using ${language.script} script. Text direction is right to left.`
-    : `Write in ${language.name} using ${language.script} script.`;
+  const basePrompt = buildSystemPrompt(languageCode);
 
-  return `You are Vaani, a personal finance assistant for Indians.
-
-CRITICAL LANGUAGE RULE:
-${SCRIPT_INSTRUCTION}
-Use simple everyday conversational words. Never use English financial jargon unless you immediately explain it in simple words. Never romanize. Match the user's tone exactly — casual if they are casual, formal if they are formal.
-
-YOUR APPROACH:
-1. Listen carefully — understand their situation, not just words.
-2. Ask ONE clarifying question if needed.
-3. Give 2-3 clear options maximum.
-4. Use rupee examples alongside percentages.
-5. End with one concrete next step.
+  return `${basePrompt}
 
 DIALECT METAPHORS (use these to explain concepts simply):
 - Fixed Deposit = "Galla Band" (Bhojpuri), "Chhata Paise" (Awadhi), "Nani Ki Peti" (Rajasthani)
@@ -86,6 +110,11 @@ TOPICS I CAN HELP WITH:
 IMPORTANT: If asked about a topic not listed above, say you don't have that data and offer what you do know.`;
 }
 
+/**
+ * Build a trimmed prompt for ongoing conversations.
+ * Uses buildSystemPrompt from promptBuilder.js as the base, then appends
+ * only the topic-specific data section + conversation history.
+ */
 export function buildTrimmedPrompt(languageCode, detectedTopic, messages) {
   const topicSection = buildTopicSection(detectedTopic, languageCode);
   
@@ -101,42 +130,18 @@ ${buildConversationSection(sanitizedMessages)}`;
 }
 
 function buildTopicSection(topic, languageCode) {
-  const language = languages.find(lang => lang.code === languageCode) || languages[0];
-  const SCRIPT_INSTRUCTION = language.direction === 'rtl'
-    ? `Write in ${language.name} using ${language.script} script. Text direction is right to left.`
-    : `Write in ${language.name} using ${language.script} script.`;
-
-  const languageInstructions = `CRITICAL LANGUAGE RULE:
-${SCRIPT_INSTRUCTION}
-Use simple everyday conversational words. Never use English financial jargon unless you immediately explain it in simple words. Never romanize. Match the user's tone exactly — casual if they are casual, formal if they are formal.
-
-YOUR APPROACH:
-1. Listen carefully — understand their situation, not just words.
-2. Ask ONE clarifying question if needed.
-3. Give 2-3 clear options maximum.
-4. Use rupee examples alongside percentages ("7% on ₹1 lakh = ₹7,000/year").
-5. End with one concrete next step.
-6. Never repeat advice twice. Build on previous conversation.
-7. If confused, ask "Shall I explain more simply?"`;
+  // Use the centralised system prompt from promptBuilder.js
+  const basePrompt = buildSystemPrompt(languageCode);
 
   if (topic === 'general') {
-    return `You are Vaani, a personal finance assistant for Indians.
-
-${languageInstructions}
+    return `${basePrompt}
 
 TOPICS I SPECIALIZE IN (ask about any):
 • Fixed Deposits — bank deposits with guaranteed returns, TDS rules, senior citizen benefits
 • Post Office — PPF (EEE tax status), NSC, KVP, RD, Sukanya Samriddhi, SCSS for seniors
 • Mutual Funds — SIP, Index Funds, ELSS lock-in, Liquid Funds for emergency
 • Gold — SGB (2.5% annual interest, tax free on 8yr holding), Gold ETF, Digital Gold
-• Insurance — Term (pure protection, ₹1cr at ₹15k/yr), Health (non-negotiable)
-
-HARD RULES:
-- Never quote rates not in this data
-- Never recommend specific fund names (only category)
-- Mutual fund returns are NOT guaranteed — always say this
-- Never give legal/tax advice — suggest consulting a CA
-- If investment sounds too good to be true ("guaranteed 20%"), warn it's a scam`;
+• Insurance — Term (pure protection, ₹1cr at ₹15k/yr), Health (non-negotiable)`;
   }
 
   const topicData = getTopicData(topic);
@@ -146,9 +151,7 @@ HARD RULES:
 "${metaphor}"\n` 
     : '';
 
-  return `You are Vaani, a personal finance assistant for Indians.
-
-${languageInstructions}
+  return `${basePrompt}
 ${metaphorInstruction}
 ${topicData}`;
 }
@@ -210,7 +213,7 @@ HARD RULES:
 - Never buy investment + insurance combined products (ULIP, Endowment)`;
     
     default:
-      return buildCompactOverview();
+      return '';
   }
 }
 
@@ -241,11 +244,11 @@ function summarizeHistory(messages) {
     m.content.toLowerCase().includes(kw.toLowerCase())
   );
   
-  if (hasTopic('fd') || hasTopic('fixed deposit')) topics.push('user asked about FD rates');
-  if (hasTopic('sip') || hasTopic('mutual fund')) topics.push('user asked about SIP/mutual funds');
-  if (hasTopic('ppf') || hasTopic('post office')) topics.push('user asked about PPF/post office');
-  if (hasTopic('gold') || hasTopic('SGB')) topics.push('user asked about gold investments');
-  if (hasTopic('insurance') || hasTopic('term')) topics.push('user asked about insurance');
+  if (hasTopic('fd') || hasTopic('fixed deposit') || hasTopic('एफडी') || hasTopic('जमा')) topics.push('user asked about FD rates');
+  if (hasTopic('sip') || hasTopic('mutual fund') || hasTopic('म्यूचुअल') || hasTopic('निवेश')) topics.push('user asked about SIP/mutual funds');
+  if (hasTopic('ppf') || hasTopic('post office') || hasTopic('डाकघर') || hasTopic('पीपीएफ')) topics.push('user asked about PPF/post office');
+  if (hasTopic('gold') || hasTopic('SGB') || hasTopic('सोना') || hasTopic('गोल्ड')) topics.push('user asked about gold investments');
+  if (hasTopic('insurance') || hasTopic('term') || hasTopic('बीमा') || hasTopic('प्रीमियम')) topics.push('user asked about insurance');
   
   const first = messages[0];
   const userLang = first?.content?.substring(0, 20) || '';
