@@ -107,6 +107,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -114,6 +115,13 @@ body {
   color: var(--vaani-text);
   background: var(--vaani-bg);
   line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Root element overflow control */
+#root {
+  overflow-x: hidden;
   min-height: 100vh;
 }
 
@@ -234,6 +242,7 @@ body {
 .max-w-xl { max-width: 36rem; }
 .overflow-hidden { overflow: hidden; }
 .overflow-auto { overflow: auto; }
+.overflow-x-hidden { overflow-x: hidden; }
 
 /* Visibility */
 .hidden { display: none; }

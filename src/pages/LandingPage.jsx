@@ -172,6 +172,7 @@ function LandingPage({ onStart }) {
         .gradient-bg {
           background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.3), transparent),
                       radial-gradient(ellipse 60% 40% at 70% 60%, rgba(0, 163, 255, 0.15), transparent);
+          overflow: hidden;
         }
         .hero-gradient {
           background: linear-gradient(135deg, rgba(0, 212, 170, 0.1) 0%, transparent 50%),
