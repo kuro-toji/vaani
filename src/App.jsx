@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 import { CognitiveModeProvider, useCognitiveMode } from './context/CognitiveModeContext';
+import { ToastProvider } from './context/ToastContext';
 import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
@@ -75,9 +76,11 @@ function App() {
   return (
     <AccessibilityProvider>
       <CognitiveModeProvider>
-        <ErrorBoundary>
-          <AppContent />
-        </ErrorBoundary>
+        <ToastProvider>
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
+        </ToastProvider>
       </CognitiveModeProvider>
     </AccessibilityProvider>
   );
