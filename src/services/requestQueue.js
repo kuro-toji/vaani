@@ -1,11 +1,11 @@
 /**
  * Request Queue — prevents rate limits by spacing out API calls
- * Enforces minimum 4 second gap between calls
+ * Enforces minimum gap between calls
  * Auto-retries on 429 with exponential backoff
  */
 
 let lastCallTime = 0;
-const MIN_GAP_MS = 4000; // 4 seconds = 15 calls/min safely
+const MIN_GAP_MS = 500; // 500ms gap = smooth conversation
 const queue = [];
 let isProcessing = false;
 
@@ -33,12 +33,11 @@ async function processQueue() {
     } catch (error) {
       const isRateLimit = error.message?.includes('429') || 
                           error.message?.includes('rate') ||
-                          error.message?.includes('RESOURCE_EXHAUSTED') ||
-                          error.message?.includes('500');
+                          error.message?.includes('RESOURCE_EXHAUSTED');
       
       if (isRateLimit && retryCount < 3) {
-        // Retry with backoff: 5s, 10s, 20s
-        const backoffMs = 5000 * Math.pow(2, retryCount);
+        // Retry with backoff: 2s, 4s, 8s
+        const backoffMs = 2000 * Math.pow(2, retryCount);
         console.log(`Rate limited, retrying in ${backoffMs / 1000}s...`);
         await new Promise(r => setTimeout(r, backoffMs));
         queue[0].retryCount = retryCount + 1;
