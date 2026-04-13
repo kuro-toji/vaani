@@ -34,13 +34,13 @@ body {
   --vaani-bubble-padding: 12px;
 }
 
-/* Large Text Mode */
+/* Large Text Mode — only changes CSS variables */
 .vaani-large-text {
   --vaani-base-font-size: 20px;
   --vaani-bubble-padding: 16px;
 }
 
-/* High Contrast Mode */
+/* High Contrast Mode — only changes CSS variables */
 .vaani-high-contrast {
   --vaani-bg: #FFFFFF;
   --vaani-text: #000000;
@@ -51,38 +51,9 @@ body {
   --vaani-input-bg: #FFFFFF;
 }
 
-.vaani-large-text.vaani-high-contrast {
-  --vaani-base-font-size: 20px;
-  --vaani-bubble-padding: 16px;
-}
-
-html.vaani-large-text {
-  font-size: var(--vaani-base-font-size) !important;
-}
-
 html.vaani-high-contrast, html.vaani-high-contrast body {
   background-color: var(--vaani-bg) !important;
   color: var(--vaani-text) !important;
-}
-
-/* Make text sizing scale well */
-html.vaani-large-text .text-sm {
-  font-size: 1.125rem !important;
-}
-html.vaani-large-text .text-xs {
-  font-size: 1rem !important;
-}
-html.vaani-large-text .text-base {
-  font-size: 1.25rem !important;
-}
-html.vaani-large-text .text-lg {
-  font-size: 1.5rem !important;
-}
-html.vaani-large-text .text-\[15px\] {
-  font-size: 1.25rem !important;
-}
-html.vaani-large-text .text-\[20px\] {
-  font-size: 1.75rem !important;
 }
 
 /* Touch target minimum size */
@@ -91,42 +62,7 @@ html.vaani-large-text .text-\[20px\] {
   min-height: 56px;
 }
 
-/* Mobile-first touch targets - minimum 48px (Android guideline) */
-@media (max-width: 768px) {
-  /* Buttons in header - compact on mobile */
-  .header-btn {
-    min-width: 44px !important;
-    min-height: 44px !important;
-  }
-  
-  /* Language cards - bigger on mobile */
-  .language-card-btn {
-    min-height: 60px !important;
-    padding: 12px 8px !important;
-  }
-  
-  /* Suggestion chips - larger touch */
-  .suggestion-chip {
-    min-height: 52px !important;
-    padding: 12px 16px !important;
-  }
-  
-  /* Icon cards - grid touch targets */
-  .icon-card {
-    min-width: 80px !important;
-    min-height: 80px !important;
-  }
-}
-
-/* Desktop still gets 56px for accessibility */
-@media (min-width: 769px) {
-  .header-btn {
-    min-width: 56px !important;
-    min-height: 56px !important;
-  }
-}
-
-/* Ensure all clickable elements meet 56px touch target */
+/* Ensure all clickable elements meet 48px touch target */
 button, 
 [role="button"],
 a,
@@ -138,14 +74,9 @@ label[for] {
 }
 
 /* Accessible focus styles */
-*:focus-visible {
-  outline: 3px solid #00D4AA;
+:focus-visible {
+  outline: 2px solid #1D9E75;
   outline-offset: 2px;
-}
-
-/* Remove focus outline for mouse users */
-*:focus:not(:focus-visible) {
-  outline: none;
 }
 
 .vaani-high-contrast :focus-visible {
@@ -199,32 +130,47 @@ label[for] {
   100% { transform: scale(1); }
 }
 
-/* Skip Link - Accessibility */
+/* ===== Accessibility Fixes ===== */
+
+/* Skip Link - Hidden until focused */
 .skip-link {
   position: absolute;
   top: -100px;
   left: 50%;
   transform: translateX(-50%);
   background: #0F6E56;
-  color: white !important;
+  color: white;
   padding: 16px 32px;
   border-radius: 12px;
   font-size: 18px;
   font-weight: 600;
   z-index: 9999;
-  transition: top 0.3s ease, box-shadow 0.3s ease;
+  transition: top 0.3s ease;
   text-decoration: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .skip-link:focus {
   top: 20px;
-  outline: 3px solid #00D4AA;
+  outline: 2px solid #00D4AA;
   outline-offset: 2px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
 }
 
-/* Respect user's motion preferences */
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -234,4 +180,136 @@ label[for] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  
+  /* Also disable CSS animations defined inline */
+  [style*="animation"] {
+    animation: none !important;
+  }
+  
+  [style*="transition"] {
+    transition: none !important;
+  }
+}
+
+/* Focus visible for keyboard users - more visible ring */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #00D4AA;
+  outline-offset: 2px;
+}
+
+/* Ensure high contrast focus for accessibility */
+.vaani-high-contrast :focus-visible {
+  outline-color: #FFD700;
+  outline-width: 3px;
+}
+
+/* Better focus indication for interactive elements */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #00D4AA;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.2);
+}
+
+/* Ensure main content is focusable for skip link */
+#main-content:focus {
+  outline: none;
+}
+
+/* ===== Premium UI Utilities ===== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+.vaani-high-contrast .glass-card,
+.vaani-high-contrast .glass-panel {
+  background: var(--vaani-bg);
+  border: 2px solid var(--vaani-text);
+  backdrop-filter: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #0F6E56 0%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vaani-high-contrast .gradient-text {
+  background: none;
+  -webkit-text-fill-color: var(--vaani-text);
+  color: var(--vaani-text);
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.6s ease forwards;
+}
+
+@keyframes floatAnimation {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: floatAnimation 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(15, 110, 86, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Marquee Scroller */
+.scroller {
+  max-width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.scroller-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  animation: scroll 30s forwards linear infinite;
+}
+
+@keyframes scroll {
+  to {
+    transform: translate(calc(-50% - 0.5rem));
+  }
+}
+
+/* Premium Background */
+.bg-mesh {
+  background-color: #f7f9fc;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%);
 }

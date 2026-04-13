@@ -7,34 +7,65 @@ import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../servic
 import { encryptData, decryptData } from '../services/cryptoService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
+import { getGreeting } from '../data/greetings.js';
 
 export function useChat() {
-  const [messages, setMessages] = useState([
-    {
-      id: 'greeting_user',
-      role: 'user',
-      content: 'helo',
-      timestamp: new Date(),
-    },
-    {
-      id: 'greeting_assistant',
-      role: 'assistant',
-      content: 'नमस्ते! कैसे हैं आप? बताइए, मैं आपकी क्या मदद कर सकती हूँ? किसी भी पैसे से जुड़ी बात पर हम दोस्त की तरह बात कर सकते हैं।',
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState(() => {
+    // If loading for the first time, check if they have a saved language
+    const savedLang = localStorage.getItem('vaani_language') || 'hi';
+    const initGreeting = getGreeting(savedLang);
+    return [
+      {
+        id: 'greeting_user',
+        role: 'user',
+        content: initGreeting.user,
+        timestamp: new Date(),
+      },
+      {
+        id: 'greeting_assistant',
+        role: 'assistant',
+        content: initGreeting.ai,
+        timestamp: new Date(),
+      }
+    ];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState('hi');
   const [isLanguageManual, setIsLanguageManual] = useState(false);
   const [isMuted, setMuted] = useState(false);
 
   const { speak, stopSpeaking } = useVoice();
-  const { vibrateOnAIResponse, vibrateOnRecordingStart } = useVibration();
+  const { vibrateOnAIResponse, vibrateOnRecordingStart, vibrateThinking, stopVibration } = useVibration();
   const idCounter = useRef(0);
   const messagesRef = useRef([]);
 
   // Keep ref in sync with state
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Handle changing the preview messages whenever the language explicitly changes
+  useEffect(() => {
+    if (messages.length === 2 && messages[0].id === 'greeting_user' && messages[1].id === 'greeting_assistant') {
+      const greetingArgs = getGreeting(language);
+      
+      // Update only if the language actively changed and doesn't match the current screen state
+      if (messages[1].content !== greetingArgs.ai) {
+        setMessages([
+          {
+            id: 'greeting_user',
+            role: 'user',
+            content: greetingArgs.user,
+            timestamp: new Date(),
+          },
+          {
+            id: 'greeting_assistant',
+            role: 'assistant',
+            content: greetingArgs.ai,
+            timestamp: new Date(),
+          }
+        ]);
+      }
+    }
+  }, [language, messages]);
 
   // Load saved messages on mount
   useEffect(() => {
@@ -101,6 +132,7 @@ export function useChat() {
     // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    if (!isMuted) vibrateThinking();
 
     try {
       // Detect language if not manually set
@@ -133,6 +165,9 @@ export function useChat() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Stop thinking vibration and do response vibration
+      stopVibration();
 
       // Vibration feedback for AI response (only when not muted)
       if (!isMuted) {
@@ -203,8 +238,9 @@ export function useChat() {
       }
     } finally {
       setIsLoading(false);
+      stopVibration();
     }
-  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse]);
+  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
 
   const setLanguageManual = useCallback((code) => {
     setLanguage(code);

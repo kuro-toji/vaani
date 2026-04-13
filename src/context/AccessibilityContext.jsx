@@ -1,63 +1,78 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
 /**
- * AccessibilityContext - Manages accessibility preferences
- * - Large text mode: increases base font size to 1.25rem
- * - High contrast mode: changes color scheme for better visibility
+ * AccessibilityContext — Manages accessibility preferences.
+ * 
+ * How it works:
+ * - Toggles set CSS custom properties on <html> via classes
+ * - Components read these via var(--vaani-*) in their inline styles
+ * - Large text: components check `largeText` prop and increase their own font sizes
+ * - High contrast: CSS variables change, components using var() auto-update
+ * - Default UI is 100% unaffected — no global font overrides
  */
 const AccessibilityContext = createContext({
   largeText: false,
   highContrast: false,
+  fullScreenPTT: false,
   toggleLargeText: () => {},
   toggleHighContrast: () => {},
+  toggleFullScreenPTT: () => {},
 });
 
-// Load preferences from localStorage
-const loadPreference = (key, defaultValue) => {
+const loadPref = (key, fallback) => {
   try {
-    const stored = localStorage.getItem(key);
-    if (stored === '1' || stored === 'true') return true;
-    if (stored === '0' || stored === 'false') return false;
-    return defaultValue;
+    const v = localStorage.getItem(key);
+    return v === '1';
   } catch {
-    return defaultValue;
+    return fallback;
   }
 };
 
 export function AccessibilityProvider({ children }) {
-  const [largeText, setLargeText] = useState(() => loadPreference('vaani_largeText', false));
-  const [highContrast, setHighContrast] = useState(() => loadPreference('vaani_highContrast', false));
+  const [largeText, setLargeText] = useState(() => loadPref('vaani_largeText', false));
+  const [highContrast, setHighContrast] = useState(() => loadPref('vaani_highContrast', false));
+  const [fullScreenPTT, setFullScreenPTT] = useState(() => loadPref('vaani_fullScreenPTT', false));
+  const [announcement, setAnnouncement] = useState('');
 
-  // Persist preferences when they change
+  // Apply high-contrast class to <html> (this flips CSS variables)
   useEffect(() => {
-    try {
-      localStorage.setItem('vaani_largeText', largeText ? '1' : '0');
-    } catch {}
+    const html = document.documentElement;
+    html.classList.toggle('vaani-high-contrast', highContrast);
+    try { localStorage.setItem('vaani_highContrast', highContrast ? '1' : '0'); } catch {}
+  }, [highContrast]);
+
+  // Large text is handled by components checking the `largeText` value,
+  // NOT by adding a CSS class that hijacks every element's font-size.
+  useEffect(() => {
+    try { localStorage.setItem('vaani_largeText', largeText ? '1' : '0'); } catch {}
   }, [largeText]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('vaani_highContrast', highContrast ? '1' : '0');
-    } catch {}
-  }, [highContrast]);
+    try { localStorage.setItem('vaani_fullScreenPTT', fullScreenPTT ? '1' : '0'); } catch {}
+  }, [fullScreenPTT]);
 
-  const toggleLargeText = () => setLargeText(prev => !prev);
-  const toggleHighContrast = () => setHighContrast(prev => !prev);
+  const announce = (msg) => {
+    setAnnouncement(msg);
+    setTimeout(() => setAnnouncement(''), 3000);
+  };
+
+  const toggleLargeText = () => setLargeText(p => { const n = !p; announce(n ? 'बड़ा टेक्सट चालू' : 'बड़ा टेक्सट बंद'); return n; });
+  const toggleHighContrast = () => setHighContrast(p => { const n = !p; announce(n ? 'हाई कॉन्ट्रास्ट चालू' : 'हाई कॉन्ट्रास्ट बंद'); return n; });
+  const toggleFullScreenPTT = () => setFullScreenPTT(p => { const n = !p; announce(n ? 'फुल स्क्रीन माइक चालू' : 'फुल स्क्रीन माइक बंद'); return n; });
 
   return (
-    <AccessibilityContext.Provider value={{ largeText, highContrast, toggleLargeText, toggleHighContrast }}>
+    <AccessibilityContext.Provider value={{ largeText, highContrast, fullScreenPTT, toggleLargeText, toggleHighContrast, toggleFullScreenPTT }}>
       {children}
+      <div role="status" aria-live="assertive" aria-atomic="true"
+        style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
+        {announcement}
+      </div>
     </AccessibilityContext.Provider>
   );
 }
 
 export function useAccessibility() {
-  const context = useContext(AccessibilityContext);
-  if (!context) {
-    // Return defaults if context not available (for SSR or if provider missing)
-    return { largeText: false, highContrast: false, toggleLargeText: () => {}, toggleHighContrast: () => {} };
-  }
-  return context;
+  return useContext(AccessibilityContext);
 }
 
 export default AccessibilityContext;

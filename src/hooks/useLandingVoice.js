@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { langToSpeechLocale } from '../data/indianDigitMap.js';
 
+/**
+ * useLandingVoice — Speech recognition hook for pincode input on landing page.
+ * 
+ * Accepts a language parameter to set the Web Speech API locale dynamically.
+ * Falls back to 'en-IN' for best numeric digit recognition.
+ * Sets continuous=false so it auto-stops after a phrase.
+ */
 export function useLandingVoice() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -19,7 +27,8 @@ export function useLandingVoice() {
     };
   }, []);
   
-  const startListening = useCallback((onResult) => {
+  const startListening = useCallback((onResult, lang = 'en') => {
+    // Stop any existing recognition
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
@@ -40,9 +49,12 @@ export function useLandingVoice() {
     setIsListening(true);
     
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    // Use the language-specific locale for recognition.
+    // For pincode, 'en-IN' is the default fallback for best digit accuracy.
+    recognition.lang = langToSpeechLocale[lang] || 'en-IN';
+    recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = 'en-IN';
+    recognition.maxAlternatives = 1;
     
     recognition.onstart = () => {
       setIsListening(true);
@@ -50,11 +62,16 @@ export function useLandingVoice() {
     
     recognition.onresult = (e) => {
       let currentTranscript = '';
+      
       for (let i = 0; i < e.results.length; i++) {
         currentTranscript += e.results[i][0].transcript;
       }
+      
+      // Update BOTH ref and state
       transcriptRef.current = currentTranscript;
       setTranscript(currentTranscript);
+      
+      // Call callback with current transcript on every result (interim + final)
       if (currentTranscript && onResultCallbackRef.current) {
         onResultCallbackRef.current(currentTranscript);
       }
@@ -72,11 +89,11 @@ export function useLandingVoice() {
     
     recognition.onend = () => {
       setIsListening(false);
+      // Fire final result using the REF (state is async/stale in this closure)
       const finalTranscript = transcriptRef.current;
       if (finalTranscript && onResultCallbackRef.current) {
         onResultCallbackRef.current(finalTranscript);
       }
-      onResultCallbackRef.current = null;
     };
     
     recognitionRef.current = recognition;
@@ -95,7 +112,7 @@ export function useLandingVoice() {
       try {
         recognitionRef.current.stop();
       } catch (e) {}
-      recognitionRef.current = null;
+      // Don't null out the ref here — let onend fire first to process final transcript
     }
     setIsListening(false);
   }, []);

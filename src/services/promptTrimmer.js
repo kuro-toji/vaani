@@ -117,10 +117,16 @@ HARD RULES:
   }
 
   const topicData = getTopicData(topic);
+  const metaphor = getMetaphor(languageCode, topic);
+  const metaphorInstruction = metaphor 
+    ? `\nDIALECT METAPHOR (Use this exact analogy to explain the concept to the user):
+"${metaphor}"\n` 
+    : '';
+
   return `You are Vaani, a personal finance assistant for Indians.
 
 ${languageInstructions}
-
+${metaphorInstruction}
 ${topicData}`;
 }
 

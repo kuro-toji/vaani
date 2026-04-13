@@ -1,177 +1,97 @@
 /**
- * VAANI Score - Life Goal Alignment Metric
- * 
- * Unlike traditional finance metrics that track market returns,
- * VAANI Score measures how well your money supports your LIFE GOALS.
- * 
- * Score Range: 0-100
- * - 80-100: Excellent - On track for life goals
- * - 60-79: Good - Making progress
- * - 40-59: Needs Attention - Gaps in financial planning
- * - 0-39: Take Action - Significant gaps
+ * VAANI Score Service — Financial Health Score Calculator
+ *
+ * Analyzes conversation history to compute a 0-100 financial health score.
+ * 5 pillars, 20 points each:
+ *   1. Emergency Fund
+ *   2. Insurance Coverage
+ *   3. Active Investments (SIP/MF/FD)
+ *   4. Savings Rate
+ *   5. Debt Health
  */
 
-import { dialectMetaphors } from '../data/dialectMetaphors.js';
+const PILLARS = {
+  EMERGENCY: { weight: 20, keywords: ['emergency fund', 'आपातकालीन', 'liquid fund', 'backup', 'rainy day', 'बचत'] },
+  INSURANCE: { weight: 20, keywords: ['insurance', 'बीमा', 'term plan', 'health cover', 'mediclaim', 'स्वास्थ्य बीमा', 'जीवन बीमा'] },
+  INVESTMENTS: { weight: 20, keywords: ['sip', 'mutual fund', 'fd', 'ppf', 'nps', 'gold bond', 'निवेश', 'म्यूचुअल फंड', 'एफडी', 'गोल्ड'] },
+  SAVINGS: { weight: 20, keywords: ['save', 'बचत', 'saving', 'savings rate', 'bachao', 'bachat', 'बचाना'] },
+  DEBT: { weight: 20, keywords: ['loan free', 'no emi', 'debt free', 'कर्ज मुक्त', 'paid off', 'no loan'] },
+};
 
-export function calculateVaaniScore(userProfile, messages) {
-  const {
-    monthlyIncome = 0,
-    savingsRatio = 0, // % of income saved
-    hasEmergencyFund = false,
-    hasInsurance = false,
-    hasInvestment = false,
-    lifeGoals = [],
-    dependents = 0
-  } = userProfile;
+const NEGATIVE_KEYWORDS = {
+  HIGH_DEBT: { penalty: -15, keywords: ['too much loan', 'bahut karza', 'बहुत कर्ज', 'emi problem', 'cant pay', 'default'] },
+  NO_SAVINGS: { penalty: -10, keywords: ['no savings', 'कोई बचत नहीं', 'nothing saved', 'zero savings'] },
+  NO_INSURANCE: { penalty: -10, keywords: ['no insurance', 'कोई बीमा नहीं', 'not insured'] },
+};
 
-  let score = 50; // Start at middle
-  let factors = [];
-
-  // 1. Savings Ratio (ideal: 20%+)
-  if (savingsRatio >= 20) {
-    score += 15;
-    factors.push({ factor: 'savings', impact: '+15', reason: 'Excellent savings rate' });
-  } else if (savingsRatio >= 10) {
-    score += 8;
-    factors.push({ factor: 'savings', impact: '+8', reason: 'Good savings rate' });
-  } else if (savingsRatio > 0) {
-    score += 3;
-    factors.push({ factor: 'savings', impact: '+3', reason: 'Some savings' });
-  } else {
-    score -= 10;
-    factors.push({ factor: 'savings', impact: '-10', reason: 'No savings' });
+/**
+ * Calculate VAANI Score from conversation messages.
+ * @param {Array} messages - Array of { role, content } message objects
+ * @returns {Object} { score, breakdown, level, emoji, advice }
+ */
+export function calculateVaaniScore(messages) {
+  if (!messages || messages.length === 0) {
+    return {
+      score: 0,
+      breakdown: {},
+      level: 'unknown',
+      emoji: '❓',
+      advice: 'अपनी वित्तीय स्थिति बताएं ताकि हम आपका VAANI Score बना सकें।'
+    };
   }
 
-  // 2. Emergency Fund (ideal: 6 months expenses)
-  if (hasEmergencyFund) {
-    score += 15;
-    factors.push({ factor: 'emergency', impact: '+15', reason: 'Emergency fund ready' });
-  } else {
-    score -= 5;
-    factors.push({ factor: 'emergency', impact: '-5', reason: 'Need emergency fund' });
+  const allText = messages.map(m => m.content.toLowerCase()).join(' ');
+
+  let totalScore = 0;
+  const breakdown = {};
+
+  for (const [pillar, config] of Object.entries(PILLARS)) {
+    const hasEvidence = config.keywords.some(kw => allText.includes(kw));
+    const userMentioned = messages
+      .filter(m => m.role === 'user')
+      .some(m => config.keywords.some(kw => m.content.toLowerCase().includes(kw)));
+    const aiConfirmed = messages
+      .filter(m => m.role === 'assistant')
+      .some(m => config.keywords.some(kw => m.content.toLowerCase().includes(kw)));
+
+    let pillarScore = 0;
+    if (userMentioned && aiConfirmed) {
+      pillarScore = config.weight;
+    } else if (hasEvidence) {
+      pillarScore = Math.round(config.weight * 0.6);
+    }
+
+    breakdown[pillar] = pillarScore;
+    totalScore += pillarScore;
   }
 
-  // 3. Insurance Coverage
-  if (hasInsurance) {
-    score += 15;
-    factors.push({ factor: 'insurance', impact: '+15', reason: 'Insurance coverage active' });
-  } else {
-    score -= 10;
-    factors.push({ factor: 'insurance', impact: '-10', reason: 'Need insurance' });
+  for (const [, config] of Object.entries(NEGATIVE_KEYWORDS)) {
+    if (config.keywords.some(kw => allText.includes(kw))) {
+      totalScore = Math.max(0, totalScore + config.penalty);
+    }
   }
 
-  // 4. Investment Diversity
-  if (hasInvestment) {
-    score += 10;
-    factors.push({ factor: 'investment', impact: '+10', reason: 'Investing for future' });
-  } else {
-    score -= 5;
-    factors.push({ factor: 'investment', impact: '-5', reason: 'Not investing yet' });
-  }
+  const score = Math.min(100, Math.max(0, totalScore));
 
-  // 5. Life Goals Alignment (from conversation)
-  const goalAlignment = analyzeLifeGoalsFromChat(messages);
-  score += goalAlignment.score;
-  factors.push(...goalAlignment.factors);
-
-  // 6. Dependents adjustment
-  if (dependents > 2) {
-    score -= 5;
-    factors.push({ factor: 'dependents', impact: '-5', reason: `${dependents} dependents - need more coverage` });
-  }
-
-  // Clamp score to 0-100
-  score = Math.max(0, Math.min(100, Math.round(score)));
-
-  return {
-    score,
-    grade: getGrade(score),
-    status: getStatus(score),
-    color: getColor(score),
-    factors,
-    recommendation: getRecommendation(score, factors)
-  };
-}
-
-function analyzeLifeGoalsFromChat(messages) {
-  let score = 0;
-  const factors = [];
-  const userText = messages
-    .filter(m => m.role === 'user')
-    .map(m => m.content.toLowerCase())
-    .join(' ');
-
-  // Marriage planning
-  if (userText.includes('shadi') || userText.includes('shaadi') || userText.includes('शादी')) {
-    score += 5;
-    factors.push({ factor: 'lifeGoal', impact: '+5', reason: 'Planning for marriage' });
-  }
-
-  // Education planning
-  if (userText.includes('padhai') || userText.includes('education') || userText.includes('पढ़ाई')) {
-    score += 5;
-    factors.push({ factor: 'lifeGoal', impact: '+5', reason: 'Planning for education' });
-  }
-
-  // Retirement planning
-  if (userText.includes('retirement') || userText.includes('pens') || userText.includes('रिटायर')) {
-    score += 5;
-    factors.push({ factor: 'lifeGoal', impact: '+5', reason: 'Planning retirement' });
-  }
-
-  // Home buying
-  if (userText.includes('ghar') || userText.includes('home') || userText.includes('घर')) {
-    score += 3;
-    factors.push({ factor: 'lifeGoal', impact: '+3', reason: 'Planning home purchase' });
-  }
-
-  return { score, factors };
-}
-
-function getGrade(score) {
-  if (score >= 80) return 'A';
-  if (score >= 60) return 'B';
-  if (score >= 40) return 'C';
-  return 'D';
-}
-
-function getStatus(score) {
-  if (score >= 80) return 'excellent';
-  if (score >= 60) return 'good';
-  if (score >= 40) return 'attention';
-  return 'action';
-}
-
-function getColor(score) {
-  if (score >= 80) return '#10B981'; // green
-  if (score >= 60) return '#22C55E'; // light green
-  if (score >= 40) return '#F59E0B'; // yellow
-  return '#EF4444'; // red
-}
-
-function getRecommendation(score, factors) {
+  let level, emoji, advice;
   if (score >= 80) {
-    return 'बहुत बढ़िया! आप अपने लक्ष्यों की राह पर हैं।';
+    level = 'excellent'; emoji = '🟢';
+    advice = 'बहुत बढ़िया! आपकी वित्तीय स्थिति मजबूत है।';
+  } else if (score >= 60) {
+    level = 'good'; emoji = '🟡';
+    advice = 'अच्छा है! कुछ और सुधार से आप और मजबूत हो सकते हैं।';
+  } else if (score >= 40) {
+    level = 'fair'; emoji = '🟠';
+    advice = 'ठीक है, लेकिन बीमा और आपातकालीन फंड पर ध्यान दें।';
+  } else if (score > 0) {
+    level = 'needs-work'; emoji = '🔴';
+    advice = 'अभी शुरू करें — छोटी बचत से बड़ा फर्क पड़ता है!';
+  } else {
+    level = 'unknown'; emoji = '❓';
+    advice = 'अपनी वित्तीय स्थिति बताएं ताकि हम आपका VAANI Score बना सकें।';
   }
-  if (score >= 60) {
-    return 'अच्छा है, लेकिन और बेहतर हो सकता है।';
-  }
-  if (score >= 40) {
-    return 'ध्यान दें - कुछ जरूरी कदम उठाने की जरूरत है।';
-  }
-  return 'अभी कार्य करें - आपातकालीन निधि और बीमा सबसे जरूरी है।';
+
+  return { score, breakdown, level, emoji, advice };
 }
 
-export function formatVaaniScore(scoreData, language = 'Hindi') {
-  const { score, grade, status, color, factors, recommendation } = scoreData;
-  
-  return {
-    display: `VAANI Score: ${score}/100`,
-    grade: `Grade: ${grade}`,
-    status: status,
-    color: color,
-    factors: factors,
-    recommendation: recommendation,
-    language: language
-  };
-}
+export default { calculateVaaniScore };
