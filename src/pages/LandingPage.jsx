@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getRegionByPincode } from '../services/pincodeService';
+import { useLandingVoice } from '../hooks/useLandingVoice';
+import { Mic, MicOff } from 'lucide-react';
 
 const languages = [
   { code: 'hi', name: 'हिन्दी', native: 'Hindi', flag: '🇮🇳', speakers: '600M+' },
@@ -55,6 +57,7 @@ function LandingPage({ onStart }) {
   const [detectedLang, setDetectedLang] = useState(null);
   const [isVisible, setIsVisible] = useState({});
   const heroRef = useRef(null);
+  const { isListening: isListeningPincode, startListening: startPincodeVoice, stopListening: stopPincodeVoice } = useLandingVoice();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -374,35 +377,67 @@ function LandingPage({ onStart }) {
             >
               Enter Your Pincode
             </label>
-            <input
-              type="text"
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="110001"
-              maxLength={6}
-              style={{
-                width: '100%',
-                padding: '16px 20px',
-                fontSize: '24px',
-                fontWeight: 600,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                border: '2px solid rgba(255,255,255,0.1)',
-                borderRadius: '16px',
-                color: '#fff',
-                textAlign: 'center',
-                letterSpacing: '0.2em',
-                outline: 'none',
-                transition: 'all 0.2s ease',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#00D4AA';
-                e.target.style.boxShadow = '0 0 0 4px rgba(0, 212, 170, 0.2)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.1)';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="110001"
+                maxLength={6}
+                style={{
+                  flex: 1,
+                  padding: '16px 20px',
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  border: '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px',
+                  color: '#fff',
+                  textAlign: 'center',
+                  letterSpacing: '0.2em',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#00D4AA';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(0, 212, 170, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (isListeningPincode) {
+                    stopPincodeVoice();
+                  } else {
+                    startPincodeVoice((text) => {
+                      const numbers = text.replace(/\D/g, '').slice(0, 6);
+                      if (numbers.length >= 4) {
+                        setPincode(numbers);
+                      }
+                    });
+                  }
+                }}
+                aria-label={isListeningPincode ? 'रिकॉर्डिंग बंद करें' : 'पिनकोड बोलें'}
+                aria-pressed={isListeningPincode}
+                style={{
+                  minWidth: '56px',
+                  minHeight: '56px',
+                  backgroundColor: isListeningPincode ? '#00D4AA' : 'rgba(0,0,0,0.5)',
+                  border: '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px',
+                  color: isListeningPincode ? '#000' : '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {isListeningPincode ? <MicOff size={20} /> : <Mic size={20} />}
+              </button>
+            </div>
             {region && (
               <div
                 style={{
