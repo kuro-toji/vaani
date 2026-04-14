@@ -8,6 +8,7 @@ import { findSchemes, detectSchemeIntent } from '../services/schemeService.js';
 import { compareFDRates, detectTenure } from '../services/fdService.js';
 import { checkEligibility, detectEligibilityIntent } from '../services/eligibilityService.js';
 import { captureLead, detectProductInterest } from '../services/leadService.js';
+import { findNearbyBanksAndCSC, detectLocatorIntent } from '../services/locatorService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -130,7 +131,7 @@ export function useChat() {
       }
 
       if (savedMuted === '1') setMuted(true);
-    } catch (e) {}
+    } catch (err) { console.warn('[useChat] Could not load saved preferences:', err); }
   }, []);
 
   const generateId = () => {
@@ -246,7 +247,6 @@ export function useChat() {
         const pincode = localStorage.getItem('vaani_pincode') || '';
         
         if (pincode && pincode.length === 6) {
-          const { findNearbyBanksAndCSC } = await import('../services/locatorService.js');
           const result = await findNearbyBanksAndCSC({ pincode, language: lang });
           
           if (result && result.banks) {
@@ -332,7 +332,7 @@ export function useChat() {
                 language: lang,
                 source: 'chat',
               });
-            } catch {}
+            } catch (err) { console.warn('[useChat] Lead capture failed:', err); }
           }
           
           if (!isMuted && fromVoice) {
@@ -463,7 +463,7 @@ export function useChat() {
       setIsLoading(false);
       stopVibration();
     }
-  }, [isLoading, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
+  }, [isLoading, contextLanguage, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
 
   const setLanguageManual = useCallback((code) => {
     setIsLanguageManual(true);  // mark manual

@@ -1,12 +1,10 @@
 /**
- * ElevenLabs TTS Service — Direct browser-to-API calls.
+ * ElevenLabs TTS Service — Proxied through our server to hide API key.
  *
  * Uses eleven_multilingual_v2 model which supports Hindi, Tamil, Telugu,
  * Bengali, Marathi, Gujarati, Kannada, Malayalam, and many more.
  * Falls back silently to Web Speech API on any error.
  */
-
-const API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
 
 // One consistent multilingual voice for all Indian languages.
 // The eleven_multilingual_v2 model handles accent/language automatically.
@@ -25,47 +23,34 @@ const VOICE_IDS = {
 };
 
 /**
- * Check if ElevenLabs API key is configured and available.
- * Returns true only when a valid API key is present, allowing
- * premium voice output. Falls back to browser TTS otherwise.
+ * Check if TTS proxy is available.
+ * Returns true — server handles the API key.
  */
 export function isElevenLabsConfigured() {
-  return !!(API_KEY && API_KEY.length > 10);
+  return true; // Server TTS proxy always available
 }
 
 /**
- * Speak text using ElevenLabs API directly from the browser.
+ * Speak text via our server proxy (hides API key).
  *
  * @param {string} text - Text to speak
  * @param {string} language - Language code (hi, ta, te, bn, etc.)
  * @returns {Promise<void>} Resolves when audio finishes playing
  */
 export async function speakWithElevenLabs(text, language = 'hi') {
-  if (!text || !isElevenLabsConfigured()) {
-    throw new Error('ElevenLabs not configured');
+  if (!text) {
+    throw new Error('No text provided');
   }
 
-  const voiceId = VOICE_IDS[language] || VOICE_IDS.default;
-  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
-
-  const response = await fetch(url, {
+  // Use server proxy — hides API key
+  const response = await fetch('/api/tts/speak', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'xi-api-key': API_KEY,
-    },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-      },
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice_id: VOICE_IDS[language] || VOICE_IDS.default }),
   });
 
   if (!response.ok) {
-    throw new Error(`ElevenLabs API error: ${response.status}`);
+    throw new Error(`TTS error: ${response.status}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -74,21 +59,9 @@ export async function speakWithElevenLabs(text, language = 'hi') {
 
   return new Promise((resolve, reject) => {
     const audio = new Audio(objectUrl);
-
-    audio.onended = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve();
-    };
-
-    audio.onerror = (err) => {
-      URL.revokeObjectURL(objectUrl);
-      reject(err);
-    };
-
-    audio.play().catch((err) => {
-      URL.revokeObjectURL(objectUrl);
-      reject(err);
-    });
+    audio.onended = () => { URL.revokeObjectURL(objectUrl); resolve(); };
+    audio.onerror = (err) => { URL.revokeObjectURL(objectUrl); reject(err); };
+    audio.play().catch((err) => { URL.revokeObjectURL(objectUrl); reject(err); });
   });
 }
 

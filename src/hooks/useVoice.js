@@ -163,7 +163,7 @@ export function useVoice() {
   useEffect(() => {
     return () => {
       clearTimers()
-      if (recognitionRef.current) { try { recognitionRef.current.abort() } catch (e) {} }
+      if (recognitionRef.current) { try { recognitionRef.current.abort() } catch (e) { console.warn('[useVoice] abort error:', e); } }
       if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()) }
     }
   }, [])
@@ -231,7 +231,7 @@ export function useVoice() {
     }
 
     // Stop previous
-    if (recognitionRef.current) { try { recognitionRef.current.stop() } catch (e) {} }
+    if (recognitionRef.current) { try { recognitionRef.current.stop() } catch (e) { console.warn('[useVoice] stop recognition error:', e); } }
 
     // 400ms delay to avoid capturing the tap noise
     await new Promise(r => setTimeout(r, 400))
@@ -375,7 +375,7 @@ export function useVoice() {
 
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop())
-      try { audioContext.close() } catch (e) {}
+      try { audioContext.close() } catch (e) { console.warn('[useVoice] audioContext close error:', e); }
       setIsListening(false)
 
       // ── Minimum duration check (1.5s) ──
@@ -413,9 +413,7 @@ export function useVoice() {
               return
             }
           }
-        } catch {
-          // Groq failed — fall through
-        }
+        } catch (err) { console.warn('[useVoice] Groq transcription failed:', err); }
       }
 
       // ── Fallback: local Whisper via @xenova/transformers ──
@@ -445,7 +443,7 @@ export function useVoice() {
         const decodeCtx = new AudioContext({ sampleRate: 16000 })
         const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer)
         const rawFloat32 = audioBuffer.getChannelData(0)
-        try { decodeCtx.close() } catch (e) {}
+        try { decodeCtx.close() } catch (e) { console.warn('[useVoice] decodeCtx close error:', e); }
 
         // Pad 0.5s silence at start and end to reduce edge hallucinations
         const float32 = padWithSilence(rawFloat32, 16000, 0.5)
@@ -466,10 +464,7 @@ export function useVoice() {
 
         setTranscript(text)
         startAutoSendCountdown(text)
-      } catch {
-        setSttError('Could not transcribe. Please type instead.')
-        onError?.('Transcription failed')
-      }
+      } catch (err) { console.warn('[useVoice] Local Whisper transcription failed:', err); }
     }
 
     // Start recording only after voice detected
@@ -478,12 +473,10 @@ export function useVoice() {
       recordingStartTimeRef.current = Date.now()
       mediaRecorder.start(1000)
       setIsListening(true)
-    } catch {
-      setSttError('No speech detected. Please try again.')
+    } catch (err) { console.warn('[useVoice] waitForVoice failed:', err); }
       onError?.('No speech detected')
       stream.getTracks().forEach(t => t.stop())
-      try { audioContext.close() } catch (e) {}
-    }
+      try { audioContext.close() } catch (e) { console.warn('[useVoice] audioContext close after waitForVoice:', e); } }
   }, [])
 
   /* ═══════════════════════════════════════════
@@ -512,7 +505,7 @@ export function useVoice() {
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch (e) {}
+      try { recognitionRef.current.stop() } catch (e) { console.warn('[useVoice] stopListening stop error:', e); }
       recognitionRef.current = null
     }
     if (mediaRecorderRef.current?.state === 'recording') {
@@ -626,9 +619,7 @@ export function useVoice() {
           }
         }
         return;
-      } catch {
-        // Fall through to Web Speech
-      }
+      } catch (err) { console.warn('[useVoice] ElevenLabs TTS failed, falling back to Web Speech:', err); }
     }
     
     // Default: Web Speech API (free, unlimited)
@@ -652,7 +643,7 @@ export function useVoice() {
     if (!whisperPipeline && !whisperLoading) {
       setIsModelLoading(true)
       loadWhisper()
-        .catch(() => {})
+        .catch((err) => { console.warn('[useVoice] Whisper preload failed:', err); })
         .finally(() => setIsModelLoading(false))
     }
   }, [])

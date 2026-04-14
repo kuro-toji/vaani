@@ -1,48 +1,46 @@
 /**
- * Groq STT Service — Direct browser-to-Groq API calls.
- *
- * Uses Groq's Whisper endpoint for cloud speech-to-text.
- * Falls back gracefully if no API key is configured.
+ * Groq STT Service — Proxied through our server to hide API key.
+ * Server calls Groq Whisper API with server-side key.
  */
 
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const API_ENDPOINT = '/api/stt/transcribe';
 
 /**
- * Check if Groq API key is configured.
+ * Check if STT proxy is available.
  */
 export function isGroqConfigured() {
-  return !!(API_KEY && API_KEY.length > 0 && API_KEY !== 'your_groq_key_here');
+  return true; // Server handles key — always available when server is up
 }
 
 /**
- * Transcribe audio using Groq's Whisper Large V3 API.
+ * Transcribe audio via our server proxy.
  *
- * @param {Blob} audioBlob - Audio blob (webm/opus or similar)
- * @param {string} language - Language code (hi, bn, ta, etc.)
+ * @param {Blob} audioBlob - Audio blob
+ * @param {string} language - Language code
  * @returns {Promise<string>} Transcribed text
  */
 export async function transcribeWithGroq(audioBlob, language = 'hi') {
-  if (!isGroqConfigured()) {
-    console.warn('Groq API key not configured. Skipping cloud STT.');
-    throw new Error('Groq not configured');
-  }
+  // Convert blob to base64
+  const reader = new FileReader();
+  const base64Promise = new Promise((resolve, reject) => {
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+  });
+  reader.readAsDataURL(audioBlob);
+  const base64Audio = await base64Promise;
 
-  const formData = new FormData();
-  formData.append('file', audioBlob, 'audio.webm');
-  formData.append('model', 'whisper-large-v3');
-  formData.append('language', language);
-
-  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+  const response = await fetch(API_ENDPOINT, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audio: base64Audio, language }),
   });
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => '');
-    throw new Error(`Groq STT error ${response.status}: ${errText.substring(0, 100)}`);
+    const err = await response.text().catch(() => '');
+    throw new Error(`STT error ${response.status}: ${err}`);
   }
 
   const data = await response.json();

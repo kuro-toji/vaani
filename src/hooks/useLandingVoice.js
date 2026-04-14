@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { langToSpeechLocale, extractDigitsFromText } from '../data/indianDigitMap.js';
+import { searchByLocationName } from '../services/pincodeService.js';
+import { sendToMiniMax } from '../services/minimaxService.js';
 
 /**
  * useLandingVoice — Dual-mode speech recognition hook for pincode input.
@@ -34,7 +36,7 @@ export function useLandingVoice() {
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (_) {}
+        try { recognitionRef.current.abort(); } catch (e) { console.warn('[useLandingVoice] unmount abort error:', e); }
         recognitionRef.current = null;
       }
       clearAutoStop();
@@ -69,7 +71,7 @@ export function useLandingVoice() {
 
   function stopRecognition() {
     if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch (_) {}
+      try { recognitionRef.current.abort(); } catch (e) { console.warn('[useLandingVoice] stopRecognition abort error:', e); }
       recognitionRef.current = null;
     }
   }
@@ -159,7 +161,6 @@ export function useLandingVoice() {
         if (spokenText.trim().length > 1) {
           // Stage 1: Try to find pincode from spoken location name
           try {
-            const { searchByLocationName } = await import('../services/pincodeService.js');
             if (typeof searchByLocationName === 'function') {
               const result = await searchByLocationName(spokenText);
               if (result && result.pincode) {
@@ -167,12 +168,11 @@ export function useLandingVoice() {
                 return;
               }
             }
-          } catch (_) {}
+          } catch (e) { console.warn('[useLandingVoice] Stage 1 location search failed:', e); }
 
           // Stage 2: MiniMax TTS-based normalization fallback
           // Ask MiniMax to normalize the location to standard English
           try {
-            const { sendToMiniMax } = await import('../services/minimaxService.js');
             const normalized = await sendToMiniMax(
               `The user spoke this text while searching for their Indian city/district/pincode: "${spokenText}".
                Extract ONLY the city or district name in standard English. Reply with just the name, nothing else.
@@ -181,18 +181,15 @@ export function useLandingVoice() {
             );
             const cleanName = (normalized || '').trim().replace(/[^a-zA-Z\s]/g, '').trim();
             if (cleanName && cleanName.toLowerCase() !== 'unknown' && cleanName.length > 1) {
-              const { searchByLocationName } = await import('../services/pincodeService.js');
-              if (typeof searchByLocationName === 'function') {
-                const result2 = await searchByLocationName(cleanName);
-                if (result2 && result2.pincode) {
-                  onResult(result2.pincode, detectedLanguage);
-                  return;
-                }
+              const result2 = await searchByLocationName(cleanName);
+              if (result2 && result2.pincode) {
+                onResult(result2.pincode, detectedLanguage);
+                return;
               }
               // Even if pincode not found, dispatch a custom event so LandingPage can show the normalized location name
               window.dispatchEvent(new CustomEvent('vaani:spokenLocation', { detail: { name: cleanName } }));
             }
-          } catch (_) {}
+          } catch (e) { console.warn('[useLandingVoice] Stage 2 MiniMax normalization failed:', e); }
         }
 
         // Nothing worked — return empty so user can type

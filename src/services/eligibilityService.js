@@ -206,21 +206,19 @@ function loadState() {
   try {
     const saved = sessionStorage.getItem(CHECK_STATE_KEY);
     return saved ? JSON.parse(saved) : {};
-  } catch {
-    return {};
-  }
+  } catch (e) { console.warn('[eligibilityService] Could not load state:', e); return {}; }
 }
 
 function saveState(state) {
   try {
     sessionStorage.setItem(CHECK_STATE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (e) { console.warn('[eligibilityService] Could not save state:', e); }
 }
 
 function clearState() {
   try {
     sessionStorage.removeItem(CHECK_STATE_KEY);
-  } catch {}
+  } catch (e) { console.warn('[eligibilityService] Could not clear state:', e); }
 }
 
 /**

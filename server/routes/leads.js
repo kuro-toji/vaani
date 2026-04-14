@@ -1,5 +1,7 @@
 import express from 'express';
 
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'vaani-admin-secret-change-me';
+
 const router = express.Router();
 
 // In-memory store for demo (replace with DB in production)
@@ -21,15 +23,19 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Invalid phone number format' });
     }
 
+    // Sanitize lead name
+    const sanitizedName = String(lead.name || '').replace(/[<>\"\'&]/g, '').substring(0, 100);
+    const cleanLead = { ...lead, name: sanitizedName };
+
     // Deduplicate by phone + category (keep most recent)
     const existingIndex = leads.findIndex(l => 
-      l.phone === lead.phone && l.productCategory === lead.productCategory
+      l.phone === cleanLead.phone && l.productCategory === cleanLead.productCategory
     );
     
     if (existingIndex >= 0) {
-      leads[existingIndex] = { ...leads[existingIndex], ...lead, updatedAt: new Date().toISOString() };
+      leads[existingIndex] = { ...leads[existingIndex], ...cleanLead, updatedAt: new Date().toISOString() };
     } else {
-      leads.push({ ...lead, receivedAt: new Date().toISOString() });
+      leads.push({ ...cleanLead, receivedAt: new Date().toISOString() });
     }
 
     console.log(`[LEAD] New lead: ${lead.productCategory} | ${lead.language} | phone: ${lead.phone || 'N/A'} | pincode: ${lead.pincode}`);
@@ -45,6 +51,10 @@ router.post('/', (req, res) => {
  * GET /api/leads — Get all leads (for admin/dashboard)
  */
 router.get('/', (req, res) => {
+  if (req.headers['x-admin-key'] !== ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const { category, limit = 100, offset = 0 } = req.query;
   
   let filtered = leads;

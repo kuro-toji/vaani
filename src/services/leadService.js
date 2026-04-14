@@ -61,6 +61,12 @@ export async function captureLead({ name, phone, pincode, productCategory, produ
     console.warn('Failed to save lead locally:', e);
   }
 
+  // Validate phone before sending
+  if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+    // Invalid format — skip server save, keep local only
+    return { id: lead.id, status: 'invalid_phone' };
+  }
+
   // Try to send to server (don't block if it fails)
   if (phone && pincode) {
     try {
@@ -83,9 +89,7 @@ export async function captureLead({ name, phone, pincode, productCategory, produ
 export function getLeads() {
   try {
     return JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
+  } catch (e) { console.warn('[leadService] Could not get leads:', e); return []; }
 }
 
 /**
@@ -114,7 +118,7 @@ export function deleteLead(leadId) {
     const existing = JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || '[]');
     const filtered = existing.filter(l => l.id !== leadId);
     localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(filtered));
-  } catch {}
+  } catch (e) { console.warn('[leadService] Could not delete lead:', e); }
 }
 
 /**
