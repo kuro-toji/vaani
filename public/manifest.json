@@ -1,22 +1,39 @@
 {
-  "name": "Vaani",
+  "name": "Vaani - India's Voice-First Financial Advisor",
   "short_name": "Vaani",
-  "description": "Your financial friend in 28 Indian languages",
+  "description": "Voice-first financial advisor in 22 Indian languages. Find government schemes, compare FD rates, check eligibility — all by speaking.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F172A",
-  "theme_color": "#0F6E56",
-  "orientation": "portrait",
+  "theme_color": "#10B981",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "hi",
+  "categories": ["finance", "education", "government"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Chat",
+      "short_name": "Chat",
+      "description": "Start a new financial query",
+      "url": "/?action=chat",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     },
     {
-      "src": "/logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "name": "Find Schemes",
+      "short_name": "Schemes",
+      "description": "Search government schemes",
+      "url": "/?action=schemes",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

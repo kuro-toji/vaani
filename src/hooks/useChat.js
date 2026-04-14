@@ -5,6 +5,7 @@ import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
 import { encryptData, decryptData } from '../services/cryptoService.js';
 import { findSchemes, detectSchemeIntent } from '../services/schemeService.js';
+import { matchSchemesToProfile, detectProfileFromText } from '../services/profileMatcher.js';
 import { compareFDRates, detectTenure } from '../services/fdService.js';
 import { checkEligibility, detectEligibilityIntent } from '../services/eligibilityService.js';
 import { captureLead, detectProductInterest } from '../services/leadService.js';
@@ -162,6 +163,54 @@ export function useChat() {
     let currentLanguage = contextLanguage;
     let topic = null;
     let allMessages = [...messagesRef.current, userMessage];
+
+    // ── Proactive Profile Matcher ────────────────────────────────────────
+    // If user describes their profile, proactively suggest best schemes
+    const profile = detectProfileFromText(text);
+    const proactiveKeywords = [
+      'mein hun', 'mai hun', 'i am', 'i\'m', 'mera', 'meri',
+      'mujhe', 'mujhe chahiye', 'i need', 'i want', 'i want to',
+      'kya hai jo', 'best scheme', 'sabse accha', 'top scheme',
+    ];
+    const isProfileDescription = proactiveKeywords.some(k => lower.includes(k)) && 
+      (profile.age || profile.occupation || profile.gender);
+    
+    if (isProfileDescription) {
+      try {
+        const lang = contextLanguage || 'hi';
+        const matches = matchSchemesToProfile({
+          age: profile.age,
+          gender: profile.gender,
+          occupation: profile.occupation,
+          income: profile.income,
+          language: lang,
+        });
+        
+        if (matches && matches.length > 0) {
+          const matchList = matches.map((m, i) => 
+            `${i + 1}. **${m.name}** — ${m.description}\n   ${m.matchReasons.join(' | ')}`
+          ).join('\n\n');
+          
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `🎯 **आपके लिए सबसे अच्छी योजनाएँ (Best Schemes For You):**\n\n${matchList}\n\nकिसी योजना का विवरण जानना है? बोलिए!`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          if (!isMuted && fromVoice) {
+            speak(`आपके लिए ${matches[0].name} सबसे अच्छी है। विवरण के लिए बोलिए।`, lang);
+          }
+          
+          stopVibration();
+          setIsLoading(false);
+          return;
+        }
+      } catch (profileErr) {
+        console.warn('[useChat] Profile match failed:', profileErr);
+      }
+    }
 
     // ── Scheme Finder Interception ──────────────────────────────────────
     // Intercept gov scheme queries and answer from real data
