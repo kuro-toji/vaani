@@ -54,6 +54,7 @@ minimaxRouter.post('/chat', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'Origin': 'https://api.minimax.io',
       },
       body: JSON.stringify(body),
     });

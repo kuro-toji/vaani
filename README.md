@@ -201,12 +201,13 @@ Sanskrit · Bhojpuri · Rajasthani · Chhattisgarhi · Tulu · Haryanvi · Magah
 
 ## Security Features
 
-- **LocalStorage encryption** — user data never stored in plain text
-- **XSS sanitization** — all user inputs sanitized before rendering
-- **SQL injection protection** — parameterized queries on backend
-- **CSP headers** — strict Content-Security-Policy
-- **Rate limiting** — API endpoints protected against abuse
-- **Input validation** — strict schema validation on all endpoints
+- **Helmet.js security headers** — CSP, HSTS, X-Frame-Options, X-Content-Type-Options enforced on all responses
+- **Rate limiting** — 100 req/15min general, 10 req/min for AI endpoints (express-rate-limit)
+- **CORS origin restriction** — only whitelisted origins can access the API
+- **XSS sanitization** — all user inputs sanitized via `promptTrimmer.js` before LLM injection
+- **Prompt injection guard** — script tags, event handlers, and control characters stripped from user input
+- **Body size limits** — 2MB max payload to prevent abuse
+- **Request logging** — all API calls logged with method, path, status, and latency
 
 ---
 

@@ -8,7 +8,7 @@ import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
 import OnboardingFlow from './components/OnboardingFlow';
-// import PartnerDashboard from './pages/PartnerDashboard';
+
 import DashboardPage from './pages/DashboardPage';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -27,16 +27,13 @@ function AppContent() {
   }, [speak]);
 
   useEffect(() => {
-    const hasPlayed = sessionStorage.getItem('vaani_welcome_played');
-    if (hasPlayed) return;
-    
     const playWelcome = () => {
       if (!('speechSynthesis' in window)) return;
       const lang = localStorage.getItem('vaani_language') || 'hi';
       const welcomeMessages = {
         hi: 'वाणी में आपका स्वागत है। मैं वाणी हूँ, आपकी वित्तीय सहायक।',
         en: 'Welcome to Vaani. I am Vaani, your financial assistant.',
-        bn: 'ভাণীতে আপনাকে স্বাগতম। আমি ভাণী, আপনার আর্থিক সহায়ক।',
+        bn: 'ভাণীতে আপনাকে স্বাগতম। আমি ভাণী, আপনার আর্থिक সহায়ক।',
         te: 'వాని కి స్వాగతం. నేను వాని, మీ ఆర్థిక సహాయకురాలు.',
         ta: 'வாணிக்கு வரவேற்கிறோம். நான் வாணி, உங்கள் நிதி உதவியாளர்.',
         mr: 'वाणीमध्ये आपले स्वागत आहे. मी वाणी आहे, तुमची आर्थिक सहाय्यक.',
@@ -44,18 +41,15 @@ function AppContent() {
       };
       const msg = welcomeMessages[lang] || welcomeMessages.default;
       
-      // 800ms delay so page renders first
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(msg);
         utterance.lang = { hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN', ta: 'ta-IN', mr: 'mr-IN' }[lang] || 'hi-IN';
         utterance.rate = 0.9;
         utterance.volume = 0.8;
         window.speechSynthesis.speak(utterance);
-        sessionStorage.setItem('vaani_welcome_played', '1');
       }, 800);
     };
     
-    // Wait for voices to load
     if (window.speechSynthesis.getVoices().length > 0) {
       playWelcome();
     } else {
@@ -74,11 +68,6 @@ function AppContent() {
 
   // Check for first visit (onboarding) and hash routes
   useEffect(() => {
-    // [DISABLED] Check URL hash for dashboard route
-    // if (window.location.hash === '#/dashboard') {
-    //   setShowDashboard(true);
-    // }
-
     // Show onboarding on first visit
     try {
       const onboardingDone = localStorage.getItem('vaani_onboarding_complete');
@@ -86,28 +75,7 @@ function AppContent() {
         setShowOnboarding(true);
       }
     } catch {}
-
-    // [DISABLED] Listen for hash changes
-    // const handleHash = () => {
-    //   if (window.location.hash === '#/dashboard') {
-    //     setShowDashboard(true);
-    //   } else {
-    //     setShowDashboard(false);
-    //   }
-    // };
-    // window.addEventListener('hashchange', handleHash);
-    // return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-
-  // [DISABLED] Partner Dashboard route
-  // if (showDashboard) {
-  //   return (
-  //     <PartnerDashboard onBack={() => {
-  //       window.location.hash = '';
-  //       setShowDashboard(false);
-  //     }} />
-  //   );
-  // }
 
   const renderView = () => {
     if (showOnboarding) return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;

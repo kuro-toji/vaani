@@ -24,16 +24,13 @@ const VOICE_IDS = {
   default: 'EXAVITQu4vr4xnSDxMaL',
 };
 
-// Pre-recorded MP3s handle greetings; browser TTS for all chat.
-let elevenLabsExhausted = true;
-
 /**
- * Check if ElevenLabs API key is configured.
- * Always returns false since pre-recorded MP3s handle greetings
- * and browser TTS handles all chat responses.
+ * Check if ElevenLabs API key is configured and available.
+ * Returns true only when a valid API key is present, allowing
+ * premium voice output. Falls back to browser TTS otherwise.
  */
 export function isElevenLabsConfigured() {
-  return false; // ElevenLabs not used — pre-recorded audio + browser TTS only
+  return !!(API_KEY && API_KEY.length > 10);
 }
 
 /**
