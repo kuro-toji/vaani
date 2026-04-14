@@ -394,7 +394,7 @@ export function useVoice() {
         try {
           const formData = new FormData()
           formData.append('file', audioBlob, 'audio.webm')
-          formData.append('model', 'whisper-large-v3')
+          formData.append('model', 'whisper-large-v3-turbo')
           formData.append('language', mapToGroqLanguage(language))
 
           const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
@@ -606,36 +606,42 @@ export function useVoice() {
   }
 
   const speak = useCallback(async (text, language = 'hi') => {
-    if (!text) return
-
-    // Cancel any ongoing browser speech
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-    }
-
-    // Try ElevenLabs first if configured (premium multilingual TTS)
-    if (isElevenLabsConfigured()) {
+    if (!text) return;
+    window.speechSynthesis?.cancel();
+    
+    // Check if premium voice is enabled (off by default to save credits)
+    const usePremiumVoice = localStorage.getItem('vaani_premium_voice') === '1';
+    
+    if (usePremiumVoice && isElevenLabsConfigured()) {
       try {
-        await speakWithElevenLabs(text, language)
-        return // Success — done
-      } catch (err) {
-        // ElevenLabs failed — fall back silently to Web Speech API
-        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', err)
+        // Only send first 150 chars to ElevenLabs to save credits
+        const ttsText = text.substring(0, 150);
+        await speakWithElevenLabs(ttsText, language);
+        // If more text remains, read the rest with Web Speech
+        if (text.length > 150) {
+          const remaining = text.substring(150);
+          const targetLang = webSpeechSupported[language] || 'hi-IN';
+          const voice = await resolveVoice(targetLang);
+          const sentences = splitIntoSentences(remaining);
+          for (const sentence of sentences) {
+            await speakSentence(sentence, targetLang, voice);
+          }
+        }
+        return;
+      } catch {
+        // Fall through to Web Speech
       }
     }
-
-    // Fallback: Web Speech API (free, works in all browsers)
-    if (!('speechSynthesis' in window)) return
-
-    const targetLang = webSpeechSupported[language] || 'hi-IN'
-    const voice = await resolveVoice(targetLang)
-    const sentences = splitIntoSentences(text)
-
-    // Speak each sentence sequentially to avoid browser cutoff
+    
+    // Default: Web Speech API (free, unlimited)
+    if (!('speechSynthesis' in window)) return;
+    const targetLang = webSpeechSupported[language] || 'hi-IN';
+    const voice = await resolveVoice(targetLang);
+    const sentences = splitIntoSentences(text);
     for (const sentence of sentences) {
-      await speakSentence(sentence, targetLang, voice)
+      await speakSentence(sentence, targetLang, voice);
     }
-  }, [])
+  }, []);
 
   const stopSpeaking = useCallback(() => {
     if ('speechSynthesis' in window) {

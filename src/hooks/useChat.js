@@ -34,7 +34,7 @@ export function useChat() {
   const [error, setError] = useState(null);
   // Subscribe to global language from LanguageContext
   const { language: contextLanguage, setLanguage: setContextLanguage } = useLanguage();
-  const [language, setLanguage] = useState(contextLanguage || 'hi');
+  const language = contextLanguage || 'hi';
   const [isLanguageManual, setIsLanguageManual] = useState(false);
   const [isMuted, setMuted] = useState(false);
 
@@ -109,15 +109,6 @@ export function useChat() {
     }
   }, [messages]);
 
-  // Save language preference + sync to global context
-  useEffect(() => {
-    try {
-      localStorage.setItem('vaani_language', language);
-      localStorage.setItem('vaani_isMuted', isMuted ? '1' : '0');
-      setContextLanguage(language);
-    } catch {}
-  }, [language, isMuted, setContextLanguage]);
-
   // Load saved preferences on mount
   useEffect(() => {
     try {
@@ -127,13 +118,11 @@ export function useChat() {
       const savedMuted = localStorage.getItem('vaani_isMuted');
 
       if (detectedLang) {
-        setLanguage(detectedLang);
         setContextLanguage(detectedLang);
         setIsLanguageManual(true);
         // Clear so it doesn't override future auto-detection on reload
         sessionStorage.removeItem('vaani_detected_language');
       } else if (savedLang) {
-        setLanguage(savedLang);
         setContextLanguage(savedLang);
       }
 
@@ -166,7 +155,7 @@ export function useChat() {
     if (!isMuted) vibrateThinking();
 
     // Declare outside try so catch block can access them
-    let currentLanguage = language;
+    let currentLanguage = contextLanguage;
     let topic = null;
     let allMessages = [...messagesRef.current, userMessage];
 
@@ -174,7 +163,7 @@ export function useChat() {
       // Detect language if not manually set
       if (!isLanguageManual) {
         currentLanguage = await detectLanguage(text);
-        setLanguage(currentLanguage);
+        setContextLanguage(currentLanguage);
       }
 
       // Detect topic from user's message
@@ -256,7 +245,7 @@ export function useChat() {
           language === 'hi'
             ? 'कुछ गलत हो गया, कृपया पुनः प्रयास करें।'
             : language === 'bn'
-              ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।'
+              ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্ট করুন।'
               : 'Something went wrong, please try again.';
 
         setError(error.message || 'Unknown error');
@@ -278,10 +267,9 @@ export function useChat() {
       setIsLoading(false);
       stopVibration();
     }
-  }, [isLoading, language, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
+  }, [isLoading, isLanguageManual, messages, isMuted, stopSpeaking, speak, vibrateOnAIResponse, vibrateThinking, stopVibration]);
 
   const setLanguageManual = useCallback((code) => {
-    setLanguage(code);           // local state (for auto-detection guard)
     setIsLanguageManual(true);  // mark manual
     setContextLanguage(code);    // propagate globally
   }, [setContextLanguage]);
