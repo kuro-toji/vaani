@@ -94,30 +94,27 @@ export default function ChatWindow() {
 
   // Auto-read new AI responses aloud when autoReadResponses is enabled
   useEffect(() => {
-    if (!autoReadResponses || messages.length === 0) return;
+    if (!autoReadResponses) return;
+    if (messages.length === 0) return;
     const last = messages[messages.length - 1];
-    if (last?.role === 'assistant' && last?.id !== 'greeting_assistant') {
-      // Use Web Speech for auto-read to save ElevenLabs credits
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const lang = language || 'hi';
-        const bcp47 = { hi:'hi-IN', en:'en-IN', bn:'bn-IN', te:'te-IN', ta:'ta-IN', mr:'mr-IN', gu:'gu-IN', kn:'kn-IN', ml:'ml-IN', pa:'pa-IN', ur:'ur-PK', or:'or-IN', as:'as-IN' };
-        const utterance = new SpeechSynthesisUtterance(last.content.substring(0, 300));
-        utterance.lang = bcp47[lang] || 'hi-IN';
-        utterance.rate = 0.85;
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-  }, [messages, autoReadResponses, language]);
+    if (!last || last.role !== 'assistant') return;
+    if (last.id === 'greeting_assistant') return;
 
-  // Vibrate when AI responds (if auto-read is on)
-  useEffect(() => {
-    if (!autoReadResponses || messages.length === 0) return;
-    const last = messages[messages.length - 1];
-    if (last?.role === 'assistant') {
-      vibrateAISpoke();
+    // Use Web Speech API directly — free and works offline
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const bcp47 = {
+        hi:'hi-IN', en:'en-IN', bn:'bn-IN', te:'te-IN', ta:'ta-IN',
+        mr:'mr-IN', gu:'gu-IN', kn:'kn-IN', ml:'ml-IN', pa:'pa-IN',
+        ur:'ur-PK', or:'or-IN', as:'as-IN', mni:'mni-IN',
+      };
+      const utterance = new SpeechSynthesisUtterance(last.content.substring(0, 400));
+      utterance.lang = bcp47[language] || 'hi-IN';
+      utterance.rate = 0.85;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
     }
-  }, [messages, autoReadResponses]);
+  }, [messages.length, autoReadResponses, language]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -414,8 +411,11 @@ export default function ChatWindow() {
           ))}
         </div>
 
-        {/* ── Premium Voice Toggle (Settings) ── */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px', background: 'var(--vaani-bg)', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+        {/* ── Premium Voice Toggle + Accessibility ── */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '8px', background: 'var(--vaani-bg)', borderTop: '1px solid rgba(0,0,0,0.05)', flexWrap: 'wrap' }}>
+          <button onClick={() => toggleAutoRead()} className={`chip-btn ${autoReadResponses ? 'chip-active' : ''}`}>
+            🔊 {autoReadResponses ? 'Auto-Read ON' : 'Auto-Read OFF'}
+          </button>
           <button onClick={() => {
             const current = localStorage.getItem('vaani_premium_voice') === '1';
             localStorage.setItem('vaani_premium_voice', current ? '0' : '1');
