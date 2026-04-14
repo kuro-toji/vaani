@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { detectLanguage } from '../services/languageDetector.js';
 import { sendToMiniMax } from '../services/minimaxService.js';
-import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
 import { encryptData, decryptData } from '../services/cryptoService.js';
@@ -283,64 +282,26 @@ export function useChat() {
         speak(response, currentLanguage);
       }
     } catch (error) {
-      // Try Ollama as fallback before giving up
-      let response = null;
-      const isRateLimit = error.message.includes('429') || error.message.includes('rate') || error.message.includes('RESOURCE_EXHAUSTED');
-      
-      if (isRateLimit) {
-        try {
-          const ollamaAvailable = await isOllamaAvailable();
-          if (ollamaAvailable) {
-            const ollamaPrompt = buildTrimmedPrompt(currentLanguage, topic, allMessages);
-            response = await sendToOllama(allMessages, ollamaPrompt);
-          }
-        } catch (ollamaError) {
-          console.error('Ollama fallback also failed:', ollamaError);
-        }
-      }
-      
-      if (response) {
-        // Use Ollama response
-        const aiMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: response,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        
-        // Vibration feedback for AI response (only when not muted)
-        if (!isMuted) {
-          vibrateOnAIResponse();
-        }
+      // Add error message in the detected language
+      const errorContent =
+        language === 'hi'
+          ? 'कुछ गलत हो गया, कृपया पुनः प्रयास करें।'
+          : language === 'bn'
+            ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্টা করুন।'
+            : 'Something went wrong, please try again.';
 
-        // Speak AI response aloud (only when user SPOKE their message)
-        if (!isMuted && fromVoice) {
-          speak(response, currentLanguage);
-        }
-      } else {
-        // Add error message in the detected language
-        const errorContent =
-          language === 'hi'
-            ? 'कुछ गलत हो गया, कृपया पुनः प्रयास करें।'
-            : language === 'bn'
-              ? 'কিছু ভুল হয়েছে, অনুগ্রহ করে আবার চেষ্ট করুন।'
-              : 'Something went wrong, please try again.';
+      setError(error.message || 'Unknown error');
 
-        setError(error.message || 'Unknown error');
+      const errorMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: errorContent,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
 
-        const errorMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: errorContent,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-
-        // Vibration feedback for error message (only when not muted)
-        if (!isMuted) {
-          vibrateOnAIResponse();
-        }
+      if (!isMuted) {
+        vibrateOnAIResponse();
       }
     } finally {
       setIsLoading(false);
