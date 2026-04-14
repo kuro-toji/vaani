@@ -4,77 +4,74 @@
 
 **Vaani** is a voice-first financial advisor that works in 22 Indian languages. No forms, no typing, no English required. Just speak and discover government schemes, compare FD rates, check eligibility, and get a personalized financial health score.
 
+## Mission
+
+To bridge India's financial inclusion gap — reaching the 800 million+ Indians who are underserved by traditional fintech. We do this through voice-first UX that works in every Indian language, removing the barrier of literacy and English fluency.
+
+**Core beliefs:**
+- Financial advice should be free, not a bank product
+- Language should never be a barrier to financial literacy
+- The next billion users will access services by voice, not text
+
 ## Features
 
-### Government Schemes (12 schemes)
-- **PM Kisan** — ₹6,000/year to farmer families
-- **Sukanya Samriddhi** — 7.6% tax-free savings for daughters
-- **Jan Dhan** — Zero-balance account with ₹50,000 insurance
-- **PMJJBY** — ₹436/year term life insurance (₹2 lakh cover)
-- **PMSBY** — ₹20/year accident insurance (₹2 lakh cover)
-- **Atal Pension** — ₹3,000-5,000/month guaranteed pension
-- **PM Awas Yojana** — ₹1.20 lakh housing subsidy
-- **MUDRA Loans** — Up to ₹10 lakh for small traders
-- **Stand Up India** — ₹10 lakh-1 crore for SC/ST and women entrepreneurs
-- **Kaushal Vikas** — Free skill training with job placement
-- **PM Vidyarthi** — Education loan at subsidized rate
-- **NPS** — Voluntary pension with EEE tax status
+### Voice-First Chat
+- **22 Indian languages** with auto-detection from voice input
+- **Browser Web Speech API** for free unlimited TTS (no API key needed)
+- **ElevenLabs** premium voice option (saves API credits)
+- **Groq Whisper** for cloud STT — fast, accurate
+- **Local Whisper** (Xenova/transformers) — works offline, zero cost
+- Push-to-talk with 5-second countdown
+- Full-screen voice mode for accessibility
 
-All schemes include: bilingual descriptions (hi/en), eligibility criteria, required documents, application modes, official websites, and keyword tags for natural language search.
+### Government Schemes (22 schemes)
+- PM Kisan, Sukanya Samriddhi, Jan Dhan, PMJJBY, PMSBY, Atal Pension, PM Awas Yojana, MUDRA, Stand Up India, Kaushal Vikas, PM Vidyarthi, NPS, and more
+- Bilingual descriptions (Hindi + English), eligibility criteria, required documents, application modes, official websites, keyword tags for natural language search
 
 ### FD Rate Comparator
-Compare fixed deposit rates from **SBI, HDFC, ICICI, PNB, Bank of Baroda, Axis, Kotak, India Post** — ranked by rate. Includes senior citizen rates, tenure-specific rates, and Post Office special schemes (MIS, RD, Monthly Income).
+- Compare rates from **SBI, HDFC, ICICI, PNB, Bank of Baroda, Axis, Kotak, India Post**
+- Senior citizen rates, tenure-specific rates (1yr, 2yr, 3yr, 5yr)
+- Post Office schemes: PPF, NSC, KVP, RD, Sukanya Samriddhi, SCSS, Mahila Samman
 
 ### Eligibility Checker
-Conversational 2-3 question flows for insurance, pension, loan, and savings schemes. Auto-detects user profile from conversation (age, gender, occupation, income).
-
-### Bank & CSC Locator
-Find nearest banks and Common Service Centres by pincode. Returns branch phone numbers, websites, and application instructions in your language.
-
-### Proactive Scheme Matcher
-Profile-based scheme discovery — not reactive search. Takes user profile (age, gender, occupation, income, state, bank account status) and returns top 3 matching schemes with match scores and specific reasons.
-
-### Life-Event Investment Ladder
-Detects major life events (marriage, education, harvest, emergency, retirement) from conversation and generates a contextual investment allocation plan with instruments and timelines.
+- Conversational 2-3 question flows for insurance, pension, loan, and savings schemes
+- Auto-detects user profile from conversation (age, gender, occupation, income)
+- State-aware scheme matching
 
 ### VAANI Score
-Financial health score (0-100) computed from conversation history across 5 pillars:
-- Emergency Fund (20 pts)
-- Insurance Coverage (20 pts)
-- Active Investments (20 pts)
-- Savings Rate (20 pts)
-- Debt Health (20 pts)
+- Financial health score (0-100) computed from conversation history
+- 5 pillars: Emergency Fund, Insurance Coverage, Active Investments, Savings Rate, Debt Health
+- Level classification with Hindi advice
 
-Includes level classification (excellent/good/fair/needs-work) and Hindi advice.
+### Life-Event Investment Ladder
+- Detects: marriage, education, harvest, emergency, retirement
+- Generates contextual investment allocation with instruments and timelines
 
 ### Micro-Nudge Savings
-Generates friendly voice-ready nudges to encourage saving small amounts (₹20-100). Detects idle balance, calculates savings potential vs. ideal 20% rate, and suggests micro-SIP starting points.
+- Detects idle balance, calculates savings potential
+- Suggests micro-SIP starting points (₹20-100)
+
+### Bank & CSC Locator
+- Find nearest banks and Common Service Centres by pincode
+- Returns phone numbers, websites, application instructions
 
 ### Lead Capture
-Captures user interest for B2B financial product partnerships. Includes phone validation, name sanitization, product interest detection, and admin auth for data retrieval.
+- Phone validation, name sanitization, product interest detection
+- B2B financial product partnership pipeline
 
-### Voice-First UX
-- **22 Indian languages** with auto-detection from voice
-- **Browser Web Speech API** for free unlimited TTS
-- **ElevenLabs** (optional premium voice)
-- **Groq Whisper** for cloud speech-to-text
-- **Local Whisper** (Xenova/transformers) for offline STT
-- Pre-recorded Hindi/English welcome greetings (zero API cost)
-- 5-second push-to-talk countdown
+### OCR Document Scanner
+- Passbook/bank statement scanning via MiniMax OCR Pro (server-side proxy)
 
 ### Accessibility
-- Large text mode (CSS variables, no layout break)
-- High contrast mode
-- Vibration feedback on mobile (haptic tap-to-talk)
-- Keyboard navigation
+- Large text mode (explicit font sizes, no layout break)
+- High contrast mode (black bg, white text, green accents)
+- Vibration feedback on mobile
+- Keyboard navigation, ARIA labels
 
 ### PWA & Offline
 - Installable on mobile/desktop
 - Service worker caches all assets
 - Offline-capable after first load
-
-### OCR Document Scanner
-Passbook/bank statement scanning via MiniMax OCR Pro (server-side proxy).
 
 ## Tech Stack
 
@@ -115,57 +112,88 @@ src/
     └── languageDetector.js
 ```
 
-## Quick Start
+## Deployment
+
+### Frontend → Vercel (Recommended)
+
+1. Go to [vercel.com](https://vercel.com) — sign in with GitHub
+2. Click **"Add New Project"** → Import `kuro-toji/vaani`
+3. **Framework:** Vite
+4. **Root Directory:** `.` (default)
+5. **Build Command:** `npm run build`
+6. **Output Directory:** `dist`
+7. **Environment Variables** (add in Vercel dashboard):
+   - `VITE_API_URL` = `https://your-render-backend.onrender.com` (your Render URL)
+   - `VITE_MINIMAX_API_KEY` = your MiniMax key
+   - `VITE_GROQ_API_KEY` = your Groq key
+   - `VITE_ELEVENLABS_API_KEY` = your ElevenLabs key (optional)
+8. Click **Deploy**
+
+Vercel auto-deploys on every push to `master`.
+
+### Backend → Render
+
+1. Go to [render.com](https://render.com) — sign up/login
+2. Click **"New +"** → **"Web Service"**
+3. Connect your GitHub repo or upload `server/` as a private repo
+4. **Root Directory:** `server`
+5. **Build Command:** `npm install`
+6. **Start Command:** `node index.js`
+7. **Environment:** Node
+8. **Plan:** Free tier is sufficient
+9. **Environment Variables** (add in Render dashboard):
+   - `MINIMAX_API_KEY` = your MiniMax key
+   - `GROQ_API_KEY` = your Groq key
+   - `ELEVENLABS_API_KEY` = your ElevenLabs key
+   - `CORS_ORIGINS` = `https://your-vercel-frontend.vercel.app` (your Vercel URL)
+   - `PORT` = `3001`
+10. Click **Create Web Service**
+
+Wait for deployment to complete — you'll get a URL like `vaani-backend.onrender.com`.
+
+### Update Vercel with Backend URL
+
+After Render deploys:
+1. In Vercel dashboard → your project → **Settings** → **Environment Variables**
+2. Add/Update `VITE_API_URL` = `https://vaani-backend.onrender.com`
+3. Redeploy (or push a commit to trigger auto-deploy)
+
+### One-Time Setup Summary
+
+| Step | Platform | What | URL |
+|------|----------|------|-----|
+| 1 | Vercel | Deploy frontend from GitHub | vercel.com |
+| 2 | Render | Deploy backend from GitHub | render.com |
+| 3 | Vercel | Set `VITE_API_URL` to Render URL | vercel.com |
+| 4 | Done | Submit your live URL | |
+
+## Quick Start (Local)
 
 ```bash
-# Install frontend dependencies
+# Install frontend
 npm install
 
-# Install backend dependencies
+# Install backend
 cd server && npm install
 
-# Start development (frontend + backend)
-npm run dev:full
-
-# Build for production
-npm run build
+# Run both (two terminals)
+npm run dev          # Frontend: http://localhost:5173
+cd server && node index.js  # Backend: http://localhost:3001
 ```
 
-**Frontend:** http://localhost:5173
-**Backend:** http://localhost:3001
+## API Keys
 
-## Environment Variables
-
-### Frontend (.env)
-```
-VITE_MINIMAX_API_KEY=your_minimax_key
-VITE_GROQ_API_KEY=your_groq_key
-VITE_ELEVENLABS_API_KEY=your_elevenlabs_key  # optional
-VITE_API_URL=http://localhost:3001
-```
-
-### Backend (server/.env)
-```
-MINIMAX_API_KEY=your_minimax_key
-GROQ_API_KEY=your_groq_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
-PORT=3001
-CORS_ORIGINS=https://your-frontend.vercel.app
-```
-
-### API Keys
-- **MiniMax:** https://platform.minimaxi.chat
-- **Groq:** https://console.groq.com/keys
-- **ElevenLabs:** https://elevenlabs.io (free tier: 10k chars/month)
+- **MiniMax:** [platform.minimaxi.chat](https://platform.minimaxi.chat)
+- **Groq:** [console.groq.com/keys](https://console.groq.com/keys)
+- **ElevenLabs:** [elevenlabs.io](https://elevenlabs.io) (free tier: 10k chars/month)
 
 ## Security
 
 - API keys proxied through backend (never exposed in browser)
-- CSP headers via Helmet
+- Helmet security headers (CSP, X-Frame, etc.)
 - Rate limiting on all API routes
 - Phone validation + name sanitization on lead capture
 - Lead data requires admin auth header
-- Only 200 responses cached in service worker (no 206 partials)
 
 ## License
 
