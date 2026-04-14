@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://vaani-px64.onrender.com/api/:path*" },
+    { "source": "/api/minimax/(.*)", "destination": "/api/minimax/chat" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
