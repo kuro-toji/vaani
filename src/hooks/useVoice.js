@@ -474,9 +474,11 @@ export function useVoice() {
       mediaRecorder.start(1000)
       setIsListening(true)
     } catch (err) { console.warn('[useVoice] waitForVoice failed:', err); }
+    finally {
       onError?.('No speech detected')
       stream.getTracks().forEach(t => t.stop())
-      try { audioContext.close() } catch (e) { console.warn('[useVoice] audioContext close after waitForVoice:', e); } }
+      try { audioContext.close() } catch (e) { console.warn('[useVoice] audioContext close after waitForVoice:', e); }
+    }
   }, [])
 
   /* ═══════════════════════════════════════════

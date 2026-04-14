@@ -122,6 +122,21 @@ export function deleteLead(leadId) {
 }
 
 /**
+ * Detect product interest from text and auto-capture lead.
+ * @param {string} text - User message text
+ * @param {Object} options - { language }
+ */
+export async function detectAndCaptureLead(text, { language } = {}) {
+  const category = detectProductInterest(text);
+  if (!category) return null;
+  
+  // Don't capture for skill/scheme categories (too noisy)
+  if (['skill', 'scheme'].includes(category)) return null;
+  
+  return captureLead({ productCategory: category, language });
+}
+
+/**
  * Format relative time in Hindi/English.
  */
 function getRelativeTime() {
@@ -161,4 +176,4 @@ export function detectProductInterest(text) {
   return null;
 }
 
-export default { captureLead, getLeads, getLeadStats, deleteLead, detectProductInterest };
+export default { captureLead, getLeads, getLeadStats, deleteLead, detectProductInterest, detectAndCaptureLead };
