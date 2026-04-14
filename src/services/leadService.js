@@ -1,125 +1,160 @@
 /**
- * Lead Service — Captures financial product intent from conversations
- * for the B2B bank partner dashboard.
+ * Lead Capture Service
+ * Stores user interest in financial products for B2B lead sharing.
+ * For demo: localStorage + optional server save.
  */
 
-const LEADS_KEY = 'vaani_leads';
+const LEAD_STORAGE_KEY = 'vaani_leads';
 
-const INTENT_PATTERNS = [
-  { intent: 'open_fd', keywords: ['open fd', 'fd open', 'fd kholna', 'एफडी खोलना', 'fixed deposit open'], product: 'Fixed Deposit' },
-  { intent: 'start_sip', keywords: ['start sip', 'sip start', 'sip shuru', 'सिप शुरू'], product: 'Mutual Fund SIP' },
-  { intent: 'buy_insurance', keywords: ['buy insurance', 'insurance chahiye', 'बीमा लेना', 'term plan'], product: 'Insurance' },
-  { intent: 'open_ppf', keywords: ['open ppf', 'ppf account', 'ppf kholna', 'पीपीएफ'], product: 'PPF Account' },
-  { intent: 'home_loan', keywords: ['home loan', 'ghar ka loan', 'housing loan', 'गृह ऋण'], product: 'Home Loan' },
-  { intent: 'gold_bond', keywords: ['gold bond', 'sgb', 'sovereign gold', 'सोने का बॉन्ड'], product: 'Sovereign Gold Bond' },
-  { intent: 'health_insurance', keywords: ['health insurance', 'mediclaim', 'स्वास्थ्य बीमा'], product: 'Health Insurance' },
-  { intent: 'savings_account', keywords: ['new account', 'bank account', 'jan dhan', 'खाता खोलना'], product: 'Savings Account' },
-];
-
-function loadLeads() {
-  try {
-    const data = localStorage.getItem(LEADS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
-}
-
-function saveLeads(leads) {
-  try {
-    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
-  } catch (e) { console.warn('Failed to save leads:', e); }
+/**
+ * Generate a unique lead ID.
+ */
+function generateLeadId() {
+  return `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
- * Scan a message for financial product intent and capture as a lead.
+ * Capture a lead — stores in localStorage and optionally sends to server.
+ * 
+ * @param {Object} params
+ * @param {string} params.name - User's name (optional)
+ * @param {string} params.phone - User's phone number (required for submission)
+ * @param {string} params.pincode - User's pincode
+ * @param {string} params.productCategory - Product category (fd, insurance, pension, etc.)
+ * @param {string} params.productId - Specific product/scheme ID (optional)
+ * @param {string} params.language - User's language
+ * @param {Array} params.answers - Extra answers from product questions
+ * @param {string} params.source - 'chat' | 'landing' | 'dashboard'
+ * @returns {Promise<Object>} Saved lead object
  */
-export function detectAndCaptureLead(message, userProfile = {}) {
-  const text = message.toLowerCase();
+export async function captureLead({ name, phone, pincode, productCategory, productId, language, answers = [], source = 'chat' }) {
+  const lead = {
+    id: generateLeadId(),
+    name: name || null,
+    phone: phone || null,
+    pincode: pincode || localStorage.getItem('vaani_pincode') || null,
+    productCategory,
+    productId: productId || null,
+    language: language || localStorage.getItem('vaani_language') || 'hi',
+    answers,
+    source,
+    status: phone ? 'contactable' : 'interested',
+    createdAt: new Date().toISOString(),
+    createdAtRelative: getRelativeTime(),
+  };
+
+  // Store in localStorage
+  try {
+    const existing = JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || '[]');
+    // Don't duplicate leads for same category + pincode combo (within same session)
+    const isDuplicate = existing.some(l => 
+      l.productCategory === productCategory && 
+      l.pincode === pincode &&
+      l.status !== 'contactable'
+    );
+    
+    if (!isDuplicate) {
+      existing.push(lead);
+      localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(existing));
+    }
+  } catch (e) {
+    console.warn('Failed to save lead locally:', e);
+  }
+
+  // Try to send to server (don't block if it fails)
+  if (phone && pincode) {
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead),
+      });
+    } catch (e) {
+      // Server not available — localStorage is enough for demo
+    }
+  }
+
+  return lead;
+}
+
+/**
+ * Get all captured leads (for dashboard/admin view).
+ */
+export function getLeads() {
+  try {
+    return JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get lead count by category.
+ */
+export function getLeadStats() {
+  const leads = getLeads();
+  const stats = {
+    total: leads.length,
+    contactable: leads.filter(l => l.status === 'contactable').length,
+    byCategory: {},
+  };
   
-  for (const pattern of INTENT_PATTERNS) {
-    if (pattern.keywords.some(kw => text.includes(kw))) {
-      const lead = {
-        id: Date.now().toString(),
-        intent: pattern.intent,
-        product: pattern.product,
-        originalMessage: message.substring(0, 200),
-        timestamp: new Date().toISOString(),
-        region: userProfile.region || 'Unknown',
-        language: userProfile.language || 'Hindi',
-        status: 'new', // new → contacted → converted
-      };
-      
-      const leads = loadLeads();
-      // Avoid duplicates within 1 hour
-      const recent = leads.find(l => 
-        l.intent === lead.intent && 
-        (Date.now() - new Date(l.timestamp).getTime()) < 3600000
-      );
-      if (!recent) {
-        leads.push(lead);
-        saveLeads(leads);
-      }
-      return lead;
+  for (const lead of leads) {
+    stats.byCategory[lead.productCategory] = (stats.byCategory[lead.productCategory] || 0) + 1;
+  }
+  
+  return stats;
+}
+
+/**
+ * Delete a lead.
+ */
+export function deleteLead(leadId) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || '[]');
+    const filtered = existing.filter(l => l.id !== leadId);
+    localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(filtered));
+  } catch {}
+}
+
+/**
+ * Format relative time in Hindi/English.
+ */
+function getRelativeTime() {
+  const now = new Date();
+  const istOffset = 5.5 * 60; // IST = UTC+5:30
+  const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (istOffset * 60000));
+  return istTime.toLocaleString('hi-IN', { 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Detect if user is showing product interest from their message.
+ */
+export function detectProductInterest(text) {
+  const lower = text.toLowerCase();
+  
+  const interestMap = {
+    fd: /fd|fixed deposit|सावधि|savdhi|bank deposit/i,
+    insurance: /बीमा|insurance|jeevan|suraksha|bima/i,
+    pension: /पेंशन|pension|retirement|old age/i,
+    loan: /लोन|loan|कर्ज|karj|mudra/i,
+    savings: /बचत|saving|deposit|sukanya/i,
+    skill: /skill|training|naukri|job|rozgar/i,
+    scheme: /scheme|योजना|scam|स्कीम|govt|government/i,
+  };
+
+  for (const [category, pattern] of Object.entries(interestMap)) {
+    if (pattern.test(lower)) {
+      return category;
     }
   }
   return null;
 }
 
-/**
- * Get all captured leads for the partner dashboard.
- */
-export function getAllLeads() {
-  return loadLeads();
-}
-
-/**
- * Get lead analytics summary.
- */
-export function getLeadAnalytics() {
-  const leads = loadLeads();
-  
-  // By product
-  const byProduct = {};
-  leads.forEach(l => {
-    byProduct[l.product] = (byProduct[l.product] || 0) + 1;
-  });
-  
-  // By region
-  const byRegion = {};
-  leads.forEach(l => {
-    byRegion[l.region] = (byRegion[l.region] || 0) + 1;
-  });
-  
-  // By day (last 7 days)
-  const byDay = {};
-  const now = Date.now();
-  leads.forEach(l => {
-    const day = l.timestamp.split('T')[0];
-    const daysAgo = Math.floor((now - new Date(l.timestamp).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysAgo <= 7) {
-      byDay[day] = (byDay[day] || 0) + 1;
-    }
-  });
-  
-  return {
-    total: leads.length,
-    byProduct,
-    byRegion,
-    byDay,
-    conversionRate: leads.filter(l => l.status === 'converted').length / Math.max(1, leads.length),
-  };
-}
-
-/**
- * Update lead status.
- */
-export function updateLeadStatus(id, status) {
-  const leads = loadLeads();
-  const lead = leads.find(l => l.id === id);
-  if (lead) {
-    lead.status = status;
-    saveLeads(leads);
-  }
-  return leads;
-}
-
-export default { detectAndCaptureLead, getAllLeads, getLeadAnalytics, updateLeadStatus };
+export default { captureLead, getLeads, getLeadStats, deleteLead, detectProductInterest };

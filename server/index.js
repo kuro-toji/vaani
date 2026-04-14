@@ -8,6 +8,7 @@ import ttsRoute from './routes/tts.js';
 import detectRoute from './routes/detect.js';
 import sttRoute from './routes/stt.js';
 import ocrRoute from './routes/ocr.js';
+import leadsRoute from './routes/leads.js';
 
 dotenv.config();
 
@@ -91,6 +92,7 @@ app.use('/api/tts', ttsRoute);
 app.use('/api/detect', detectRoute);
 app.use('/api/stt', sttRoute);
 app.use('/api/ocr', ocrRoute);
+app.use('/api/leads', leadsRoute);
 
 // ── Input validation error handler ──
 app.use((err, req, res, next) => {
