@@ -167,6 +167,7 @@ export function useChat() {
     // ── Proactive Profile Matcher ────────────────────────────────────────
     // If user describes their profile, proactively suggest best schemes
     const profile = detectProfileFromText(text);
+    const lower = text.toLowerCase();
     const proactiveKeywords = [
       'mein hun', 'mai hun', 'i am', 'i\'m', 'mera', 'meri',
       'mujhe', 'mujhe chahiye', 'i need', 'i want', 'i want to',
