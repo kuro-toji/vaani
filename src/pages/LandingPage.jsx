@@ -81,6 +81,14 @@ const LANG_HEADLINES = {
   ur: { line1: 'آپ کی آواز۔', line2: 'آپ کی زبان۔', sub: 'ہندوستان کا پہلا وائس فرسٹ مالی مددگار' },
   as: { line1: 'আপোনাৰ মাত।', line2: 'আপোনাৰ ভাষা।', sub: 'ভাৰতৰ প্ৰথম ভইচ-ফাৰ্ষ্ট বিত্তীয় সহায়ক' },
   en: { line1: 'Your Voice.', line2: 'Your Language.', sub: "India's first voice-first financial advisor" },
+  mni: { line1: 'নখোয়গী লৈথং।', line2: 'নখোয়গী মশিং।', sub: 'ভারতকী ফার্স্ট ভয়েস-ফার্স্ট ফিনান্সিয়েল এডভাইজর' },
+  sat: { line1: 'ᱟᱯᱮ ᱟᱣᱟᱡ।', line2: 'ᱟᱯᱮ ᱯᱷᱟᱥᱟ।', sub: 'ᱦᱤᱸᱫ ᱨᱮᱭᱟᱜ ᱯᱷᱚᱨᱥᱴ ᱵᱷᱚᱭᱥ-ᱯᱷᱚᱨᱥᱴ ᱯᱷᱟᱭᱤᱱᱮᱱᱥᱤᱭᱚᱞ' },
+  mai: { line1: 'अपन अवाज।', line2: 'अपन भाषा।', sub: 'भारतक पहिल वॉइस-फर्स्ट वित्तीय सलाहकार' },
+  bho: { line1: 'रउवा के आवाज।', line2: 'रउवा के भाषा।', sub: 'भारत के पहिला वॉइस-फर्स्ट वित्तीय सलाहकार' },
+  raj: { line1: 'थांकी आवाज।', line2: 'थांकी भाषा।', sub: 'भारत रो पहलो वॉइस-फर्स्ट वित्तीय सलाहकार' },
+  ne: { line1: 'तपाईंको आवाज।', line2: 'तपाईंको भाषा।', sub: 'भारतको पहिलो भ्वाइस-फर्स्ट वित्तीय सल्लाहकार' },
+  ks: { line1: 'تۄہۍ آواز۔', line2: 'تۄہۍ زبان۔', sub: 'ہِنۡدوستانۡ ہُند پَتَھر وائس-فَرسۡٹ مالی مَددگار' },
+  sd: { line1: 'توهان جي آواز۔', line2: 'توهان جي ٻولي۔', sub: 'هندستان جو پهريون وائس-فرسٽ مالي مددگار' },
 };
 
 const HOW_STEPS = [
@@ -201,6 +209,7 @@ export default function LandingPage({ onStart }) {
   const [activeHeadline, setActiveHeadline] = useState(DEFAULT_HEADLINE);
   const [nextHeadline, setNextHeadline] = useState(null);
   const [waterDropKey, setWaterDropKey] = useState(0);
+  const [headlineFade, setHeadlineFade] = useState(true);
   const pincodeInputRef = useRef(null);
   const audioRef = useRef(null);
   const [welcomePlayed, setWelcomePlayed] = useState(false);
@@ -255,7 +264,7 @@ export default function LandingPage({ onStart }) {
           if (langIndex !== -1) setSelectedLangIndex(langIndex);
           try { sessionStorage.setItem('vaani_detected_language', data.language); } catch {}
           try { localStorage.setItem('vaani_language', data.language); } catch {}
-          try { setGlobalLanguage(data.language); } catch {}
+          setGlobalLanguage(data.language);
         }
       }).catch(() => { if (!cancelled) setPincodeLoading(false); });
       return () => { cancelled = true; };
@@ -289,6 +298,12 @@ export default function LandingPage({ onStart }) {
     setWaterDropKey(prev => prev + 1);
   }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    setHeadlineFade(false);
+    const t = setTimeout(() => setHeadlineFade(true), 150);
+    return () => clearTimeout(t);
+  }, [language]);
+
   // Play pre-recorded pincode prompt audio after language selection
   const playPincodeAudio = useCallback((langCode) => {
     const isHindi = langCode === 'hi' || langCode === 'mr' || langCode === 'bn' || langCode === 'pa' || langCode === 'gu' || langCode === 'kn' || langCode === 'ml' || langCode === 'ta' || langCode === 'te' || langCode === 'or' || langCode === 'as';
@@ -303,7 +318,7 @@ export default function LandingPage({ onStart }) {
     setDetectedLang(lang.name);
     try { sessionStorage.setItem('vaani_detected_language', lang.code); } catch {}
     try { localStorage.setItem('vaani_language', lang.code); } catch {}
-    try { setGlobalLanguage(lang.code); } catch {}
+    setGlobalLanguage(lang.code);
     playPincodeAudio(lang.code);
   };
 
@@ -395,10 +410,21 @@ export default function LandingPage({ onStart }) {
                 color: '#fff', padding: '8px 20px', borderRadius: '999px',
                 fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
               }}
-            >शुरू करें / Start</button>
+            >Open Dashboard →</button>
           </div>
         </div>
       </header>
+
+      <div style={{ 
+        position: 'absolute', top: '70px', left: 0, right: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 0', fontSize: '12px', color: 'rgba(255,255,255,0.35)', zIndex: 10
+      }}>
+        <span style={{ color: '#10B981', fontWeight: 500 }}>Home</span>
+        <span>→</span>
+        <span>Dashboard</span>
+        <span>→</span>
+        <span>Chat with Vaani</span>
+      </div>
 
       {/* ══════════════════════════════════════
           SECTION 2 — HERO
@@ -406,7 +432,7 @@ export default function LandingPage({ onStart }) {
       <section style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        padding: '100px 24px 60px', textAlign: 'center',
+        padding: '120px 24px 60px', textAlign: 'center',
       }}>
         {/* Badge */}
         <div style={{
@@ -418,55 +444,57 @@ export default function LandingPage({ onStart }) {
         }}>🇮🇳 Built for India's Next 800 Million</div>
 
         {/* Headline */}
-        <h2 style={{
-          fontSize: 'clamp(42px,8vw,80px)',
-          fontWeight: 800,
-          lineHeight: 1.05,
-          margin: 0,
-          color: '#ffffff',
-          animationName: headlineAnim === 'out' ? 'bubbleOut' :
-                         headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
-          animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
-          animationTimingFunction: headlineAnim === 'in'
-            ? 'cubic-bezier(0.34,1.56,0.64,1)'
-            : headlineAnim === 'out' ? 'ease' : 'ease',
-          animationDelay: headlineAnim === 'idle' ? '0.1s' : '0s',
-          animationFillMode: 'both',
-          animationIterationCount: 1,
-          transformOrigin: 'center center',
-        }}>
-          {activeHeadline.line1}
-        </h2>
-        <h2 style={{
-          fontSize: 'clamp(42px,8vw,80px)',
-          fontWeight: 800,
-          lineHeight: 1.05,
-          margin: 0,
-          background: 'linear-gradient(135deg,#00D4AA,#10B981)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          animationName: headlineAnim === 'out' ? 'bubbleOut' :
-                         headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
-          animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
-          animationTimingFunction: headlineAnim === 'in'
-            ? 'cubic-bezier(0.34,1.56,0.64,1)'
-            : 'ease',
-          animationDelay: headlineAnim === 'in' ? '0.07s'
-                        : headlineAnim === 'idle' ? '0.2s' : '0s',
-          animationFillMode: 'both',
-          animationIterationCount: 1,
-          transformOrigin: 'center center',
-        }}>
-          {activeHeadline.line2}
-        </h2>
+        <div style={{ opacity: headlineFade ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+          <h2 style={{
+            fontSize: 'clamp(42px,8vw,80px)',
+            fontWeight: 800,
+            lineHeight: 1.05,
+            margin: 0,
+            color: '#ffffff',
+            animationName: headlineAnim === 'out' ? 'bubbleOut' :
+                           headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
+            animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
+            animationTimingFunction: headlineAnim === 'in'
+              ? 'cubic-bezier(0.34,1.56,0.64,1)'
+              : headlineAnim === 'out' ? 'ease' : 'ease',
+            animationDelay: headlineAnim === 'idle' ? '0.1s' : '0s',
+            animationFillMode: 'both',
+            animationIterationCount: 1,
+            transformOrigin: 'center center',
+          }}>
+            {activeHeadline.line1}
+          </h2>
+          <h2 style={{
+            fontSize: 'clamp(42px,8vw,80px)',
+            fontWeight: 800,
+            lineHeight: 1.05,
+            margin: 0,
+            background: 'linear-gradient(135deg,#00D4AA,#10B981)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            animationName: headlineAnim === 'out' ? 'bubbleOut' :
+                           headlineAnim === 'in'  ? 'bubbleIn'  : 'fadeUp',
+            animationDuration: headlineAnim === 'in' ? '0.5s' : '0.6s',
+            animationTimingFunction: headlineAnim === 'in'
+              ? 'cubic-bezier(0.34,1.56,0.64,1)'
+              : 'ease',
+            animationDelay: headlineAnim === 'in' ? '0.07s'
+                          : headlineAnim === 'idle' ? '0.2s' : '0s',
+            animationFillMode: 'both',
+            animationIterationCount: 1,
+            transformOrigin: 'center center',
+          }}>
+            {activeHeadline.line2}
+          </h2>
 
-        {/* Subheadline */}
-        <p style={{
-          fontSize: 'clamp(16px,2.5vw,20px)', color: 'rgba(255,255,255,0.6)',
-          maxWidth: '520px', margin: '20px auto 0', lineHeight: 1.6,
-          animation: 'fadeUp 0.6s ease both', animationDelay: '0.3s', animationFillMode: 'both',
-        }}>{activeHeadline.sub}</p>
+          {/* Subheadline */}
+          <p style={{
+            fontSize: 'clamp(16px,2.5vw,20px)', color: 'rgba(255,255,255,0.6)',
+            maxWidth: '520px', margin: '20px auto 0', lineHeight: 1.6,
+            animation: 'fadeUp 0.6s ease both', animationDelay: '0.3s', animationFillMode: 'both',
+          }}>{activeHeadline.sub}</p>
+        </div>
 
         {/* ── Siri Orb ── */}
         <div
@@ -526,8 +554,8 @@ export default function LandingPage({ onStart }) {
           ))}
         </div>
 
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '12px', letterSpacing: '0.5px' }}>
-          Tap anywhere to start
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginTop: '12px', letterSpacing: '0.3px' }}>
+          See Your Dashboard →
         </p>
 
         {/* ── Pincode ── */}
@@ -767,7 +795,7 @@ export default function LandingPage({ onStart }) {
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 12px 48px rgba(16,185,129,0.55)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(16,185,129,0.4)'; }}
-        >Start Talking — Free</button>
+        >Go to Dashboard →</button>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '12px' }}>
           Available in 28 Indian Languages
         </p>
