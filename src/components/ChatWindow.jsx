@@ -50,32 +50,17 @@ export default function ChatWindow() {
   const [showPersonalDashboard, setShowPersonalDashboard] = useState(false);
   const [pttCountdown, setPttCountdown] = useState(null); // null = not showing, number = seconds remaining
 
-  // Record streak on mount + auto-activate fullScreenPTT after 5-second countdown (if setting was saved)
+  // Record streak on mount + auto-activate fullScreenPTT if setting was saved
   useEffect(() => {
     recordActivity();
-    try {
-      if (localStorage.getItem('vaani_fullScreenPTT') === '1' && !fullScreenPTT) {
-        // Start 5-second countdown
-        let remaining = 5;
-        setPttCountdown(remaining);
-        
-        const interval = setInterval(() => {
-          remaining -= 1;
-          setPttCountdown(remaining);
-          if (remaining <= 0) {
-            clearInterval(interval);
-            setPttCountdown(null);
-            toggleFullScreenPTT();
-          }
-        }, 1000);
-        
-        // Return cleanup
-        return () => {
-          clearInterval(interval);
-          setPttCountdown(null);
-        };
-      }
-    } catch {}
+
+    // Check localStorage directly — more reliable than React state on first mount
+    const pttPref = localStorage.getItem('vaani_fullScreenPTT') === '1';
+
+    if (pttPref && !fullScreenPTT) {
+      // Small delay to let contexts settle
+      setTimeout(() => toggleFullScreenPTT(), 100);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect leads from user messages

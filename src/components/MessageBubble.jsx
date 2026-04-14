@@ -183,7 +183,7 @@ function MessageBubble({ message, language }) {
           }}
         >
           {/* Rendered markdown content */}
-          <div style={{ wordBreak: 'break-word' }}>
+          <div style={{ wordBreak: 'break-word', fontSize: largeText ? '20px' : '15px', lineHeight: largeText ? 1.8 : 1.6 }}>
             {parseMarkdown(message.content)}
           </div>
         </div>
