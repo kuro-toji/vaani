@@ -3,7 +3,10 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/minimax/(.*)", "destination": "/api/minimax/chat" },
+    { "source": "/api/minimax/chat", "destination": "/api/minimax/chat" },
+    { "source": "/api/tts/speak", "destination": "/api/tts/speak" },
+    { "source": "/api/stt/transcribe", "destination": "/api/stt/transcribe" },
+    { "source": "/api/leads", "destination": "/api/leads" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
