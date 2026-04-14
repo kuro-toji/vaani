@@ -160,12 +160,12 @@ function MessageBubble({ message, language }) {
             padding: isUser ? 'var(--vaani-space-3) var(--vaani-space-4)' : 'var(--vaani-space-4) var(--vaani-space-5)',
             borderRadius: isUser ? 'var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-sm) var(--vaani-radius-xl)' : 'var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-xl) var(--vaani-radius-sm)',
             background: isUser
-              ? 'var(--vaani-gradient-primary)'
-              : 'rgba(255,255,255,0.05)',
+              ? 'var(--vaani-user-bubble, #1D9E75)'
+              : 'var(--vaani-ai-bubble-bg, rgba(255,255,255,0.05))',
             backdropFilter: isUser ? 'none' : 'blur(16px)',
             WebkitBackdropFilter: isUser ? 'none' : 'blur(16px)',
             border: isUser ? 'none' : '1px solid rgba(255,255,255,0.08)',
-            color: '#ffffff',
+            color: isUser ? '#ffffff' : 'var(--vaani-ai-bubble-text, #ffffff)',
             fontSize: largeText ? 'var(--vaani-text-lg)' : 'var(--vaani-text-base)',
             lineHeight: 1.6,
             letterSpacing: '0.15px',

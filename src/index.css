@@ -129,14 +129,26 @@ body {
 
 /* High-contrast mode for accessibility */
 html.vaani-high-contrast {
-  --vaani-bg: #000000;
-  --vaani-bg-secondary: #111111;
-  --vaani-text: #FFFFFF;
-  --vaani-text-secondary: #DDDDDD;
-  --vaani-border: #FFFFFF;
-  --vaani-primary: #00FF88;
-  --vaani-primary-light: #00FFAA;
+  --vaani-bg: #000000 !important;
+  --vaani-bg-secondary: #111111 !important;
+  --vaani-text: #FFFFFF !important;
+  --vaani-text-secondary: #DDDDDD !important;
+  --vaani-border: #FFFFFF !important;
+  --vaani-primary: #00FF88 !important;
+  --vaani-primary-light: #00FFAA !important;
+  --vaani-user-bubble: #003300 !important;
+  --vaani-ai-bubble-bg: #000000 !important;
+  --vaani-ai-bubble-text: #FFFFFF !important;
 }
+
+html.vaani-high-contrast * {
+  border-color: rgba(255,255,255,0.3) !important;
+}
+
+html.vaani-high-contrast [style*="background: linear-gradient(135deg, #0F6E56"] {
+  background: #003300 !important;
+}
+
 html.vaani-high-contrast .message-bubble {
   border: 2px solid #FFFFFF !important;
 }
@@ -427,9 +439,9 @@ html.vaani-high-contrast .message-bubble-ai {
 }
 
 html.vaani-high-contrast .suggestion-chip {
-  border: 2px solid #FFFFFF;
-  color: #FFFFFF;
-  background: #000000;
+  background: #000000 !important;
+  border: 2px solid #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 html.vaani-large-text .suggestion-chip {
@@ -493,13 +505,20 @@ html.vaani-high-contrast .quick-icon-btn {
 }
 
 html.vaani-high-contrast .chat-input-field {
-  background: rgba(0, 0, 0, 0.9);
-  border: 2px solid #00FF88;
+  background: #000000 !important;
+  border: 2px solid #FFFFFF !important;
 }
 
 html.vaani-large-text .chat-input-field {
   min-height: 64px;
   border-radius: 24px;
+}
+
+html.vaani-high-contrast input,
+html.vaani-high-contrast textarea {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #FFFFFF !important;
 }
 
 /* === COMPONENT: AVATAR === */
