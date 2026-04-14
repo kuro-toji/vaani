@@ -8,7 +8,7 @@ function stripThinkingTags(text) {
   return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
-const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL ? import.meta.env.VITE_API_URL : '') + '/api/minimax/chat';
+const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL ? import.meta.env.VITE_API_URL : 'https://vaani-exhg.onrender.com') + '/api/minimax/chat';
 
 /**
  * Send a conversation to MiniMax via the local Express server.

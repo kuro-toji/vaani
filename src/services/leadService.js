@@ -70,7 +70,7 @@ export async function captureLead({ name, phone, pincode, productCategory, produ
   // Try to send to server (don't block if it fails)
   if (phone && pincode) {
     try {
-      await fetch((import.meta.env.VITE_API_URL || '') + '/api/leads', {
+      await fetch((import.meta.env.VITE_API_URL || 'https://vaani-exhg.onrender.com') + '/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(lead),

@@ -3,7 +3,7 @@
  * Server calls Groq Whisper API with server-side key.
  */
 
-const API_ENDPOINT = (import.meta.env.VITE_API_URL || '') + '/api/stt/transcribe';
+const API_ENDPOINT = (import.meta.env.VITE_API_URL || 'https://vaani-exhg.onrender.com') + '/api/stt/transcribe';
 
 /**
  * Check if STT proxy is available.
