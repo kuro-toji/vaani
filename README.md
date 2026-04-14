@@ -4,6 +4,8 @@
 
 **Live Demo:** [https://vaani-gold-theta.vercel.app](https://vaani-gold-theta.vercel.app)
 
+> **Note:** Backend deployed on Render free tier — may take ~30s on first request (cold start). If it returns an error, refresh once.
+
 **Vaani** is a voice-first financial advisor that works in 22 Indian languages. No forms, no typing, no English required. Just speak and discover government schemes, compare FD rates, check eligibility, and get a personalized financial health score.
 
 ## Mission
