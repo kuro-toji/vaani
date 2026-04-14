@@ -5,7 +5,7 @@
  */
 
 let lastCallTime = 0;
-const MIN_GAP_MS = 500; // 500ms gap = smooth conversation
+const MIN_GAP_MS = 200; // 200ms gap (reduced from 500ms for faster UX)
 const queue = [];
 let isProcessing = false;
 
@@ -21,20 +21,23 @@ async function waitForGap() {
 async function processQueue() {
   if (isProcessing) return;
   isProcessing = true;
-  
+
   while (queue.length > 0) {
     const { requestFn, resolve, reject, retryCount } = queue[0];
-    
+
     try {
-      await waitForGap();
+      // Only wait for gap if queue has pending items (not first request)
+      if (queue.length > 1) {
+        await waitForGap();
+      }
       const result = await requestFn();
       queue.shift();
       resolve(result);
     } catch (error) {
-      const isRateLimit = error.message?.includes('429') || 
+      const isRateLimit = error.message?.includes('429') ||
                           error.message?.includes('rate') ||
                           error.message?.includes('RESOURCE_EXHAUSTED');
-      
+
       if (isRateLimit && retryCount < 3) {
         // Retry with backoff: 2s, 4s, 8s
         const backoffMs = 2000 * Math.pow(2, retryCount);
@@ -48,7 +51,7 @@ async function processQueue() {
       }
     }
   }
-  
+
   isProcessing = false;
 }
 
