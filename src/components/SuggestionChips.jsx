@@ -5,6 +5,24 @@ const SuggestionChips = ({ language, onSend }) => {
   const chips = getLanguageChips(language);
   const { highContrast, largeText } = useAccessibility();
 
+  const WELCOME_TEXT = {
+    hi: { greeting: 'नमस्ते! 🙏', sub: 'बोलिए या नीचे से चुनें:' },
+    en: { greeting: 'Hello! 👋', sub: 'Speak or choose below:' },
+    bn: { greeting: 'হ্যালো! 🙏', sub: 'বলুন বা নিচে থেকে বেছে নিন:' },
+    te: { greeting: 'నమస్కారం! 🙏', sub: 'మాట్లాడండి లేదా దిగువ నుండి ఎంచుకోండి:' },
+    ta: { greeting: 'வணக்கம்! 🙏', sub: 'பேசுங்கள் அல்லது கீழே தேர்ந்தெடுங்கள்:' },
+    mr: { greeting: 'नमस्कार! 🙏', sub: 'बोला किंवा खाली निवडा:' },
+    gu: { greeting: 'નમસ્તે! 🙏', sub: 'બોલો અથવા નીચેથી પસંદ કરો:' },
+    kn: { greeting: 'ನಮಸ್ಕಾರ! 🙏', sub: 'ಮಾತನಾಡಿ ಅಥವಾ ಕೆಳಗಿನಿಂದ ಆಯ್ಕೆ ಮಾಡಿ:' },
+    ml: { greeting: 'നമസ്കാരം! 🙏', sub: 'സംസാരിക്കൂ അല്ലെങ്കിൽ താഴെ തിരഞ്ഞെടുക്കൂ:' },
+    pa: { greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! 🙏', sub: 'ਬੋਲੋ ਜਾਂ ਹੇਠਾਂ ਤੋਂ ਚੁਣੋ:' },
+    ur: { greeting: 'آداب! 🙏', sub: 'بولیے یا نیچے سے چنیے:' },
+    or: { greeting: 'ନମସ୍କାର! 🙏', sub: 'ବୋଲନ୍ତୁ ବା ତଳରୁ ବାଛନ୍ତୁ:' },
+    as: { greeting: 'নমস্কাৰ! 🙏', sub: 'কওক বা তলৰ পৰা বাছক:' },
+    mni: { greeting: 'খুরুমজরি! 🙏', sub: 'হায়বিয়ু অয়ু ম্পাং লৈনবা থারক:' },
+  };
+  const wt = WELCOME_TEXT[language] || WELCOME_TEXT.hi;
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -24,10 +42,10 @@ const SuggestionChips = ({ language, onSend }) => {
 
       <div style={{ textAlign: 'center' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 700, color: highContrast ? '#FFFFFF' : '#111827', marginBottom: '4px' }}>
-          नमस्ते! 🙏
+          {wt.greeting}
         </h2>
         <p style={{ fontSize: '14px', color: highContrast ? 'rgba(255,255,255,0.8)' : '#6B7280' }}>
-          बोलिए या नीचे से चुनें:
+          {wt.sub}
         </p>
       </div>
 
