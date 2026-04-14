@@ -2,6 +2,8 @@
 
 > Financial inclusion for India's next 800 million — in your language, by your voice.
 
+**Live Demo:** [https://vaani-gold-theta.vercel.app](https://vaani-gold-theta.vercel.app)
+
 **Vaani** is a voice-first financial advisor that works in 22 Indian languages. No forms, no typing, no English required. Just speak and discover government schemes, compare FD rates, check eligibility, and get a personalized financial health score.
 
 ## Mission
@@ -111,61 +113,6 @@ src/
     ├── locatorService.js     # Bank/CSC finder
     └── languageDetector.js
 ```
-
-## Deployment
-
-### Frontend → Vercel (Recommended)
-
-1. Go to [vercel.com](https://vercel.com) — sign in with GitHub
-2. Click **"Add New Project"** → Import `kuro-toji/vaani`
-3. **Framework:** Vite
-4. **Root Directory:** `.` (default)
-5. **Build Command:** `npm run build`
-6. **Output Directory:** `dist`
-7. **Environment Variables** (add in Vercel dashboard):
-   - `VITE_API_URL` = `https://your-render-backend.onrender.com` (your Render URL)
-   - `VITE_MINIMAX_API_KEY` = your MiniMax key
-   - `VITE_GROQ_API_KEY` = your Groq key
-   - `VITE_ELEVENLABS_API_KEY` = your ElevenLabs key (optional)
-8. Click **Deploy**
-
-Vercel auto-deploys on every push to `master`.
-
-### Backend → Render
-
-1. Go to [render.com](https://render.com) — sign up/login
-2. Click **"New +"** → **"Web Service"**
-3. Connect your GitHub repo or upload `server/` as a private repo
-4. **Root Directory:** `server`
-5. **Build Command:** `npm install`
-6. **Start Command:** `node index.js`
-7. **Environment:** Node
-8. **Plan:** Free tier is sufficient
-9. **Environment Variables** (add in Render dashboard):
-   - `MINIMAX_API_KEY` = your MiniMax key
-   - `GROQ_API_KEY` = your Groq key
-   - `ELEVENLABS_API_KEY` = your ElevenLabs key
-   - `CORS_ORIGINS` = `https://your-vercel-frontend.vercel.app` (your Vercel URL)
-   - `PORT` = `3001`
-10. Click **Create Web Service**
-
-Wait for deployment to complete — you'll get a URL like `vaani-backend.onrender.com`.
-
-### Update Vercel with Backend URL
-
-After Render deploys:
-1. In Vercel dashboard → your project → **Settings** → **Environment Variables**
-2. Add/Update `VITE_API_URL` = `https://vaani-backend.onrender.com`
-3. Redeploy (or push a commit to trigger auto-deploy)
-
-### One-Time Setup Summary
-
-| Step | Platform | What | URL |
-|------|----------|------|-----|
-| 1 | Vercel | Deploy frontend from GitHub | vercel.com |
-| 2 | Render | Deploy backend from GitHub | render.com |
-| 3 | Vercel | Set `VITE_API_URL` to Render URL | vercel.com |
-| 4 | Done | Submit your live URL | |
 
 ## Quick Start (Local)
 
