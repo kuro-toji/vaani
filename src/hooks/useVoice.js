@@ -407,13 +407,11 @@ export function useVoice() {
             const data = await response.json()
             const text = data.text?.trim() || ''
 
-            if (text && !isHallucination(text, whisperLang)) {
+            if (text) {
               setTranscript(text)
               startAutoSendCountdown(text)
               return
             }
-            // Hallucination detected — fall through to local Whisper
-            console.log('Groq hallucination detected, trying local Whisper')
           }
         } catch {
           // Groq failed — fall through
@@ -460,9 +458,9 @@ export function useVoice() {
 
         const text = result.text?.trim() || ''
 
-        if (!text || isHallucination(text, whisperLang)) {
+        if (!text) {
           setSttError('ठीक से सुनाई नहीं दिया, दोबारा बोलें')
-          onError?.('Hallucination detected')
+          onError?.('Empty transcription')
           return
         }
 
