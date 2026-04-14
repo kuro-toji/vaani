@@ -264,6 +264,7 @@ export default function LandingPage({ onStart }) {
           if (langIndex !== -1) setSelectedLangIndex(langIndex);
           try { sessionStorage.setItem('vaani_detected_language', data.language); } catch {}
           try { localStorage.setItem('vaani_language', data.language); } catch {}
+          try { localStorage.setItem('vaani_pincode', pincode); } catch {}
           setGlobalLanguage(data.language);
         }
       }).catch(() => { if (!cancelled) setPincodeLoading(false); });

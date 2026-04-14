@@ -6,6 +6,8 @@ import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../servic
 import { encryptData, decryptData } from '../services/cryptoService.js';
 import { findSchemes, detectSchemeIntent } from '../services/schemeService.js';
 import { compareFDRates, detectTenure } from '../services/fdService.js';
+import { checkEligibility, detectEligibilityIntent } from '../services/eligibilityService.js';
+import { captureLead, detectProductInterest } from '../services/leadService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -234,6 +236,160 @@ export function useChat() {
         }
       } catch (fdErr) {
         console.warn('FD lookup failed:', fdErr);
+      }
+    }
+
+    // ── Bank & CSC Locator Interception ──────────────────────────────────
+    if (detectLocatorIntent(text)) {
+      try {
+        const lang = contextLanguage || 'hi';
+        const pincode = localStorage.getItem('vaani_pincode') || '';
+        
+        if (pincode && pincode.length === 6) {
+          const { findNearbyBanksAndCSC } = await import('../services/locatorService.js');
+          const result = await findNearbyBanksAndCSC({ pincode, language: lang });
+          
+          if (result && result.banks) {
+            const bankList = result.banks.map((b, i) => 
+              `${i + 1}. ${b.logo} **${b.short}**: 📞 ${b.phone}`
+            ).join('\n');
+            
+            const cscText = result.csc ? 
+              `\n📍 **CSC (Common Service Centre)**: ${result.csc.name}\n   📞 ${result.csc.phone}\n   💡 ${result.csc.howToFind}` : '';
+            
+            const aiMessage = {
+              id: generateId(),
+              role: 'assistant',
+              content: `🏧 **Nearest Banks & CSC for PIN ${pincode}:**\n\n${bankList}${cscText}\n\n${result.tip}`,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, aiMessage]);
+            
+            if (!isMuted && fromVoice) {
+              speak(`आपके pincode ${pincode} में nearest bank है ${result.banks[0].short}`, lang);
+            }
+            
+            stopVibration();
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          // Ask for pincode
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: lang === 'hi'
+              ? '🏧 आपका pincode बताइए — नearest bank और CSC बताऊँ।'
+              : '🏧 Tell me your pincode — I will find the nearest bank and CSC.',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          if (!isMuted && fromVoice) {
+            speak(lang === 'hi' ? 'आपका pincode बताइए' : 'Tell me your pincode', lang);
+          }
+          
+          stopVibration();
+          setIsLoading(false);
+          return;
+        }
+      } catch (locErr) {
+        console.warn('Locator failed:', locErr);
+        // Fall through to MiniMax
+      }
+    }
+
+    // ── Eligibility Checker Interception ─────────────────────────────────
+    const eligibilityIntent = detectEligibilityIntent(text);
+    if (eligibilityIntent) {
+      try {
+        const lang = contextLanguage || 'hi';
+        const pincode = localStorage.getItem('vaani_pincode') || '';
+        
+        const result = await checkEligibility({
+          intent: eligibilityIntent,
+          userMessage: text,
+          language: lang,
+          pincode,
+        });
+        
+        if (result.done) {
+          // Final eligibility result
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: result.response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          // Capture lead if eligible
+          if (result.eligible?.eligible) {
+            try {
+              await captureLead({
+                productCategory: eligibilityIntent,
+                pincode,
+                language: lang,
+                source: 'chat',
+              });
+            } catch {}
+          }
+          
+          if (!isMuted && fromVoice) {
+            speak(result.response, lang);
+          }
+        } else {
+          // Ask the next eligibility question
+          const questionText = `📋 ${result.question}`;
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: questionText,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          if (!isMuted && fromVoice) {
+            speak(result.question, lang);
+          }
+        }
+        
+        stopVibration();
+        setIsLoading(false);
+        return;
+      } catch (eligErr) {
+        console.warn('Eligibility check failed:', eligErr);
+        // Fall through to MiniMax
+      }
+    }
+
+    // ── Lead Capture — after scheme results ───────────────────────────────
+    if (/apply|register|contact|call me|callback|जानकारी|विवरण/i.test(text)) {
+      const productInterest = detectProductInterest(text);
+      if (productInterest) {
+        try {
+          const lang = contextLanguage || 'hi';
+          await captureLead({
+            productCategory: productInterest,
+            pincode: localStorage.getItem('vaani_pincode') || '',
+            language: lang,
+            source: 'chat',
+          });
+          const leadMsg = {
+            id: generateId(),
+            role: 'assistant',
+            content: lang === 'hi'
+              ? '✅ धन्यवाद! हम आपको जल्द ही contact करेंगे। Vaani team.'
+              : '✅ Thank you! We will contact you soon. - Vaani Team',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, leadMsg]);
+          stopVibration();
+          setIsLoading(false);
+          return;
+        } catch (leadErr) {
+          console.warn('Lead capture failed:', leadErr);
+        }
       }
     }
 
