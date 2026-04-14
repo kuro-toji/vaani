@@ -7,12 +7,20 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1000,
   },
+  optimizeDeps: {
+    exclude: ['@xenova/transformers'],
+  },
+  worker: {
+    format: 'es',
+  },
   server: {
     headers: {
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Permissions-Policy': 'microphone=(self), geolocation=()',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
     },
     proxy: {
       '/api': {

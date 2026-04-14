@@ -640,15 +640,7 @@ export function useVoice() {
     }
   }, [])
 
-  /* ── Preload Whisper model on mount ── */
-  useEffect(() => {
-    if (!whisperPipeline && !whisperLoading) {
-      setIsModelLoading(true)
-      loadWhisper()
-        .catch((err) => { console.warn('[useVoice] Whisper preload failed:', err); })
-        .finally(() => setIsModelLoading(false))
-    }
-  }, [])
+
 
   return {
     // STT state
