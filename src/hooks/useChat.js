@@ -5,6 +5,8 @@ import { sendToOllama, isOllamaAvailable } from '../services/ollamaService.js';
 import { enqueueRequest } from '../services/requestQueue.js';
 import { detectTopic, buildTrimmedPrompt, buildCompactOverview } from '../services/promptTrimmer.js';
 import { encryptData, decryptData } from '../services/cryptoService.js';
+import { findSchemes, detectSchemeIntent } from '../services/schemeService.js';
+import { compareFDRates, detectTenure } from '../services/fdService.js';
 import { useVoice } from './useVoice.js';
 import { useVibration } from './useVibration.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -158,6 +160,83 @@ export function useChat() {
     let currentLanguage = contextLanguage;
     let topic = null;
     let allMessages = [...messagesRef.current, userMessage];
+
+    // ── Scheme Finder Interception ──────────────────────────────────────
+    // Intercept gov scheme queries and answer from real data
+    const detectedIntent = await detectSchemeIntent(text);
+    
+    if (detectedIntent || /scheme|scam|योजना|स्कीम|सरकारी|govt|government|benefit/i.test(text)) {
+      try {
+        const lang = contextLanguage || 'hi';
+        const schemes = await findSchemes({
+          query: text,
+          language: lang,
+          maxResults: 3,
+          gender: text.includes('beti') || text.includes('daughter') || text.includes('maa') ? 'female' : undefined,
+        });
+        
+        if (schemes && schemes.length > 0) {
+          const schemeList = schemes.map((s, i) => 
+            `${i + 1}. **${s.name}**: ${s.description}`
+          ).join('\n');
+          
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `यहाँ आपके लिए सरकारी योजनाएँ मिलीं:\n\n${schemeList}\n\nविवरण जानना है किसी योजना का? बोलिए!`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          if (!isMuted && fromVoice) {
+            speak(schemes[0].description, lang);
+          }
+          
+          stopVibration();
+          setIsLoading(false);
+          return;
+        }
+      } catch (schemeErr) {
+        // Fall through to MiniMax if scheme lookup fails
+        console.warn('Scheme lookup failed:', schemeErr);
+      }
+    }
+
+    // ── FD Rate Interception ────────────────────────────────────────────
+    const fdKeywords = /fd|fixed deposit|term deposit|सावधि|ब्याज दर|bank deposit|highest rate|best fd/i;
+    if (fdKeywords.test(text)) {
+      try {
+        const lang = contextLanguage || 'hi';
+        const tenure = detectTenure(text);
+        const isSenior = /senior|बुज़ुर्ग|elderly|बड़े|bade/i.test(text);
+        const rates = compareFDRates({ tenure, isSenior, language: lang, maxResults: 5 });
+        
+        if (rates && rates.length > 0) {
+          const rateList = rates.map((b, i) => 
+            `${i + 1}. ${b.logo} **${b.bank_short}**: ${b.rate}% ${b.senior_extra > 0 ? `(Sr. Citizen: ${b.rate}%)` : ''}`
+          ).join('\n');
+          const tenureLabel = rates[0]?.tenure_label || tenure;
+          
+          const aiMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `🏦 **FD Rates (${tenureLabel})** ${isSenior ? '(Senior Citizen)' : ''}:\n\n${rateList}\n\n*Rates are indicative. Check with bank before investing.*`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          
+          if (!isMuted && fromVoice) {
+            speak(`सबसे अच्छी FD rate: ${rates[0].bank_short} में ${rates[0].rate} प्रतिशत। विवरण के लिए बोलिए।`, lang);
+          }
+          
+          stopVibration();
+          setIsLoading(false);
+          return;
+        }
+      } catch (fdErr) {
+        console.warn('FD lookup failed:', fdErr);
+      }
+    }
 
     try {
       // Detect language if not manually set
