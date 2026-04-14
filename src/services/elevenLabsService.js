@@ -43,7 +43,7 @@ export async function speakWithElevenLabs(text, language = 'hi') {
   }
 
   // Use server proxy — hides API key
-  const response = await fetch('/api/tts/speak', {
+  const response = await fetch((import.meta.env.VITE_API_URL || '') + '/api/tts/speak', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, voice_id: VOICE_IDS[language] || VOICE_IDS.default }),
