@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext.jsx';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 import { CognitiveModeProvider, useCognitiveMode } from './context/CognitiveModeContext';
@@ -8,19 +9,16 @@ import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
 import OnboardingFlow from './components/OnboardingFlow';
-
 import DashboardPage from './pages/DashboardPage';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const [showApp, setShowApp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
   const [showA11yPrompt, setShowA11yPrompt] = useState(false);
   const { cognitiveMode } = useCognitiveMode();
   const { speak } = useVoice();
 
-  // Expose speak globally so MessageBubble can use it without prop drilling
   useEffect(() => {
     window.vaaniSpeak = speak;
     return () => { delete window.vaaniSpeak; };
@@ -34,13 +32,12 @@ function AppContent() {
         hi: 'वाणी में आपका स्वागत है। मैं वाणी हूँ, आपकी वित्तीय सहायक।',
         en: 'Welcome to Vaani. I am Vaani, your financial assistant.',
         bn: 'ভাণীতে আপনাকে স্বাগতম। আমি ভাণী, আপনার আর্থिक সহায়ক।',
-        te: 'వాని కి స్వాగతం. నేను వాని, మీ ఆర్థిక సహాయకురాలు.',
-        ta: 'வாணிக்கு வரவேற்கிறோம். நான் வாணி, உங்கள் நிதி உதவியாளர்.',
-        mr: 'वाणीमध्ये आपले स्वागत आहे. मी वाणी आहे, तुमची आर्थिक सहाय्यक.',
+        te: 'వాని కి స్వాగతం। నేను వాని, మీ ఆర్థిక సహాయకురాలు।',
+        ta: 'வாணிக்கு வரவேற்கிறோம்। நான் வாணி, உங்கள் நிதி உதவியாளர்।',
+        mr: 'वाणीमध्ये आपले स्वागत आहे। मी वाणी आहे, तुमची आर्थिक सहाय्यक।',
         default: 'Welcome to Vaani. I am your financial assistant.'
       };
       const msg = welcomeMessages[lang] || welcomeMessages.default;
-      
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(msg);
         utterance.lang = { hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN', ta: 'ta-IN', mr: 'mr-IN' }[lang] || 'hi-IN';
@@ -49,7 +46,6 @@ function AppContent() {
         window.speechSynthesis.speak(utterance);
       }, 800);
     };
-    
     if (window.speechSynthesis.getVoices().length > 0) {
       playWelcome();
     } else {
@@ -60,34 +56,25 @@ function AppContent() {
   useEffect(() => {
     const detected = localStorage.getItem('vaani_a11y_detected');
     if (detected) return;
-    
-    setTimeout(() => {
-      setShowA11yPrompt(true);
-    }, 4000);
+    setTimeout(() => setShowA11yPrompt(true), 4000);
   }, []);
 
-  // Check for first visit (onboarding) and hash routes
   useEffect(() => {
-    // Show onboarding on first visit
     try {
       const onboardingDone = localStorage.getItem('vaani_onboarding_complete');
-      if (!onboardingDone) {
-        setShowOnboarding(true);
-      }
+      if (!onboardingDone) setShowOnboarding(true);
     } catch {}
   }, []);
 
   const renderView = () => {
     if (showOnboarding) return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
     if (showApp) return cognitiveMode ? <CognitiveDashboard /> : <ChatWindow />;
-    if (showDashboard) return <DashboardPage onBack={() => setShowDashboard(false)} onOpenChat={() => { setShowDashboard(false); setShowApp(true); }} />;
-    return <LandingPage onStart={() => setShowDashboard(true)} />;
+    return <LandingPage onStart={() => setShowApp(true)} />;
   };
 
   return (
     <>
       {renderView()}
-
       {showA11yPrompt && !showOnboarding && (
         <div style={{
           position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
@@ -114,17 +101,9 @@ function AppContent() {
               <button key={opt.key} onClick={() => {
                 localStorage.setItem('vaani_a11y_detected', opt.key);
                 setShowA11yPrompt(false);
-                if (opt.key === 'visual') {
-                  localStorage.setItem('vaani_autoRead', '1');
-                  localStorage.setItem('vaani_fullScreenPTT', '1');
-                }
-                if (opt.key === 'motor') {
-                  localStorage.setItem('vaani_fullScreenPTT', '1');
-                }
-                if (opt.key === 'elderly') {
-                  localStorage.setItem('vaani_largeText', '1');
-                }
-                // Reload to apply preferences
+                if (opt.key === 'visual') { localStorage.setItem('vaani_autoRead', '1'); localStorage.setItem('vaani_fullScreenPTT', '1'); }
+                if (opt.key === 'motor') { localStorage.setItem('vaani_fullScreenPTT', '1'); }
+                if (opt.key === 'elderly') { localStorage.setItem('vaani_largeText', '1'); }
                 if (opt.key !== 'none') window.location.reload();
               }} style={{
                 padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
@@ -144,17 +123,22 @@ function AppContent() {
 
 function App() {
   return (
-    <LanguageProvider>
-      <AccessibilityProvider>
-        <CognitiveModeProvider>
-          <ToastProvider>
-            <ErrorBoundary>
-              <AppContent />
-            </ErrorBoundary>
-          </ToastProvider>
-        </CognitiveModeProvider>
-      </AccessibilityProvider>
-    </LanguageProvider>
+    <BrowserRouter>
+      <LanguageProvider>
+        <AccessibilityProvider>
+          <CognitiveModeProvider>
+            <ToastProvider>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/*" element={<AppContent />} />
+                </Routes>
+              </ErrorBoundary>
+            </ToastProvider>
+          </CognitiveModeProvider>
+        </AccessibilityProvider>
+      </LanguageProvider>
+    </BrowserRouter>
   );
 }
 
