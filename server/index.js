@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
+import { initSocket } from './socket.js';
 import minimaxRoute from './routes/minimax.js';
 import chatRoute from './routes/chat.js';
 import ttsRoute from './routes/tts.js';
@@ -19,25 +21,25 @@ const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:4173'];
 
-// ── Security Headers (CSP, HSTS, X-Frame-Options, etc.) ──
+// ── Security Headers ──
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", 'https://api.groq.com', 'https://api.minimax.chat', 'https://api.elevenlabs.io'],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", 'https://api.groq.com', 'https://api.minimax.chat', 'https://api.minimax.io', 'https://api.elevenlabs.io', 'https://generativelanguage.googleapis.com'],
       mediaSrc: ["'self'", 'blob:'],
       imgSrc: ["'self'", 'data:', 'blob:'],
     },
   },
-  crossOriginEmbedderPolicy: false, // needed for audio/media
+  crossOriginEmbedderPolicy: false,
 }));
 
-// ── CORS (restricted origins) ──
+// ── CORS ──
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
@@ -49,28 +51,27 @@ app.use(cors({
 
 // ── Rate Limiting ──
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // max 100 requests per window per IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests. Please wait a few minutes before trying again.' },
+  message: { error: 'Too many requests. Please wait a few minutes.' },
 });
-app.use('/api/', apiLimiter);
-
-// Stricter limit for expensive AI endpoints
 const aiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // max 10 AI calls per minute per IP
+  windowMs: 60 * 1000,
+  max: 10,
   message: { error: 'AI rate limit reached. Please slow down.' },
 });
+
+app.use('/api/', apiLimiter);
 app.use('/api/minimax', aiLimiter);
 app.use('/api/tts', aiLimiter);
 app.use('/api/stt', aiLimiter);
 
-// ── Body parsing with size limits ──
+// ── Body parsing ──
 app.use(express.json({ limit: '2mb' }));
 
-// ── Request logging (basic) ──
+// ── Request logging ──
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -82,12 +83,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
+// ── Health check ──
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
 });
 
-// Routes
+// ── API Routes ──
 app.use('/api/minimax', minimaxRoute);
 app.use('/api/chat', chatRoute);
 app.use('/api/tts', ttsRoute);
@@ -96,7 +97,7 @@ app.use('/api/stt', sttRoute);
 app.use('/api/ocr', ocrRoute);
 app.use('/api/leads', leadsRoute);
 
-// ── Input validation error handler ──
+// ── Error handler ──
 app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Request body too large. Maximum 2MB.' });
@@ -108,7 +109,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`VAANI Server running on port ${PORT}`);
+// ── HTTP + Socket.io server ──
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
+  console.log(`VAANI Server + Socket.io running on port ${PORT}`);
   console.log(`Rate limits: 100 req/15min (general), 10 req/min (AI endpoints)`);
 });
