@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import minimaxRoute from './routes/minimax.js';
+import chatRoute from './routes/chat.js';
 import ttsRoute from './routes/tts.js';
 import detectRoute from './routes/detect.js';
 import sttRoute from './routes/stt.js';
@@ -88,6 +89,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/minimax', minimaxRoute);
+app.use('/api/chat', chatRoute);
 app.use('/api/tts', ttsRoute);
 app.use('/api/detect', detectRoute);
 app.use('/api/stt', sttRoute);

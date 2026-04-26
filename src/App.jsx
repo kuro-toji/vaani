@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import ChatWindow from './components/ChatWindow';
 import CognitiveDashboard from './components/CognitiveDashboard';
 import OnboardingFlow from './components/OnboardingFlow';
+import { ChatPageWrapper } from './pages/ChatPage';
 import DashboardPage from './pages/DashboardPage';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -131,6 +132,7 @@ function App() {
               <ErrorBoundary>
                 <Routes>
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/chat" element={<ChatPageWrapper />} />
                   <Route path="/*" element={<AppContent />} />
                 </Routes>
               </ErrorBoundary>
