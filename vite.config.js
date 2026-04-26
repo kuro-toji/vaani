@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -9,9 +9,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@xenova/transformers'],
-  },
-  worker: {
-    format: 'es',
   },
   server: {
     headers: {
@@ -23,11 +20,17 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
     proxy: {
+      // Socket.io WebSocket + polling
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        ws: true,
+        changeOrigin: true,
+      },
+      // REST API
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: false,
       },
     },
   },
-})
+});
