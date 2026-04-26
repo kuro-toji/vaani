@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { useAuth } from './AuthContext.jsx';
 
 const ChatContext = createContext(null);
 
@@ -18,6 +19,21 @@ export function ChatProvider({ children }) {
 
   const socketRef = useRef(null);
   const streamingMessageId = useRef(null);
+
+  const { user } = useAuth();
+
+  // Auto-connect socket when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      connect(user.id);
+    }
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [user?.id]);
 
   /** Connect socket and set up event listeners */
   const connect = useCallback((userId) => {
@@ -60,7 +76,7 @@ export function ChatProvider({ children }) {
 
     socketRef.current = socket;
     return socket;
-  }, [streamingText]);
+  }, []);
 
   /** Disconnect socket */
   const disconnect = useCallback(() => {
@@ -70,6 +86,26 @@ export function ChatProvider({ children }) {
       setIsConnected(false);
     }
   }, []);
+
+  /** Speak the last AI response aloud */
+  const speak = useCallback((text = null, lang = null) => {
+    if (isMuted) return;
+    if (!('speechSynthesis' in window)) return;
+
+    const toSpeak = text || streamingText || messages[messages.length - 1]?.content;
+    if (!toSpeak) return;
+
+    const bcp47 = {
+      hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN',
+      ta: 'ta-IN', mr: 'mr-IN', gu: 'gu-IN', kn: 'kn-IN',
+    };
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(toSpeak.substring(0, 500));
+    utterance.lang = bcp47[lang || language] || 'hi-IN';
+    utterance.rate = 0.9;
+    utterance.volume = 0.8;
+    window.speechSynthesis.speak(utterance);
+  }, [isMuted, streamingText, messages, language]);
 
   /**
    * Send a message — uses Socket.io streaming if connected,
@@ -103,73 +139,81 @@ export function ChatProvider({ children }) {
         fromVoice,
       });
     } else {
-      // HTTP fallback — fetch the old way (non-streaming)
+      // HTTP fallback — fetch with proper SSE handling
       try {
-        const res = await fetch(`${SOCKET_URL}/api/chat`, {
+        const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text.trim(), language }),
+          body: JSON.stringify({
+            message: text.trim(),
+            language,
+            chatHistory: messages.slice(-10).map(m => ({
+              role: m.role,
+              content: m.content,
+            })),
+          }),
         });
 
         if (!res.ok) throw new Error(`Server error ${res.status}`);
 
-        // Try SSE stream
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let fullText = '';
+        const contentType = res.headers.get('content-type') || '';
 
-        try {
-          res.headers.get('content-type')?.includes('text/event-stream')
-            ? null
-            : null; // will read as plain JSON
-          setIsLoading(false);
-        } catch {}
+        if (contentType.includes('text/event-stream')) {
+          // SSE streaming — read token by token
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulated = '';
 
-        // Final fallback: plain JSON response
-        const data = await res.json();
-        const finalMsg = {
-          id: assistantId,
-          role: 'assistant',
-          content: data.reply || data.fullResponse || '...',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, finalMsg]);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            for (const line of chunk.split('\n')) {
+              if (!line.startsWith('data: ')) continue;
+              const token = line.slice(6).trim();
+              if (token === '[DONE]') continue;
+              accumulated += token;
+              setStreamingText(accumulated);
+            }
+          }
+
+          const finalMsg = {
+            id: assistantId,
+            role: 'assistant',
+            content: accumulated,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, finalMsg]);
+          setStreamingText('');
+          if (!isMuted && accumulated) speak(accumulated, language);
+        } else {
+          // Plain JSON response
+          const data = await res.json();
+          const reply = data.reply || data.fullResponse || '...';
+          const finalMsg = {
+            id: assistantId,
+            role: 'assistant',
+            content: reply,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, finalMsg]);
+          if (!isMuted && reply) speak(reply, language);
+        }
       } catch (err) {
         setError(err.message);
-        const errorMsg = {
+        setMessages(prev => [...prev, {
           id: assistantId,
           role: 'assistant',
           content: language === 'hi'
             ? 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।'
             : 'Something went wrong. Please try again.',
           timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, errorMsg]);
+        }]);
       } finally {
         setIsLoading(false);
       }
     }
-  }, [isLoading, language, isMuted]);
-
-  /** Speak the last AI response aloud */
-  const speak = useCallback((text = null, lang = null) => {
-    if (isMuted) return;
-    if (!('speechSynthesis' in window)) return;
-
-    const toSpeak = text || streamingText || messages[messages.length - 1]?.content;
-    if (!toSpeak) return;
-
-    const bcp47 = {
-      hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN',
-      ta: 'ta-IN', mr: 'mr-IN', gu: 'gu-IN', kn: 'kn-IN',
-    };
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(toSpeak.substring(0, 500));
-    utterance.lang = bcp47[lang || language] || 'hi-IN';
-    utterance.rate = 0.9;
-    utterance.volume = 0.8;
-    window.speechSynthesis.speak(utterance);
-  }, [isMuted, streamingText, messages, language]);
+  }, [isLoading, language, isMuted, messages, connect]);
 
   return (
     <ChatContext.Provider

@@ -134,7 +134,7 @@ function mapToGroqLanguage(langCode) {
     sa: 'hi', bho: 'hi', raj: 'hi', hne: 'hi',
     tcy: 'kn', bgc: 'hi', mag: 'hi',
   }
-  return map[langCode] || 'auto'
+  return map[langCode] || null
 }
 
 /* ═════════════════════════════════════════════
@@ -402,7 +402,9 @@ export function useVoice() {
           const formData = new FormData()
           formData.append('file', audioBlob, 'audio.webm')
           formData.append('model', 'whisper-large-v3-turbo')
-          formData.append('language', mapToGroqLanguage(language))
+          const groqLang = mapToGroqLanguage(language);
+          if (groqLang) formData.append('language', groqLang);
+          // If null → omit language param → Whisper auto-detects (correct behavior)
 
           const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',

@@ -11,22 +11,21 @@ export default defineConfig({
     exclude: ['@xenova/transformers'],
   },
   server: {
+    host: '0.0.0.0',
     headers: {
       'X-Frame-Options': 'DENY',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'microphone=(self), geolocation=()',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Permissions-Policy': 'microphone=(self)',
+      // CSP relaxed for local dev
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: ws: wss: http: https: *.googleapis.com *.gstatic.com;",
     },
     proxy: {
-      // Socket.io WebSocket + polling
       '/socket.io': {
         target: 'http://localhost:3001',
         ws: true,
         changeOrigin: true,
       },
-      // REST API
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,

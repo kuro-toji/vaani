@@ -13,12 +13,39 @@ export function isElevenLabsConfigured() {
 export async function speakWithElevenLabs(text, language = 'hi') {
   if (!text || !isElevenLabsConfigured()) return;
   const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+
+  // All Indian languages use the multilingual v2 model
+  // These are valid ElevenLabs voice IDs that support Hindi/Indian languages
   const voiceMap = {
-    hi: 'h在心里', bn: 'bn', te: 'te-IN', ta: 'ta-IN', mr: 'mr-IN',
-    gu: 'gu-IN', kn: 'kn-IN', ml: 'ml-IN', pa: 'pa-IN', en: '21m00Tcm4GNu8eol5',
+    hi:  'pNInz6obpgDQGcFmaJgB',  // Adam — multilingual, warm male
+    en:  'EXAVITQu4vr4xnSDxMaL',  // Bella — clear female
+    bn:  'pNInz6obpgDQGcFmaJgB',
+    te:  'pNInz6obpgDQGcFmaJgB',
+    ta:  'pNInz6obpgDQGcFmaJgB',
+    mr:  'pNInz6obpgDQGcFmaJgB',
+    gu:  'pNInz6obpgDQGcFmaJgB',
+    kn:  'pNInz6obpgDQGcFmaJgB',
+    ml:  'pNInz6obpgDQGcFmaJgB',
+    pa:  'pNInz6obpgDQGcFmaJgB',
+    ur:  'pNInz6obpgDQGcFmaJgB',
+    default: 'pNInz6obpgDQGcFmaJgB',
   };
-  const voiceId = voiceMap[language] || '21m00Tcm4GNu8eol5';
-  const chunks = text.match(/.{1,400}/g) || [text];
+  const voiceId = voiceMap[language] || voiceMap.default;
+
+  // Split by sentence boundaries (not arbitrary 400 chars)
+  const sentences = text.split(/(?<=[.!?।])\s+/);
+  const chunks = [];
+  let current = '';
+  for (const s of sentences) {
+    if ((current + s).length > 350 && current) {
+      chunks.push(current.trim());
+      current = s;
+    } else {
+      current = current ? current + ' ' + s : s;
+    }
+  }
+  if (current) chunks.push(current.trim());
+  if (chunks.length === 0) chunks.push(text);
   for (const chunk of chunks) {
     try {
       const res = await fetch(
@@ -31,7 +58,7 @@ export async function speakWithElevenLabs(text, language = 'hi') {
           },
           body: JSON.stringify({
             text: chunk,
-            model_id: 'eleven_monolingual_v1',
+            model_id: 'eleven_multilingual_v2',
             voice_settings: { stability: 0.5, similarity_boost: 0.8 },
           }),
         }

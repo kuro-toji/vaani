@@ -136,18 +136,17 @@ Rules:
         const data = await geminiRes.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-        res.setHeader('Content-Type', 'application/json');
-        res.json({ reply: text });
-
-        // Send as stream by tokenizing
         res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
-        const tokens = text.split('');
-        for (const token of tokens) {
-          res.write(`data: ${token}\n`);
-          await new Promise(r => setTimeout(r, 15));
+
+        const words = text.split(' ');
+        for (const word of words) {
+          res.write(`data: ${word} \n`);
+          await new Promise(r => setTimeout(r, 25));
         }
-        res.write('data: [DONE]\n');
+        res.write('data: [DONE]\n\n');
         res.end();
         return;
       } catch (geminiErr) {

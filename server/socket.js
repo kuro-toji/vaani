@@ -36,7 +36,7 @@ export function initSocket(httpServer) {
       try {
         const userId = socket.userId;
         const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
-        const MINIMAX_ENDPOINT = 'https://api.minimax.chat/v1/text/chatcompletion_pro?Model=Minimax-Text-01';
+        const MINIMAX_ENDPOINT = 'https://api.minimax.chat/v1/text/chatcompletion_v2';
 
         // Build system prompt based on language
         const systemPrompt = `Role: You are VAANI, a trusted voice-first financial advisor for India.
@@ -93,6 +93,7 @@ Never ask for Aadhaar, PAN, or full bank details.`;
                       if (match) {
                         const parsed = JSON.parse(match[1]);
                         content = parsed?.choices?.[0]?.delta?.content
+                          || parsed?.choices?.[0]?.message?.content
                           || parsed?.choices?.[0]?.messages?.[0]?.content
                           || '';
                       }

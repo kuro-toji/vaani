@@ -27,11 +27,11 @@ export default function AppPage() {
   return (
     <ChatProvider>
       <div
-        className="flex h-screen overflow-hidden"
-        style={{ background: 'var(--bg-base)', fontFamily: 'var(--font-sans)' }}
+        style={{ height: '100dvh', display: 'flex', overflow: 'hidden' }}
       >
         {/* Desktop: Side-by-side split */}
-        <div className="hidden lg:flex flex-1 overflow-hidden">
+        <div className="hidden lg:flex flex-1 overflow-hidden"
+          style={{ height: '100%' }}>
           {/* Chat panel — 40% */}
           <div
             className="flex flex-col overflow-hidden"
@@ -39,6 +39,7 @@ export default function AppPage() {
               width: '40%',
               minWidth: '340px',
               maxWidth: '520px',
+              height: '100%',
               borderRight: '1px solid var(--border-subtle)',
             }}
           >
