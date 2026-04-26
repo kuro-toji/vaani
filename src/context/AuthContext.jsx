@@ -92,7 +92,7 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
       options: {
-        channel: 'sms',
+        channel: 'whatsapp', // Use WhatsApp instead of SMS
       },
     });
     
@@ -100,40 +100,20 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function verifyOTP(phone, token) {
+  async function verifyOTP(email, token) {
     // Development mode - accept any 6-digit OTP
     if (DEV_MODE) {
-      console.log('[DEV MODE] OTP verified for:', phone, 'Token:', token);
+      console.log('[DEV MODE] OTP verified for:', email, 'Token:', token);
       
       // Create a mock user for development
       const mockUser = {
-        id: 'dev-user-' + phone.replace(/\D/g, '').slice(-8),
-        phone: phone,
-        email: null,
+        id: 'dev-user-' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(-8),
+        email: email,
+        phone: null,
         created_at: new Date().toISOString(),
       };
       
-      // Sign in with mock user
-      const { data, error } = await supabase.auth.updateUser({
-        data: { phone: phone }
-      }).then(async ({ data: updateData }) => {
-        // Try to get existing user or create session
-        const { data: sessionData } = await supabase.auth.getSession();
-        return { data: sessionData };
-      }).catch(async () => {
-        // If update fails, try to sign in anonymously
-        const { data: anonData } = await supabase.auth.signInAnonymously().catch(() => null);
-        if (anonData?.user) {
-          // Update the anonymous user with phone
-          const { data: updated } = await supabase.auth.updateUser({
-            data: { phone: phone }
-          });
-          return { data: updated };
-        }
-        return { data: null };
-      });
-      
-      // For development, just create a mock user and profile
+      // For development, create mock user and profile
       setUser(mockUser);
       setProfile({
         id: mockUser.id,
@@ -144,13 +124,11 @@ export function AuthProvider({ children }) {
       return { user: mockUser };
     }
     
-    // Format phone number with +91 prefix
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-    
+    // Verify email OTP with Supabase
     const { data, error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
+      email: email,
       token: token,
-      type: 'sms',
+      type: 'email',
     });
     
     if (error) throw error;

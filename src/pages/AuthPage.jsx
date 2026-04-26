@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function AuthPage() {
-  const { signInWithPhone, verifyOTP, signOut, user, loading } = useAuth();
+  const { signInWithEmail, verifyOTP, signOut, user, loading } = useAuth();
   const navigate = useNavigate();
 
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+  const [step, setStep] = useState('email'); // 'email' | 'otp'
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -19,11 +19,11 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   const handleSendOTP = async () => {
-    if (phone.length < 10) { setError('Enter a valid 10-digit number'); return; }
+    if (!email.includes('@')) { setError('Enter a valid email address'); return; }
     setError('');
     setSubmitting(true);
     try {
-      await signInWithPhone(phone);
+      await signInWithEmail(email);
       setSent(true);
       setStep('otp');
     } catch (err) {
@@ -38,7 +38,7 @@ export default function AuthPage() {
     setError('');
     setSubmitting(true);
     try {
-      await verifyOTP(phone, otp);
+      await verifyOTP(email, otp);
       navigate('/app');
     } catch (err) {
       setError(err.message || 'Invalid OTP');
@@ -78,32 +78,20 @@ export default function AuthPage() {
           </div>
           <h1 className="font-semibold text-xl">Sign in to VAANI</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {step === 'phone' ? 'Enter your phone number' : 'Enter the OTP sent to your phone'}
+            {step === 'email' ? 'Enter your email address' : 'Enter the OTP sent to your email'}
           </p>
         </div>
 
-        {/* Phone input */}
-        {step === 'phone' && (
+        {/* Email input */}
+        {step === 'email' && (
           <div className="flex flex-col gap-4">
             <div className="flex gap-2">
-              <div
-                className="flex items-center px-4 rounded-lg"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-subtle)',
-                  fontSize: '15px', color: 'var(--text-secondary)',
-                  flexShrink: 0,
-                }}
-              >
-                +91
-              </div>
               <input
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="9876543210"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
                 className="input"
-                maxLength={10}
                 autoFocus
                 onKeyDown={e => e.key === 'Enter' && handleSendOTP()}
               />
@@ -115,7 +103,7 @@ export default function AuthPage() {
 
             <button
               onClick={handleSendOTP}
-              disabled={submitting || phone.length < 10}
+              disabled={submitting || !email.includes('@')}
               className="btn btn-primary w-full"
               style={{ height: '48px', fontSize: '15px' }}
             >
@@ -131,6 +119,10 @@ export default function AuthPage() {
         {/* OTP input */}
         {step === 'otp' && (
           <div className="flex flex-col gap-4">
+            <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+              OTP sent to <strong>{email}</strong>
+            </p>
+            
             <div className="flex gap-2 justify-center">
               {[0, 1, 2, 3, 4, 5].map(i => (
                 <input
@@ -176,10 +168,10 @@ export default function AuthPage() {
             </button>
 
             <button
-              onClick={() => { setStep('phone'); setOtp(''); setError(''); }}
+              onClick={() => { setStep('email'); setOtp(''); setError(''); }}
               className="btn btn-ghost text-sm"
             >
-              ← Change phone number
+              ← Change email address
             </button>
 
             <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
