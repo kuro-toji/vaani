@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
+// Development mode - accepts any 6-digit OTP without SMS
+const DEV_MODE = import.meta.env.VITE_DEV_AUTH === 'true';
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -78,6 +81,11 @@ export function AuthProvider({ children }) {
   }
 
   async function signInWithPhone(phone) {
+    if (DEV_MODE) {
+      console.log('[DEV MODE] OTP requested for:', phone);
+      return { message: 'OTP sent (mock)' };
+    }
+    
     // Format phone number with +91 prefix
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     
@@ -93,6 +101,49 @@ export function AuthProvider({ children }) {
   }
 
   async function verifyOTP(phone, token) {
+    // Development mode - accept any 6-digit OTP
+    if (DEV_MODE) {
+      console.log('[DEV MODE] OTP verified for:', phone, 'Token:', token);
+      
+      // Create a mock user for development
+      const mockUser = {
+        id: 'dev-user-' + phone.replace(/\D/g, '').slice(-8),
+        phone: phone,
+        email: null,
+        created_at: new Date().toISOString(),
+      };
+      
+      // Sign in with mock user
+      const { data, error } = await supabase.auth.updateUser({
+        data: { phone: phone }
+      }).then(async ({ data: updateData }) => {
+        // Try to get existing user or create session
+        const { data: sessionData } = await supabase.auth.getSession();
+        return { data: sessionData };
+      }).catch(async () => {
+        // If update fails, try to sign in anonymously
+        const { data: anonData } = await supabase.auth.signInAnonymously().catch(() => null);
+        if (anonData?.user) {
+          // Update the anonymous user with phone
+          const { data: updated } = await supabase.auth.updateUser({
+            data: { phone: phone }
+          });
+          return { data: updated };
+        }
+        return { data: null };
+      });
+      
+      // For development, just create a mock user and profile
+      setUser(mockUser);
+      setProfile({
+        id: mockUser.id,
+        preferred_lang: 'hi',
+        vaani_score: 0,
+      });
+      
+      return { user: mockUser };
+    }
+    
     // Format phone number with +91 prefix
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     
