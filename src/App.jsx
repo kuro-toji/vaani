@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import AppPage from './pages/AppPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
-import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -23,23 +22,13 @@ function PrivateRoute({ children }) {
 
 function AppRoutes() {
   const [appStarted, setAppStarted] = useState(false);
-
   const handleStart = () => setAppStarted(true);
 
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/" element={appStarted ? <Navigate to="/app" /> : <LandingPage onStart={handleStart} />} />
       <Route path="/auth" element={<AuthPage />} />
-
-      {/* Protected app route — chat + dashboard split */}
-      <Route path="/app" element={
-        <PrivateRoute>
-          <AppPage />
-        </PrivateRoute>
-      } />
-
-      {/* Catch-all */}
+      <Route path="/app" element={<PrivateRoute><AppPage /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
@@ -47,7 +36,6 @@ function AppRoutes() {
 
 function App() {
   useEffect(() => {
-    // Play welcome message on first load
     const playWelcome = () => {
       if (!('speechSynthesis' in window)) return;
       const lang = localStorage.getItem('vaani_language') || 'hi';
@@ -64,7 +52,6 @@ function App() {
       utterance.volume = 0.8;
       setTimeout(() => window.speechSynthesis.speak(utterance), 800);
     };
-
     if (window.speechSynthesis.getVoices().length > 0) {
       playWelcome();
     } else {
@@ -77,9 +64,7 @@ function App() {
       <AuthProvider>
         <LanguageProvider>
           <ToastProvider>
-            <ErrorBoundary>
-              <AppRoutes />
-            </ErrorBoundary>
+            <AppRoutes />
           </ToastProvider>
         </LanguageProvider>
       </AuthProvider>
