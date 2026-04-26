@@ -4,7 +4,8 @@ const router = express.Router();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
-const MINIMAX_ENDPOINT = 'https://api.minimax.chat/v1/text/chatcompletion_pro?Model=Minimax-Text-01';
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/text/chatcompletion_v2';
 
 const BANK_PRODUCTS = [
   { bank: 'Suryoday', rate: '9.1%', tenor: '18 months', note: 'Extra 0.25% for senior citizens' },
@@ -20,24 +21,70 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'message is required' });
     }
 
-    // Build messages array for the API
-    const systemMsg = systemPrompt || `You are VAANI, a warm rural Indian finance advisor. Language: ${language || 'hi'}. Emotion detected: ${emotionState || 'neutral'}.
-Rules:
-- Respond in ${language || 'hi'} dialect using appropriate script
-- Use village analogies when emotion=anxious
-- Suggest FD products from Suryoday 9.1%, Utkarsh 8.5%, Jana 8.25%
-- Always end with a reassuring phrase in the same language
-- Never use English banking jargon
-- Give rupee examples like "₹5000 se shuru karein"`;
+    const lang = language || 'hi';
+    
+    // Language-specific system prompts
+    const systemPrompts = {
+      hi: `आप VAANI हैं, भारत के ग्रामीण क्षेत्रों के लिए एक भरोसेमंद वित्तीय सलाहकार। आप हिंदी में बात करते हैं। FD = "गल्ला बंध" (fixed deposit), SIP = "हर महीने निवेश"। 150 शब्दों से कम जवाब दें।`,
+      en: `You are VAANI, a trusted voice-first financial advisor for India. Use village-level analogies. Keep responses under 150 words.`,
+      default: `You are VAANI, a trusted financial advisor. Keep responses under 150 words.`,
+    };
+    const systemMsg = systemPrompt || systemPrompts[lang] || systemPrompts.default;
 
-    // Build conversation history
+    // Build messages array
     const messages = [
+      { role: 'system', content: systemMsg },
       ...(chatHistory || []).map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content })),
       { role: 'user', content: message },
     ];
 
-    // Try MiniMax first (supports streaming better)
-    if (MINIMAX_API_KEY) {
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    let fullResponse = '';
+
+    // Try Groq first (free tier, faster)
+    if (GROQ_API_KEY) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-70b-versatile',
+            messages: messages,
+            max_tokens: 200,
+            temperature: 0.7,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          fullResponse = data?.choices?.[0]?.message?.content || '';
+          if (fullResponse) {
+            // Stream word by word
+            const words = fullResponse.split(' ');
+            for (const word of words) {
+              res.write(`data: ${word} \n`);
+              await new Promise(r => setTimeout(r, 20));
+            }
+            res.write('data: [DONE]\n\n');
+            res.end();
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.error('[chat] Groq error:', apiErr.message);
+      }
+    }
+
+    // Try MiniMax if Groq failed
+    if (!fullResponse && MINIMAX_API_KEY) {
       try {
         const response = await fetch(MINIMAX_ENDPOINT, {
           method: 'POST',
@@ -46,78 +93,66 @@ Rules:
             'Authorization': `Bearer ${MINIMAX_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'MiniMax-Text-01',
-            messages: [
-              { role: 'system', content: systemMsg },
-              ...messages,
-            ],
+            model: 'MiniMax-M2.7',
+            messages: messages,
             stream: true,
             max_tokens: 512,
             temperature: 0.8,
           }),
         });
 
-        if (!response.ok) {
-          throw new Error(`MiniMax ${response.status}: ${await response.text()}`);
-        }
+        if (response.ok && response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
 
-        // Stream the response
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+              for (const line of lines) {
+                if (!line.trim() || line.startsWith(':')) continue;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+                let parsed;
+                try {
+                  parsed = JSON.parse(line);
+                } catch {
+                  const match = line.match(/^data:\s*(.+)/);
+                  if (match) {
+                    try { parsed = JSON.parse(match[1]); } catch { continue; }
+                  } else { continue; }
+                }
 
-            for (const line of lines) {
-              if (!line.trim() || line.startsWith(':')) continue;
+                const content = parsed?.choices?.[0]?.delta?.content
+                  || parsed?.choices?.[0]?.message?.content
+                  || parsed?.choices?.[0]?.messages?.[0]?.content
+                  || '';
 
-              let parsed;
-              try {
-                parsed = JSON.parse(line);
-              } catch {
-                // Try to extract SSE data field
-                const match = line.match(/^data:\s*(.+)/);
-                if (match) {
-                  try { parsed = JSON.parse(match[1]); } catch { continue; }
-                } else { continue; }
-              }
-
-              const content = parsed?.choices?.[0]?.delta?.content
-                || parsed?.choices?.[0]?.messages?.[0]?.content
-                || '';
-
-              if (content) {
-                res.write(`data: ${content}\n`);
+                if (content) {
+                  res.write(`data: ${content}\n`);
+                }
               }
             }
+          } catch (streamErr) {
+            console.error('[chat] Stream read error:', streamErr.message);
           }
-        } catch (streamErr) {
-          console.error('[chat] Stream read error:', streamErr.message);
-        }
 
-        res.write('data: [DONE]\n');
-        res.end();
-        return;
+          res.write('data: [DONE]\n');
+          res.end();
+          return;
+        }
       } catch (apiErr) {
         console.error('[chat] MiniMax API error:', apiErr.message);
-        // Fall through to fallback
       }
     }
 
-    // Fallback: non-streaming Gemini response
-    if (GEMINI_API_KEY) {
+    // Try Gemini as second fallback
+    if (!fullResponse && GEMINI_API_KEY) {
       try {
         const geminiRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -131,40 +166,40 @@ Rules:
           }
         );
 
-        if (!geminiRes.ok) throw new Error(`Gemini ${geminiRes.status}`);
-
-        const data = await geminiRes.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-
-        const words = text.split(' ');
-        for (const word of words) {
-          res.write(`data: ${word} \n`);
-          await new Promise(r => setTimeout(r, 25));
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          fullResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         }
-        res.write('data: [DONE]\n\n');
-        res.end();
-        return;
       } catch (geminiErr) {
         console.error('[chat] Gemini fallback error:', geminiErr.message);
       }
     }
 
-    // Final fallback: simple pre-written response (demo mode)
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.flushHeaders();
-
-    const fallback = `Namaskar! Main VAANI hoon. Aapke ₹5000 se ₹20,000 tak ke liye main suggest karta hoon Suryoday mein 18 months ka FD — 9.1% return ke saath. Yeh galla jaisa fixed return aapke paise ko surakshit rakhega. Chinta mat kar, hum hain na! 💰`;
-
-    for (const char of fallback) {
-      res.write(`data: ${char}\n`);
-      await new Promise(r => setTimeout(r, 18));
+    // Final fallback - multilingual responses
+    if (!fullResponse) {
+      const fallbacks = {
+        hi: 'Namaskar! Main VAANI hoon, aapka financial advisor. Aap mujhse FD rates, SIP, ya koi bhi financial question puchh sakte hain. ₹5000 se ₹1 lakh tak ka investment kar sakte hain. FD mein 7% se 9% tak annual return milta hai. main aapki madad ke liye hoon!',
+        en: 'Namaste! I am VAANI, your financial assistant. You can ask me about FD rates (7-9% annual), SIP investments, or any financial topic. I can help with amounts from ₹5,000 to ₹10 lakh. How can I help you today?',
+        bn: 'নমস্কার! আমি VAANI, আপনার আর্থিক উপদেষ্টা। আপনি FD রেট (বার্ষিক ৭-৯%), SIP বা যেকোনো আর্থিক বিষয়ে জিজ্ঞাসা করতে পারেন। ₹5,000 থেকে ₹10 লক্ষ পর্যন্ত বিনিয়োগ করতে পারেন।',
+        te: 'Namaste! Na VAANI, mee financial advisor. FD rates (7-9% per year), SIP, ela chesthunna question济चेसतु न्नु. ₹5,000 न्ने ₹10 lakh varaku investment chesthuna.',
+        ta: 'வணக்கம்! நான் VAANI, உங்கள் financial advisor. FD விகிதங்கள் ( ஆண்டுக்கு 7-9%), SIP அல்லது நிதி தொடர்பான ஏதேனும் கேள்ளி கேட்கலாம. ₹5,000 முதல் ₹10 லக்கு வரை முதலீடு செய்யலாம.',
+        mr: 'नमस्कार! मी VAANI, तुमचा financial advisor. FD दर (वार्षिक 7-9%), SIP किंवा कोणत्याही financial विषयाबद्दल विचारू शकता. ₹5,000 ते ₹10 लास पर्यंत invest करू शकता.',
+        gu: 'નમસ્કાર! હું VAANI, તમારો financial advisor. FD દર (વાર્ષિક 7-9%), SIP કે કોઈપણ financial વિષે પૂછી શકો છો. ₹5,000 થી ₹10 લાખ સુધીનું investment કરી શકો છો.',
+        kn: 'ನಮಸ್ಕಾರ! ನಾನು VAANI, ನಿಮ್ಮ financial advisor. FD ದರಗಳು (ವಾರ್ಷಿಕ 7-9%), SIP ಅಥವಾ ಯಾವುದೇ financial ವಿಷಯದ ಬಗ್ಗೆ ಕೇಳಬಹುದು. ₹5,000 ರಿಂದ ₹10 ಲಕ್ಷದ ವರೆಗೆ invest ಮಾಡಬಹುದು.',
+        ml: 'നമസ്കാരം! ഞാന്‍ VAANI, നിങ്ങളുടെ സാമ്പത്തിക ഉപദഷ്ടാവ്. FD നിരക്ക് (വാര്‍ഷിക 7-9%), SIP അല്ലെങ്കില്‍ ഏതെങ്കിലും സാമ്പത്തിക ചോദ്യം ചോദ്യം ചെയ്യാം. ₹5,000 മുതല്‍ ₹10 ലക്ഷം വരെ invest ചെയ്യാം.',
+        pa: 'ਨਮਸਕਾਰ! ਮੈਂ VAANI, ਤੁਹਾਡਾ ਵਿੱਤੀ ਸਲਾਹਕਾਰ। ਤੁਸੀਂ ਮੈਨੂੰ FD ਦਰਾਂ (ਸਾਲਾਨਾ 7-9%), SIP ਜਾਂ ਕਿਸੇ ਵੀ ਵਿੱਤੀ ਵਿਸ਼ੇ ਬਾਰੇ ਪੁੱਛ ਸਕਦੇ ਹੋ। ₹5,000 ਤੋਂ ₹10 ਲੱਖ ਤਕ ਦਾ ਵਿਨਵੇਸ਼ਨ ਕਰ ਸਕਦਾ ਹੈ।',
+        ur: 'السلام علیکم! میں VAANI، آپ کا مالی مشیر ہوں۔ آپ مجھ سے FD کی شرلوں (سالانہ 7-9%)، SIP یا کسی بھی مالی موضوع کے بارے میں پوچھ سکتے ہیں۔ ₹5,000 سے ₹10 لکہ تک کی سرمایہ کاری کر سکتے ہیں۔',
+      };
+      fullResponse = fallbacks[lang] || fallbacks.default;
     }
-    res.write('data: [DONE]\n');
+
+    // Stream fallback response
+    const words = fullResponse.split(' ');
+    for (const word of words) {
+      res.write(`data: ${word} \n`);
+      await new Promise(r => setTimeout(r, 20));
+    }
+    res.write('data: [DONE]\n\n');
     res.end();
 
   } catch (err) {

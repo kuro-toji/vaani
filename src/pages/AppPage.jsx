@@ -31,7 +31,7 @@ export default function AppPage() {
       >
         {/* Desktop: Side-by-side split */}
         <div className="hidden lg:flex flex-1 overflow-hidden"
-          style={{ height: '100%' }}>
+          style={{ height: '100%', alignItems: 'stretch' }}>
           {/* Chat panel — 40% */}
           <div
             className="flex flex-col overflow-hidden"
@@ -47,7 +47,7 @@ export default function AppPage() {
           </div>
 
           {/* Dashboard panel — 60% */}
-          <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-base)' }}>
+          <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-base)', height: '100%', minHeight: 0 }}>
             <Dashboard />
           </div>
         </div>

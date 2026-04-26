@@ -8,12 +8,16 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // Start with loading=true to allow the effect to run first
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In test mode, skip Supabase entirely
+    // In test mode, simulate async load
     if (TEST_MODE) {
-      setLoading(false);
+      // Keep loading=true briefly then set to false
+      setTimeout(() => {
+        setLoading(false);
+      }, 50);
     }
   }, []);
 
