@@ -9,7 +9,10 @@ import CryptoWallet from './CryptoWallet.jsx';
 import TransactionList from './TransactionList.jsx';
 import QuickActions from './QuickActions.jsx';
 
-// Example mock data — shown when user clicks "View Example" button
+// Check if Supabase is properly configured
+const SUPABASE_CONFIGURED = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Example mock data — shown by default or when user clicks "View Example" button
 const EXAMPLE_DATA = {
   fd: [
     { id: '1', type: 'fd', bank: 'Suryoday SFB', principal: 15000, current_value: 15800, rate: 9.1, maturity_date: '2025-06-01', tenure_months: 12, start_date: '2024-06-01' },
@@ -45,11 +48,21 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [vaaniScore, setVaaniScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showExample, setShowExample] = useState(false);
+  const [showExample, setShowExample] = useState(!SUPABASE_CONFIGURED);
 
   // Load portfolio + transactions from Supabase
   useEffect(() => {
-    if (!user || showExample) return;
+    // If Supabase is not configured or showing example, skip loading
+    if (!SUPABASE_CONFIGURED || !user || showExample) {
+      if (!SUPABASE_CONFIGURED) {
+        // Auto-load example data if Supabase is not configured
+        setPortfolio({ fd: EXAMPLE_DATA.fd, sip: EXAMPLE_DATA.sip, crypto: EXAMPLE_DATA.crypto });
+        setTransactions(EXAMPLE_DATA.transactions);
+        setShowExample(true);
+      }
+      setLoading(false);
+      return;
+    }
 
     async function load() {
       setLoading(true);
