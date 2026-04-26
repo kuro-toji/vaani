@@ -1,23 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Home, Wallet, Target, MessageCircle, TrendingUp, Receipt, Settings, User } from 'lucide-react';
+import { Home, Wallet, Target, MessageCircle, TrendingUp, Receipt, Settings, User, BarChart2, RefreshCw, Bitcoin } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { icon: Home,          label: 'Dashboard',    sub: 'डैशबोर्ड' },
   { icon: Wallet,         label: 'My FDs',       sub: 'मेरी FD' },
+  { icon: BarChart2,      label: 'Portfolio',    sub: 'पोर्टफोलियो' },
+  { icon: RefreshCw,      label: 'SIP Tracker',   sub: 'SIP ट्रैकर' },
+  { icon: Bitcoin,        label: 'Crypto',        sub: 'क्रिप्टो' },
   { icon: Target,         label: 'Goals',         sub: 'लक्ष्य' },
   { icon: MessageCircle,  label: 'VAANI Chat',   sub: 'वाणी से बात' },
   { icon: TrendingUp,     label: 'Spending',      sub: 'खर्च' },
-  { icon: Receipt,         label: 'Tax Corner',    sub: 'टैक्स' },
-  { icon: Settings,        label: 'Settings',     sub: 'सेटिंग्स' },
+  { icon: Receipt,        label: 'Tax Corner',    sub: 'टैक्स' },
+  { icon: Settings,       label: 'Settings',      sub: 'सेटिंग्स' },
 ];
-
-const USER = {
-  name: 'Ramesh Kumar',
-  lang: 'Bhojpuri',
-  region: 'Uttar Pradesh',
-  initials: 'RK',
-};
 
 const SIDEBAR_BANK_COLORS = {
   Suryoday: '#FF6B00',
@@ -25,8 +22,13 @@ const SIDEBAR_BANK_COLORS = {
   Jana:     '#534AB7',
 };
 
-export default function Sidebar({ active = 'Dashboard', onNavigate }) {
+export default function Sidebar({ active = 'Dashboard', onNavigate, user, profile }) {
+  const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : '..';
 
   return (
     <>
@@ -93,22 +95,38 @@ export default function Sidebar({ active = 'Dashboard', onNavigate }) {
           })}
         </nav>
 
-        {/* User */}
+        {/* User card */}
         <div style={{
           padding: '12px 16px',
           borderTop: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', alignItems: 'center', gap: '12px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
         }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1D9E75, #0F6E56)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
-          }}>{USER.initials}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#fff', fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{USER.name}</div>
-            <div style={{ color: '#FF6B00', fontSize: '11px' }}>{USER.lang} · {USER.region}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1D9E75, #0F6E56)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
+            }}>{initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#fff', fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {profile?.full_name || 'Loading...'}
+              </div>
+              <div style={{ color: '#FF6B00', fontSize: '11px' }}>
+                {profile?.dialect || ''}{profile?.state_code ? ` · ${profile.state_code}` : ''}
+              </div>
+            </div>
           </div>
+          <button
+            onClick={signOut}
+            style={{
+              background: 'none', border: 'none',
+              color: 'rgba(255,255,255,0.3)', fontSize: '11px',
+              cursor: 'pointer', textAlign: 'left', padding: '2px 0',
+            }}
+          >
+            Sign Out / साइन आउट
+          </button>
         </div>
       </aside>
 
