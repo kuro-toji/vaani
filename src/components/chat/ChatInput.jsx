@@ -1,59 +1,36 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, ChevronDown } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Mic, MicOff, Send } from 'lucide-react';
+import { useVoice } from '../../hooks/useVoice.js';
 
-const LANGUAGES = [
-  { code: 'hi', name: 'Hindi', native: 'हिन्दी', region: 'Delhi' },
-  { code: 'bho', name: 'Bhojpuri', native: 'भोजपुरी', region: 'UP' },
-  { code: 'bn', name: 'Bengali', native: 'বাংলা', region: 'West Bengal' },
-  { code: 'ta', name: 'Tamil', native: 'தமிழ்', region: 'Tamil Nadu' },
-  { code: 'te', name: 'Telugu', native: 'తెలుగు', region: 'Telangana' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी', region: 'Maharashtra' },
-  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', region: 'Karnataka' },
-  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', region: 'Kerala' },
-  { code: 'as', name: 'Assamese', native: 'অসমীয়া', region: 'Assam' },
-  { code: 'raj', name: 'Rajasthani', native: 'राजस्थानी', region: 'Rajasthan' },
-  { code: 'mai', name: 'Maithili', native: 'मैथिली', region: 'Bihar' },
-  { code: 'en', name: 'English', native: 'English', region: 'General' },
-];
-
-const EMOTION_KEYWORDS = {
-  anxious: ['doob jayega', 'kho jayega', 'dar', 'safe hai kya', 'khatra', 'kya hoga', 'lose', 'risk'],
-  confused: ['kya matlab', 'samajh nahi', 'kaisa', 'explain', 'batao', 'kaise', 'what is', 'kitna'],
-  excited: ['badhiya', 'sahi', 'achha', 'mast', 'zordaar', 'great', 'wow', 'perfect'],
-};
-
-function detectEmotion(text) {
-  const lower = text.toLowerCase();
-  for (const [emotion, keywords] of Object.entries(EMOTION_KEYWORDS)) {
-    if (keywords.some(k => lower.includes(k))) return emotion;
-  }
-  return 'neutral';
-}
-
-export default function ChatInput({ onSend, disabled }) {
-  const [value, setValue] = useState('');
+/**
+ * ChatInput — text input + push-to-talk mic button.
+ * Auto-resizes textarea, shows confirmation modal for voice input.
+ */
+export default function ChatInput({ onSend, isLoading, language, isMuted, onSpeak }) {
+  const [message, setMessage] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [transcribed, setTranscribed] = useState('');
   const textareaRef = useRef(null);
 
-  const adjustHeight = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 112) + 'px';
-  }, []);
+  const {
+    isListening, isModelLoading, sttError,
+    startListening, stopListening,
+  } = useVoice();
 
-  const handleChange = (e) => {
-    setValue(e.target.value);
-    adjustHeight();
-  };
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+  }, [message]);
 
   const handleSend = () => {
-    if (!value.trim() || disabled) return;
-    onSend(value.trim());
-    setValue('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    const trimmed = message.trim();
+    if (!trimmed || isLoading) return;
+    onSend(trimmed);
+    setMessage('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e) => {
@@ -63,88 +40,169 @@ export default function ChatInput({ onSend, disabled }) {
     }
   };
 
+  const handleStartListening = () => {
+    startListening(
+      (transcript, isFinal) => {
+        if (isFinal) {
+          setTranscribed(transcript);
+          setShowConfirm(true);
+        }
+      },
+      (error) => console.warn('STT error:', error),
+      language
+    );
+  };
+
+  const handleMicClick = isListening ? stopListening : handleStartListening;
+
+  const hasContent = message.trim().length > 0;
+
   return (
-    <div style={{
-      background: 'rgba(10,15,14,0.95)',
-      borderTop: '1px solid rgba(255,255,255,0.06)',
-      padding: '12px 16px max(12px, env(safe-area-inset-bottom))',
-      position: 'sticky',
-      bottom: 0,
-      zIndex: 20,
-    }}>
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        alignItems: 'flex-end',
-        maxWidth: '720px',
-        margin: '0 auto',
-      }}>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="VAANI se baat karein..."
-          disabled={disabled}
-          rows={1}
+    <>
+      <div className="flex items-end gap-3">
+        {/* Text area */}
+        <div
+          className="flex-1 flex items-end rounded-2xl px-4 py-3"
           style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '14px',
-            padding: '12px 14px',
-            color: '#fff',
-            fontSize: '14px',
-            fontFamily: '"Noto Sans Devanagari", system-ui, sans-serif',
-            lineHeight: 1.5,
-            outline: 'none',
-            resize: 'none',
-            maxHeight: '112px',
-            overflowY: 'auto',
-            scrollbarWidth: 'thin',
-            transition: 'border-color 0.15s',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            transition: 'border-color 0.2s',
           }}
-          onFocus={e => e.target.style.borderColor = 'rgba(255,107,0,0.5)'}
-          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleSend}
-            disabled={!value.trim() || disabled}
+        >
+          <textarea
+            ref={textareaRef}
+            dir="auto"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Vaani se baat karo..."
+            disabled={isLoading}
+            maxLength={5000}
+            rows={1}
             style={{
-              width: '44px', height: '44px',
-              borderRadius: '50%',
-              background: value.trim() && !disabled
-                ? 'linear-gradient(135deg, #FF6B00, #E55A00)'
-                : 'rgba(255,255,255,0.1)',
-              border: 'none',
-              cursor: value.trim() && !disabled ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <Send size={18} color={value.trim() && !disabled ? '#fff' : 'rgba(255,255,255,0.3)'} />
-          </motion.button>
-          <button
-            style={{
-              width: '44px', height: '44px',
-              borderRadius: '50%',
+              flex: 1,
               background: 'transparent',
-              border: '1.5px solid rgba(255,255,255,0.15)',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+              fontSize: '15px',
+              resize: 'none',
+              outline: 'none',
+              border: 'none',
+              minHeight: '24px',
+              maxHeight: '120px',
+              lineHeight: '24px',
+              fontFamily: 'inherit',
+              color: 'var(--text-primary)',
             }}
-            aria-label="Voice input"
+            aria-label="Type your message"
+          />
+        </div>
+
+        {/* Mic button */}
+        <button
+          onClick={handleMicClick}
+          disabled={isLoading || isMuted || isModelLoading}
+          className="flex items-center justify-center rounded-full flex-shrink-0"
+          style={{
+            width: '44px', height: '44px',
+            border: 'none',
+            cursor: isLoading || isMuted || isModelLoading ? 'not-allowed' : 'pointer',
+            background: isListening
+              ? 'var(--danger)'
+              : isMuted
+                ? 'var(--bg-elevated)'
+                : 'var(--primary)',
+            boxShadow: isListening
+              ? '0 0 0 4px rgba(239,68,68,0.2)'
+              : '0 2px 8px rgba(29,158,117,0.3)',
+            opacity: isModelLoading ? 0.5 : 1,
+            animation: isListening ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+            transition: 'all 0.2s var(--ease-spring)',
+          }}
+          aria-label={isModelLoading ? 'Model loading...' : isListening ? 'Stop recording' : 'Start voice input'}
+        >
+          {isModelLoading ? (
+            <span style={{ color: '#fff', fontSize: '12px' }}>...</span>
+          ) : isListening ? (
+            <MicOff size={18} color="#fff" />
+          ) : (
+            <Mic size={18} color="#fff" />
+          )}
+        </button>
+
+        {/* Send button */}
+        {hasContent && (
+          <button
+            onClick={handleSend}
+            disabled={!hasContent || isLoading}
+            className="flex items-center justify-center rounded-full flex-shrink-0 animate-scaleIn"
+            style={{
+              width: '44px', height: '44px',
+              border: 'none',
+              cursor: hasContent && !isLoading ? 'pointer' : 'default',
+              background: 'var(--primary)',
+              boxShadow: '0 2px 8px rgba(29,158,117,0.3)',
+              opacity: hasContent && !isLoading ? 1 : 0.4,
+              transition: 'all 0.2s var(--ease-spring)',
+            }}
+            aria-label="Send message"
           >
-            <Mic size={18} color="rgba(255,255,255,0.5)" />
+            <Send size={18} color="#fff" />
           </button>
+        )}
+      </div>
+
+      {/* STT error */}
+      {sttError && (
+        <p className="text-xs mt-2 px-2" style={{ color: 'var(--danger)' }}>
+          {sttError}
+        </p>
+      )}
+
+      {/* Voice confirmation modal */}
+      {showConfirm && (
+        <VoiceConfirmModal
+          text={transcribed}
+          onConfirm={() => {
+            setShowConfirm(false);
+            onSend(transcribed, true);
+            setTranscribed('');
+          }}
+          onRetry={() => {
+            setShowConfirm(false);
+            setTranscribed('');
+            setTimeout(handleStartListening, 300);
+          }}
+          onCancel={() => { setShowConfirm(false); setTranscribed(''); }}
+        />
+      )}
+    </>
+  );
+}
+
+function VoiceConfirmModal({ text, onConfirm, onRetry, onCancel }) {
+  return (
+    <div
+      className="modal-backdrop flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="card animate-scaleIn"
+        style={{ maxWidth: '380px', width: '100%' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="font-semibold mb-2" style={{ fontSize: '15px' }}>Did you say:</h3>
+        <p className="text-sm mb-4 p-3 rounded-lg" style={{
+          background: 'var(--primary-muted)',
+          color: 'var(--text-primary)',
+          lineHeight: 1.5,
+        }}>
+          "{text}"
+        </p>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="btn btn-ghost btn-sm flex-1">Cancel</button>
+          <button onClick={onRetry} className="btn btn-secondary btn-sm flex-1">Retry</button>
+          <button onClick={onConfirm} className="btn btn-primary btn-sm flex-1">Send</button>
         </div>
       </div>
     </div>
   );
 }
-
-export { LANGUAGES, detectEmotion };
