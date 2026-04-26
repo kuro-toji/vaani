@@ -17,12 +17,7 @@ function buildMessages(messages, systemPrompt) {
   }
 
   for (const msg of messages) {
-    if (msg.role === 'user' && systemPrompt && result.length === 1 && result[0].role === 'system') {
-      // Merge system into first user message
-      result.push({ role: 'user', content: systemPrompt + '\n\n' + msg.content });
-    } else {
-      result.push({ role: msg.role, content: msg.content });
-    }
+    result.push({ role: msg.role, content: msg.content });
   }
 
   return result;
@@ -68,17 +63,18 @@ minimaxRouter.post('/chat', async (req, res) => {
     const data = await response.json();
 
     const choice = data?.choices?.[0];
-    console.log('MiniMax response choices[0]:', JSON.stringify(choice));
-    // MiniMax-Text-01 OpenAI-compat: singular "message" not "messages"
-    const reply = choice?.message?.content 
-      || choice?.messages?.[0]?.content  // fallback for older MiniMax models
-      || '';
+    console.log('[MiniMax] status:', response.status);
+    console.log('[MiniMax] choice:', JSON.stringify(choice));
+    const reply =
+      choice?.message?.content ||          // OpenAI-compat (Text-01)
+      choice?.messages?.[0]?.content ||    // Legacy MiniMax
+      '';
 
     if (!reply) {
-      console.error('Empty reply from MiniMax. Full response:', JSON.stringify(data));
-      return res.status(500).json({ 
-        error: 'MiniMax returned empty content',
-        raw: data 
+      console.error('[MiniMax] Empty reply. Full response:', JSON.stringify(data));
+      return res.status(500).json({
+        error: 'MiniMax returned empty content. Check console for raw response.',
+        rawChoice: choice
       });
     }
 

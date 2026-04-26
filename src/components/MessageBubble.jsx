@@ -206,7 +206,6 @@ function MessageBubble({ message, language }) {
             onClick={(e) => { e.stopPropagation(); handleSpeak(); }}
             disabled={isSpeaking}
             aria-label="यह संदेश सुनें"
-            title="सुनें"
             className="speak-btn"
             style={{
               display: 'inline-flex',

@@ -32,10 +32,22 @@ export async function transcribeWithGroq(audioBlob, language = 'hi') {
   reader.readAsDataURL(audioBlob);
   const base64Audio = await base64Promise;
 
+  const GROQ_LANG_MAP = {
+    hi: 'hi', bn: 'bn', te: 'te', ta: 'ta', mr: 'mr',
+    ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa',
+    or: 'or', ne: 'ne', as: 'as', en: 'en',
+    mai: 'hi', bho: 'hi', raj: 'hi', hne: 'hi', bgc: 'hi',
+    mag: 'hi', kok: 'hi', dgo: 'hi', brx: 'hi', mni: 'hi',
+    sa: 'hi', tcy: 'kn', ks: 'ur', sd: 'ur', sat: null,
+  };
+  const groqLang = GROQ_LANG_MAP[language] ?? null;
+  const body = { audio: base64Audio };
+  if (groqLang) body.language = groqLang;
+
   const response = await fetch(API_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ audio: base64Audio, language }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

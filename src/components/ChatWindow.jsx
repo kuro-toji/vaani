@@ -194,19 +194,6 @@ export default function ChatWindow() {
     <>
       <FlashNotification trigger={flashTrigger} />
       
-      {/* Skip to content link for keyboard/screen reader users */}
-      <a
-        href="#chat-messages"
-        style={{
-          position: 'absolute', top: '-40px', left: 0,
-          background: '#0F6E56', color: 'white',
-          padding: '8px', borderRadius: '4px', zIndex: 9999,
-          textDecoration: 'none', fontSize: '14px',
-        }}
-        onFocus={(e) => e.currentTarget.style.top = '0'}
-        onBlur={(e) => e.currentTarget.style.top = '-40px'}
-      >Skip to messages</a>
-      
       {/* ── Offline Banner ── */}
       {!isOnline && (
         <div 

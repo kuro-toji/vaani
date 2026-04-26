@@ -286,16 +286,23 @@ export function useVoice() {
       recognition.start()
       setIsListening(true)
       setIsWhisperMode(false)
+
+      const safetyTimeout = setTimeout(() => {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch(e) {}
+        }
+      }, 12000);
+
+      recognition.onend = () => {
+        clearTimeout(safetyTimeout);
+        setIsListening(false);
+      };
     } catch (err) {
       // Recognition failed to start — fall back to Whisper
       whisperOnlyRef.current.add(language)
       startWhisper(onResult, onError, language)
     }
   }, [])
-
-  /* ═══════════════════════════════════════════
-   * MODE 2: Whisper (Groq cloud → local fallback)
-   * ═══════════════════════════════════════════ */
   const startWhisper = useCallback(async (onResult, onError, language) => {
     setSttError(null)
     setIsWhisperMode(true)
@@ -340,8 +347,8 @@ export function useVoice() {
     lowpass.connect(analyser)
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount)
-    const VOLUME_THRESHOLD = 50
-    const WAIT_TIME = 2000
+    const VOLUME_THRESHOLD = 15;  // Much more sensitive
+    const WAIT_TIME = 2000;
 
     const waitForVoice = () => {
       return new Promise((resolve, reject) => {
@@ -353,7 +360,7 @@ export function useVoice() {
             clearTimeout(silenceTimer)
             resolve()
           } else {
-            silenceTimer = setTimeout(() => reject(new Error('No speech detected')), 10000)
+            silenceTimer = setTimeout(() => reject(new Error('No speech detected')), 15000)
             requestAnimationFrame(checkVolume)
           }
         }
@@ -569,16 +576,22 @@ export function useVoice() {
           voices = window.speechSynthesis.getVoices()
           resolve()
         }
-        setTimeout(resolve, 500)
+        setTimeout(resolve, 1000)
       })
+      voices = window.speechSynthesis.getVoices()
     }
-    const exactMatch = voices.find(v => v.lang === targetLang)
-    if (exactMatch) return exactMatch
-    const prefix = targetLang.split('-')[0]
-    const prefixMatch = voices.find(v => v.lang.startsWith(prefix))
-    if (prefixMatch) return prefixMatch
-    const indianVoice = voices.find(v => v.lang.includes('IN'))
-    return indianVoice || null
+
+    const langPrefix = targetLang.split('-')[0]
+
+    return (
+      voices.find(v => v.lang === targetLang) ||
+      voices.find(v => v.lang.startsWith(langPrefix)) ||
+      voices.find(v => v.lang.includes('-IN')) ||
+      voices.find(v => v.name.toLowerCase().includes('female')) ||
+      voices.find(v => !v.name.toLowerCase().includes('male')) ||
+      voices[0] ||
+      null
+    );
   }
 
   /**
@@ -607,21 +620,27 @@ export function useVoice() {
     
     if (usePremiumVoice && isElevenLabsConfigured()) {
       try {
-        // Only send first 150 chars to ElevenLabs to save credits
-        const ttsText = text.substring(0, 150);
-        await speakWithElevenLabs(ttsText, language);
-        // If more text remains, read the rest with Web Speech
-        if (text.length > 150) {
-          const remaining = text.substring(150);
-          const targetLang = webSpeechSupported[language] || 'hi-IN';
-          const voice = await resolveVoice(targetLang);
-          const sentences = splitIntoSentences(remaining);
-          for (const sentence of sentences) {
-            await speakSentence(sentence, targetLang, voice);
+        const chunks = splitIntoSentences(text);
+        const MAX_CHUNK_CHARS = 400;
+        const batches = [];
+        let current = '';
+        for (const chunk of chunks) {
+          if ((current + ' ' + chunk).length > MAX_CHUNK_CHARS && current) {
+            batches.push(current.trim());
+            current = chunk;
+          } else {
+            current = current ? current + ' ' + chunk : chunk;
           }
         }
+        if (current) batches.push(current.trim());
+
+        for (const batch of batches) {
+          await speakWithElevenLabs(batch, language);
+        }
         return;
-      } catch (err) { console.warn('[useVoice] ElevenLabs TTS failed, falling back to Web Speech:', err); }
+      } catch (err) {
+        console.warn('ElevenLabs TTS failed, falling back:', err.message);
+      }
     }
     
     // Default: Web Speech API (free, unlimited)
@@ -639,6 +658,11 @@ export function useVoice() {
       window.speechSynthesis.cancel()
     }
   }, [])
+
+  useEffect(() => {
+    window.vaaniSpeak = speak;
+    return () => { window.vaaniSpeak = null; };
+  }, [speak]);
 
 
 

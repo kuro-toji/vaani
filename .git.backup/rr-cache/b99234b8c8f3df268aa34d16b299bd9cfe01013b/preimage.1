@@ -1,0 +1,385 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FAFAF8;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CSS Custom Properties for Accessibility Modes */
+:root {
+  --vaani-bg: #FAFAF8;
+  --vaani-text: #374151;
+  --vaani-user-bubble: #1D9E75;
+  --vaani-ai-bubble-bg: #FFFFFF;
+  --vaani-ai-bubble-text: #111827;
+  --vaani-border: #E5E7EB;
+  --vaani-input-bg: #FFFFFF;
+  --vaani-base-font-size: 15px;
+  --vaani-bubble-padding: 12px;
+}
+
+/* Large Text Mode — only changes CSS variables */
+.vaani-large-text {
+  --vaani-base-font-size: 20px;
+  --vaani-bubble-padding: 16px;
+}
+
+/* High Contrast Mode — only changes CSS variables */
+.vaani-high-contrast {
+  --vaani-bg: #FFFFFF;
+  --vaani-text: #000000;
+  --vaani-user-bubble: #1E3A5F;
+  --vaani-ai-bubble-bg: #F0F0F0;
+  --vaani-ai-bubble-text: #000000;
+  --vaani-border: #333333;
+  --vaani-input-bg: #FFFFFF;
+}
+
+html.vaani-high-contrast, html.vaani-high-contrast body {
+  background-color: var(--vaani-bg) !important;
+  color: var(--vaani-text) !important;
+}
+
+/* Touch target minimum size */
+.vaani-touch-target {
+  min-width: 56px;
+  min-height: 56px;
+}
+
+<<<<<<<
+/* Ensure all clickable elements meet 48px touch target */
+=======
+/* Mobile-first touch targets - minimum 48px (Android guideline) */
+@media (max-width: 768px) {
+  /* Buttons in header - compact on mobile */
+  .header-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  
+  /* Language cards - bigger on mobile */
+  .language-card-btn {
+    min-height: 60px !important;
+    padding: 12px 8px !important;
+  }
+  
+  /* Suggestion chips - larger touch */
+  .suggestion-chip {
+    min-height: 52px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Icon cards - grid touch targets */
+  .icon-card {
+    min-width: 80px !important;
+    min-height: 80px !important;
+  }
+}
+
+/* Desktop still gets 56px for accessibility */
+@media (min-width: 769px) {
+  .header-btn {
+    min-width: 56px !important;
+    min-height: 56px !important;
+  }
+}
+
+/* Ensure all clickable elements meet 56px touch target */
+>>>>>>>
+button, 
+[role="button"],
+a,
+input[type="checkbox"],
+input[type="radio"],
+select,
+label[for] {
+  min-touch-target: 56px;
+}
+
+/* Accessible focus styles */
+*:focus-visible {
+  outline: 3px solid #00D4AA;
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.vaani-high-contrast :focus-visible {
+  outline-color: #000000;
+}
+
+/* Icon Card Grid - For speech-impaired users */
+.icon-card {
+  min-width: 80px;
+  min-height: 80px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 2px solid transparent;
+  background: var(--vaani-ai-bubble-bg);
+}
+
+.icon-card:hover {
+  transform: scale(1.05);
+}
+
+.icon-card:active {
+  transform: scale(0.95);
+}
+
+.icon-card:focus-visible {
+  outline: 2px solid var(--vaani-user-bubble);
+  outline-offset: 2px;
+}
+
+.icon-card.category-investment { border-color: #10B981; }
+.icon-card.category-insurance { border-color: #3B82F6; }
+.icon-card.category-savings { border-color: #F59E0B; }
+.icon-card.category-government { border-color: #8B5CF6; }
+.icon-card.category-tax { border-color: #EF4444; }
+.icon-card.category-life-event { border-color: #14B8A6; }
+
+.icon-card.selected {
+  animation: iconPulse 0.5s ease;
+  box-shadow: 0 0 20px currentColor;
+}
+
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+<<<<<<<
+/* ===== Accessibility Fixes ===== */
+
+/* Skip Link - Hidden until focused */
+=======
+/* Skip Link - Accessibility */
+>>>>>>>
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F6E56;
+<<<<<<<
+  color: white !important;
+=======
+  color: white;
+>>>>>>>
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 9999;
+<<<<<<<
+  transition: top 0.3s ease, box-shadow 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+=======
+  transition: top 0.3s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+>>>>>>>
+}
+
+.skip-link:focus {
+  top: 20px;
+<<<<<<<
+  outline: 2px solid #00D4AA;
+  outline-offset: 2px;
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect prefers-reduced-motion */
+=======
+  outline: 3px solid #00D4AA;
+  outline-offset: 2px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+/* Respect user's motion preferences */
+>>>>>>>
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+<<<<<<<
+=======
+  
+  /* Also disable CSS animations defined inline */
+  [style*="animation"] {
+    animation: none !important;
+  }
+  
+  [style*="transition"] {
+    transition: none !important;
+  }
+}
+
+/* Focus visible for keyboard users - more visible ring */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #00D4AA;
+  outline-offset: 2px;
+}
+
+/* Ensure high contrast focus for accessibility */
+.vaani-high-contrast :focus-visible {
+  outline-color: #FFD700;
+  outline-width: 3px;
+}
+
+/* Better focus indication for interactive elements */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #00D4AA;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.2);
+}
+
+/* Ensure main content is focusable for skip link */
+#main-content:focus {
+  outline: none;
+}
+
+/* ===== Premium UI Utilities ===== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+.vaani-high-contrast .glass-card,
+.vaani-high-contrast .glass-panel {
+  background: var(--vaani-bg);
+  border: 2px solid var(--vaani-text);
+  backdrop-filter: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #0F6E56 0%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vaani-high-contrast .gradient-text {
+  background: none;
+  -webkit-text-fill-color: var(--vaani-text);
+  color: var(--vaani-text);
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.6s ease forwards;
+}
+
+@keyframes floatAnimation {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: floatAnimation 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(15, 110, 86, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(15, 110, 86, 0); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Marquee Scroller */
+.scroller {
+  max-width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.scroller-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  animation: scroll 30s forwards linear infinite;
+}
+
+@keyframes scroll {
+  to {
+    transform: translate(calc(-50% - 0.5rem));
+  }
+}
+
+/* Premium Background */
+.bg-mesh {
+  background-color: #f7f9fc;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(167, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(200, 100%, 74%, 0.15) 0px, transparent 50%);
+>>>>>>>
+}

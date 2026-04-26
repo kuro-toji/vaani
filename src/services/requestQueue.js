@@ -5,7 +5,7 @@
  */
 
 let lastCallTime = 0;
-const MIN_GAP_MS = 200; // 200ms gap (reduced from 500ms for faster UX)
+const MIN_GAP_MS = 300;
 const queue = [];
 let isProcessing = false;
 

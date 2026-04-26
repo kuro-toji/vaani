@@ -1,0 +1,5 @@
+fix: build errors — useVoice missing finally block, leadService missing export
+
+- useVoice.js: add missing finally{} block after catch block
+- leadService.js: add missing detectAndCaptureLead export
+These were caught by the production build.
