@@ -17,6 +17,7 @@ import * as Speech from 'expo-speech';
 import { COLORS } from '../constants';
 import { SCREEN } from '../navigation/AppNavigator';
 import type { ChatMessage } from '../types';
+import { getFDRecommendations, getSIPRecommendations, formatRecommendationForVoice } from '../services/recommendationEngine';
 
 const { width, height } = Dimensions.get('window');
 
@@ -113,6 +114,66 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
     }, 1500);
   };
 
+  // Check for recommendation intents
+  const checkRecommendationIntent = async (text: string): Promise<string | null> => {
+    const lower = text.toLowerCase();
+    
+    // FD recommendation patterns
+    if (lower.includes('fd') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('best') || lower.includes('konsa') || lower.includes('बताओ'))) {
+      const profile = { age: 30, incomeRange: 'medium' as const, investmentGoal: 'wealthBuild' as const, timeHorizon: 'medium' as const, liquidityNeed: 'medium' as const, riskAppetite: 'moderate' as const, isSenior: false };
+      const result = await getFDRecommendations(profile, { limit: 3 });
+      return formatRecommendationForVoice(result);
+    }
+    
+    // SIP recommendation patterns
+    if (lower.includes('sip') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('mutual fund') || lower.includes('निवेश'))) {
+      const profile = { age: 30, incomeRange: 'medium' as const, investmentGoal: 'wealthBuild' as const, timeHorizon: 'long' as const, liquidityNeed: 'low' as const, riskAppetite: 'moderate' as const, isSenior: false };
+      const result = await getSIPRecommendations(profile, { limit: 3 });
+      return formatRecommendationForVoice(result);
+    }
+    
+    return null;
+  };
+
+  const handleAIMessage = async (userText: string) => {
+    setIsTyping(true);
+    
+    // Check for recommendation intent first
+    const recommendationResponse = await checkRecommendationIntent(userText);
+    
+    if (recommendationResponse) {
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: recommendationResponse,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      setIsTyping(false);
+      Speech.speak(recommendationResponse, { language: 'hi-IN', rate: 0.9 });
+      return;
+    }
+    
+    // Default responses
+    setTimeout(() => {
+      const responses = [
+        'मैं समझ गया। आपके खर्चों का विश्लेषण करके बता रहा हूं।',
+        'आपका बजट इस महीने 80% खर्च हो चुका है। बाकी 20% में सावधानी से खर्च करें।',
+        'FD के बारे में और जानकारी चाहिए? मैं बता सकता हूं।',
+        'SIP के बारे में बताइए, मैं आपको सही फंड सुझा सकता हूं।',
+      ];
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: responses[Math.floor(Math.random() * responses.length)],
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      setIsTyping(false);
+      Speech.speak(aiMessage.content, { language: 'hi-IN', rate: 0.9 });
+    }, 1200);
+  };
+
   const sendMessage = () => {
     if (!inputText.trim()) return;
 
@@ -124,30 +185,7 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
     };
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
-
-    // Simulate AI response
-    setIsTyping(true);
-    setTimeout(() => {
-      const responses = [
-        'मैं समझ गया। आपके खर्चों का विश्लेषण करके बता रहा हूं।',
-        'आपका बजट इस महीने 80% खर्च हो चुका है। बाकी 20% में सावधानी से खर्च करें।',
-        'FD के बारे में और जानकारी चाहिए? मैं बता सकता हूं।',
-      ];
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-      
-      // Speak
-      Speech.speak(aiMessage.content, {
-        language: 'hi-IN',
-        rate: 0.9,
-      });
-    }, 1200);
+    handleAIMessage(inputText);
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => (

@@ -10,3 +10,4 @@ export * from './amfiService';
 export * from './binanceService';
 export * from './goldService';
 export * from './fdScraperService';
+export * from './recommendationEngine';

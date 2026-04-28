@@ -7,11 +7,67 @@ const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/text/chatcompletion_v2';
 
-const BANK_PRODUCTS = [
-  { bank: 'Suryoday', rate: '9.1%', tenor: '18 months', note: 'Extra 0.25% for senior citizens' },
-  { bank: 'Utkarsh', rate: '8.5%', tenor: '12 months', note: 'No penalty on early withdrawal' },
-  { bank: 'Jana', rate: '8.25%', tenor: '24 months', note: 'Best for 2-year lock-in' },
+// Recommendation engine weights (multi-factor scoring model)
+const WEIGHTS = { goalFit: 0.35, liquidity: 0.25, returnPotential: 0.20, riskAlignment: 0.10, tenureFit: 0.10 };
+
+const FD_DATA = [
+  { bank: 'SBI', tenures: { '1y': 5.10, '2y': 5.10, '3y': 5.10, '5y': 5.10 } },
+  { bank: 'HDFC Bank', tenures: { '1y': 5.15, '2y': 5.15, '3y': 5.30, '5y': 5.40 } },
+  { bank: 'ICICI Bank', tenures: { '1y': 5.15, '2y': 5.15, '3y': 5.25, '5y': 5.35 } },
+  { bank: 'Yes Bank', tenures: { '1y': 5.50, '2y': 5.50, '3y': 5.50, '5y': 5.50 } },
 ];
+
+const SIP_DATA = [
+  { name: 'HDFC Top 100 Fund', category: 'large-cap', risk: 7 },
+  { name: 'SBI Bluechip Fund', category: 'large-cap', risk: 7 },
+  { name: 'UTI Nifty Index Fund', category: 'index', risk: 6 },
+  { name: 'HDFC Short Term Debt Fund', category: 'debt', risk: 3 },
+  { name: 'SBI Liquid Fund', category: 'liquid', risk: 2 },
+];
+
+function getFDRecommendations(profile = {}, limit = 3) {
+  const scored = [];
+  for (const b of FD_DATA) {
+    for (const [tenure, rate] of Object.entries(b.tenures)) {
+      const seniorRate = profile.isSenior ? rate + 0.5 : rate;
+      const r = profile.riskAppetite === 'low' ? 1 : profile.riskAppetite === 'moderate' ? 0.6 : 0.3;
+      const score = 0.35 * 0.8 + 0.25 * 0.6 + 0.20 * (rate / 8) + 0.10 * r + 0.10 * 0.7;
+      scored.push({ name: `${b.bank} ${tenure} FD`, rate: seniorRate, score: Math.round(score * 100) / 100 });
+    }
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit);
+}
+
+function getSIPRecommendations(profile = {}, limit = 3) {
+  const scored = SIP_DATA.map(f => {
+    const r = f.risk / 10;
+    const score = 0.35 * 0.7 + 0.25 * 0.6 + 0.20 * r + 0.10 * Math.abs(r - 0.5) + 0.10 * 0.7;
+    return { name: f.name, category: f.category, score: Math.round(score * 100) / 100 };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit);
+}
+
+function checkRecommendationIntent(text) {
+  const lower = text.toLowerCase();
+  if (lower.includes('fd') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('best') || lower.includes('konsa'))) {
+    return 'fd';
+  }
+  if (lower.includes('sip') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('mutual'))) {
+    return 'sip';
+  }
+  return null;
+}
+
+function formatRecommendationResponse(type, results, lang) {
+  const label = type === 'fd' ? 'FD' : 'SIP';
+  const top = results[0];
+  if (lang === 'hi') {
+    return `आपके लिए सबसे अच्छा ${label}: ${top.name} (${top.rate || top.category}। Score: ${top.score}%)। Benefits: ${top.rate ? 'उच्च ब्याज दर' : 'म्यूचुअल फंड में निवेश'}`;
+  }
+  return `Top ${label} recommendation: ${top.name} (${top.rate || top.category}). Score: ${top.score}%. Benefits: ${top.rate ? 'High interest rate' : 'Diversified investment'}`;
+}
 
 router.post('/', async (req, res) => {
   try {
@@ -22,6 +78,23 @@ router.post('/', async (req, res) => {
     }
 
     const lang = language || 'hi';
+    
+    // Check for recommendation intent first
+    const recType = checkRecommendationIntent(message);
+    if (recType) {
+      const recResults = recType === 'fd' ? getFDRecommendations({}, 3) : getSIPRecommendations({}, 3);
+      const recResponse = formatRecommendationResponse(recType, recResults, lang);
+      
+      // Stream recommendation response
+      const words = recResponse.split(' ');
+      for (const word of words) {
+        res.write(`data: ${word} \n`);
+        await new Promise(r => setTimeout(r, 15));
+      }
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
     
     // Language-specific system prompts
     const systemPrompts = {

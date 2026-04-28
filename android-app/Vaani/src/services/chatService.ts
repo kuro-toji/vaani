@@ -28,7 +28,7 @@ CAPABILITIES:
    Format expense as: [EXPENSE:amount:category:description]
 2. BUDGET ALERTS: If user's spending in a category exceeds 80%, warn them naturally in conversation
 3. FD/SIP ADVICE: Compare rates, suggest laddering, explain TDS
-4. GOVERNMENT SCHEMES: Suggest relevant schemes based on user's profile. Available: ${GOVERNMENT_SCHEMES.map(s => s.name).join(', ')}
+4. GOVERNMENT SCHEMES: Suggest relevant schemes based on user's profile. Available: ${GOVERNMENT_SCHEMES.map((s: { name: string }) => s.name).join(', ')}
 5. FINANCIAL HEALTH: Provide actionable advice based on their portfolio
 
 ${regionInfo}
@@ -70,8 +70,8 @@ export async function sendChatMessage(
   try {
     const systemPrompt = getSystemPrompt(language, options?.userName, options?.region);
 
-    // Build message history (last N messages)
-    const history = messages.slice(-APP_CONFIG.max_chat_history).map(m => ({
+    // Build message history (last 10 messages)
+    const history = messages.slice(-10).map(m => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
       content: m.content,
     }));
