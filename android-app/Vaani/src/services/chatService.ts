@@ -1,9 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════
-// VAANI Chat Service — MiniMax M2.7 Streaming AI
+// VAANI Chat Service — MiniMax M2.7 Streaming AI + Feature Routing
 // ═══════════════════════════════════════════════════════════════════
 
 import { API_CONFIG, APP_CONFIG, DIALECT_METAPHORS, GOVERNMENT_SCHEMES } from '../constants';
 import type { ChatMessage, ActionCard } from '../types';
+import { matchCommand, extractEntities } from './voiceCommandService';
+import idleMoney from './idleMoneyService';
+import taxIntel from './taxIntelligenceService';
+import freelancer from './freelancerService';
+import commandCenter from './commandCenterService';
+import spendAwareness from './spendAwarenessService';
+import creditIntel from './creditIntelligenceService';
 
 // ─── System Prompt ──────────────────────────────────────────────
 function getSystemPrompt(language: string, userName?: string, region?: string): string {
@@ -24,12 +31,16 @@ DIALECT METAPHORS (use these terms):
 ${Object.entries(dialectMap).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 
 CAPABILITIES:
-1. EXPENSE TRACKING: When user says something like "50 rupaye chai pe kharch kiye", extract: amount, category, description. Respond with confirmation and log it.
-   Format expense as: [EXPENSE:amount:category:description]
-2. BUDGET ALERTS: If user's spending in a category exceeds 80%, warn them naturally in conversation
-3. FD/SIP ADVICE: Compare rates, suggest laddering, explain TDS
-4. GOVERNMENT SCHEMES: Suggest relevant schemes based on user's profile. Available: ${GOVERNMENT_SCHEMES.map((s: { name: string }) => s.name).join(', ')}
-5. FINANCIAL HEALTH: Provide actionable advice based on their portfolio
+1. EXPENSE TRACKING: Extract amount, category, description. Format: [EXPENSE:amount:category:description]
+2. BUDGET ALERTS: Warn if spending exceeds 80% of budget
+3. FD/SIP ADVICE: Compare rates, laddering, TDS
+4. GOVERNMENT SCHEMES: ${GOVERNMENT_SCHEMES.map((s: { name: string }) => s.name).join(', ')}
+5. IDLE MONEY: Detect idle bank balance, suggest liquid funds
+6. TAX INTELLIGENCE: Tax harvesting, advance tax, 80C tracker, TDS detection
+7. FREELANCER OS: Income logging, client tracking, GST invoices
+8. NET WORTH: Live net worth, debt picture, FIRE calculator
+9. SPEND AWARENESS: Purchase intent check, opportunity cost
+10. CREDIT INTELLIGENCE: Portfolio-backed loans, borrowing capacity
 
 ${regionInfo}
 
@@ -299,4 +310,160 @@ async function simulateResponse(
 
   options?.onDone?.(response);
   return response;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE INTENT HANDLER — Routes to all 6 feature services
+// Called before AI fallback for instant responses
+// ═══════════════════════════════════════════════════════════════════
+
+export async function handleFeatureIntent(text: string, userId: string, language: string = 'hi'): Promise<string | null> {
+  const cmd = matchCommand(text);
+  if (!cmd) return null;
+
+  const entities = extractEntities(text);
+
+  try {
+    switch (cmd.action) {
+      // ── Idle Money ──
+      case 'check_idle_money': {
+        const detection = await idleMoney.detectIdleMoney(userId);
+        if (!detection) return 'Abhi aapke account mein idle paisa nahi dikh raha. Sab jagah laga hua hai!';
+        return idleMoney.generateIdleMoneyVoiceAlert(detection, language);
+      }
+      case 'update_balance': {
+        if (entities.bankName && entities.amount) {
+          await idleMoney.updateAccountBalance(userId, entities.bankName, entities.amount);
+          return `${entities.bankName} ka balance ₹${entities.amount.toLocaleString('en-IN')} update kar diya.`;
+        }
+        return 'Bank ka naam aur balance batao — jaise "SBI mein 50000 hai"';
+      }
+      case 'invest_idle_money': {
+        const detection = await idleMoney.detectIdleMoney(userId);
+        if (detection) {
+          const earnings = idleMoney.calculateExtraEarnings(detection.detected_amount);
+          return `₹${detection.detected_amount.toLocaleString('en-IN')} liquid fund mein lagaane se saal mein ₹${earnings.extraEarnings.toLocaleString('en-IN')} extra milenge. Kisi bhi bank app se HDFC Liquid Fund mein invest kar sakte ho.`;
+        }
+        return 'Pehle apne bank balance update karo, phir idle money check karenge.';
+      }
+
+      // ── Tax Intelligence ──
+      case 'check_tax_harvest': {
+        const opps = await taxIntel.analyzeTaxHarvesting(userId);
+        if (opps.length === 0) return 'Abhi koi tax harvesting opportunity nahi hai. Sab holdings theek hain.';
+        const top = opps[0];
+        return `${top.recommendation}. Kul ₹${opps.reduce((s, o) => s + o.savings, 0).toLocaleString('en-IN')} bacha sakte ho tax mein.`;
+      }
+      case 'advance_tax_status': {
+        const income = entities.amount || 800000;
+        const deadlines = await taxIntel.calculateAdvanceTax(userId, income);
+        const next = deadlines.find(d => d.days_remaining > 0 && d.balance_due > 0);
+        if (!next) return 'Advance tax sab bhara hua hai. Tension mat lo!';
+        return taxIntel.generateAdvanceTaxAlert(next);
+      }
+      case 'check_80c': {
+        const status = await taxIntel.get80CStatus(userId);
+        if (status.remaining === 0) return '80C ka pura ₹1,50,000 limit use ho gaya hai. Badhiya!';
+        return `Aapka ₹${status.remaining.toLocaleString('en-IN')} 80C limit baaki hai. ${status.suggestions[0] || ''}`;
+      }
+      case 'tax_saving_tips': {
+        const status = await taxIntel.get80CStatus(userId);
+        if (status.suggestions.length === 0) return '80C limit pura ho gaya hai. NPS mein ₹50,000 aur daal do — extra deduction milega.';
+        return status.suggestions.join('. ');
+      }
+
+      // ── Freelancer OS ──
+      case 'log_income': {
+        if (entities.clientName && entities.amount) {
+          const result = await freelancer.logIncome(userId, entities.clientName, entities.amount);
+          return result.voiceConfirmation;
+        }
+        return 'Client ka naam aur amount batao — jaise "Infosys se 50000 aaye"';
+      }
+      case 'client_summary': {
+        const clients = await freelancer.getClientTracker(userId);
+        if (clients.length === 0) return 'Abhi tak koi client income log nahi ki. Boliye "payment aaya [client] se [amount]"';
+        return clients.slice(0, 3).map(c => `${c.client_name}: ₹${c.total_paid.toLocaleString('en-IN')} (${c.payment_count} payments)`).join('. ');
+      }
+      case 'generate_invoice': {
+        if (entities.clientName && entities.amount) {
+          const result = await freelancer.generateInvoice(userId, entities.clientName, entities.amount, 'Professional Services');
+          return result.voiceConfirmation;
+        }
+        return 'Client ka naam aur amount batao — jaise "Infosys ke liye 50000 ka invoice"';
+      }
+      case 'itr_export': {
+        const data = await freelancer.generateITRExport(userId);
+        return `ITR data ready — kul income ₹${data.total_income.toLocaleString('en-IN')}, ${data.income_by_client.length} clients se, TDS ₹${data.tds_deducted.toLocaleString('en-IN')}. CA ko bhej sakte ho.`;
+      }
+      case 'income_summary': {
+        return await freelancer.getIncomeSummaryVoice(userId);
+      }
+
+      // ── Command Center ──
+      case 'read_net_worth': {
+        const nw = await commandCenter.getExtendedNetWorth(userId);
+        return commandCenter.generateNetWorthVoice(nw, language);
+      }
+      case 'debt_summary': {
+        const debt = await commandCenter.getDebtSummary(userId);
+        return commandCenter.generateDebtVoice(debt, language);
+      }
+      case 'fire_progress': {
+        const fire = await commandCenter.calculateFIRE(userId);
+        if (!fire) return 'FIRE goal set nahi hai. Boliye "retire 50 saal mein 5 crore chahiye" toh set kar deta hoon.';
+        return commandCenter.generateFIREVoice(fire);
+      }
+      case 'add_loan': {
+        if (entities.amount && entities.loanType) {
+          const months = entities.months || 60;
+          await commandCenter.addLoanByVoice(userId, entities.loanType, entities.bankName || 'Bank', entities.amount, months);
+          return `${entities.loanType} loan add kar diya — ₹${entities.amount.toLocaleString('en-IN')} EMI, ${months} mahine.`;
+        }
+        return 'Loan type, EMI amount aur tenure batao — jaise "home loan 25000 EMI 240 mahine"';
+      }
+
+      // ── Spend Awareness ──
+      case 'purchase_check': {
+        if (entities.amount && entities.item) {
+          const result = await spendAwareness.checkPurchaseIntent(userId, entities.item, entities.amount);
+          if (!result.shouldAsk) return 'Yeh zaroori kharcha hai, kar lo.';
+          return result.voiceAlert;
+        }
+        return 'Kya kharidna hai aur kitne ka — jaise "phone kharidna hai 15000 ka"';
+      }
+      case 'monthly_summary': {
+        const summary = await spendAwareness.generateMonthlySummary(userId);
+        return summary.voice_summary;
+      }
+      case 'opportunity_cost': {
+        const amt = entities.amount || 1000;
+        const result = spendAwareness.calculateOpportunityCost(amt);
+        return result.voiceExplanation;
+      }
+
+      // ── Credit Intelligence ──
+      case 'credit_options': {
+        const amt = entities.amount || 100000;
+        const comparison = await creditIntel.getPortfolioBackedOptions(userId, amt);
+        return comparison.voice_explanation;
+      }
+      case 'borrowing_capacity': {
+        const cap = await creditIntel.calculateBorrowingCapacity(userId, entities.amount);
+        return creditIntel.generateCapacityVoice(cap);
+      }
+      case 'cheaper_than_cc': {
+        const amt = entities.amount || 50000;
+        const result = await creditIntel.suggestCheaperAlternative(userId, amt);
+        if (!result.hasCheaper) return 'Abhi aapke paas koi collateral nahi hai. FD ya mutual fund mein invest karo, phir sasta loan milega.';
+        return result.voiceAlert;
+      }
+
+      default:
+        return null;
+    }
+  } catch (error) {
+    console.error('[FeatureIntent] Error:', error);
+    return null;
+  }
 }

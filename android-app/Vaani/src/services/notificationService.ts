@@ -254,4 +254,124 @@ export async function scheduleAllNotifications(data: {
   }
 }
 
-export default { initializeNotifications, scheduleFDMaturityAlert, scheduleBudgetAlert, scheduleMilestoneAlert, scheduleWeeklySummary, cancelNotification, cancelAllNotifications, getPendingNotifications, saveNotificationConfig, loadNotificationConfig, checkFDMaturities, checkBudgetStatus, checkSavingsMilestones, scheduleAllNotifications };
+// ═══════════════════════════════════════════════════════════════════
+// NEW FEATURE MODULE NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Idle Money Alert (daily 9am) ────────────────────────────────
+export async function scheduleIdleMoneyAlert(idleAmount: number, suggestedProduct: string): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💰 पैसा बेकार बैठा है!',
+        body: `₹${idleAmount.toLocaleString('en-IN')} idle hai. ${suggestedProduct} mein lagao toh extra kamaayi hogi!`,
+        data: { type: 'idle_money', amount: idleAmount },
+        sound: true,
+      },
+      trigger: { hour: 9, minute: 0, repeats: true } as any,
+    });
+  } catch (e) { console.error('[Notify] Idle money alert failed:', e); }
+}
+
+// ─── Advance Tax Deadline (30 days before) ───────────────────────
+export async function scheduleAdvanceTaxAlert(quarter: number, deadlineDate: string, balanceDue: number): Promise<void> {
+  if (balanceDue <= 0) return;
+  const deadline = new Date(deadlineDate);
+  const alertDate = new Date(deadline.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (alertDate <= new Date()) return;
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `📋 Advance Tax Q${quarter} Reminder`,
+        body: `₹${balanceDue.toLocaleString('en-IN')} bharrna hai ${deadline.toLocaleDateString('hi-IN')} tak. Chalein?`,
+        data: { type: 'advance_tax', quarter, amount: balanceDue },
+        sound: true,
+      },
+      trigger: { date: alertDate } as any,
+    });
+  } catch (e) { console.error('[Notify] Advance tax alert failed:', e); }
+}
+
+// ─── TDS Threshold Alert ─────────────────────────────────────────
+export async function scheduleTDSThresholdAlert(clientName: string, totalAmount: number): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚠️ TDS Threshold Alert',
+        body: `${clientName} se ₹${totalAmount.toLocaleString('en-IN')} aa gaya — ₹1 lakh cross. PAN share karo unke saath.`,
+        data: { type: 'tds_threshold', client: clientName, amount: totalAmount },
+        sound: true,
+      },
+      trigger: null, // Immediate
+    });
+  } catch (e) { console.error('[Notify] TDS alert failed:', e); }
+}
+
+// ─── EMI Due Date Reminder (3 days before) ───────────────────────
+export async function scheduleEMIReminder(loanType: string, lenderName: string, emiAmount: number, emiDate: number): Promise<void> {
+  const now = new Date();
+  let nextEMI = new Date(now.getFullYear(), now.getMonth(), emiDate);
+  if (nextEMI <= now) nextEMI = new Date(now.getFullYear(), now.getMonth() + 1, emiDate);
+  const alertDate = new Date(nextEMI.getTime() - 3 * 24 * 60 * 60 * 1000);
+  if (alertDate <= now) return;
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `🏦 EMI Due: ${lenderName}`,
+        body: `₹${emiAmount.toLocaleString('en-IN')} ka ${loanType} EMI ${emiDate} tarikh ko katega. Balance check karo!`,
+        data: { type: 'emi_reminder', loanType, amount: emiAmount },
+        sound: true,
+      },
+      trigger: { date: alertDate } as any,
+    });
+  } catch (e) { console.error('[Notify] EMI reminder failed:', e); }
+}
+
+// ─── Year-End 80C Reminder (Jan-Mar) ─────────────────────────────
+export async function schedule80CReminder(remaining: number): Promise<void> {
+  if (remaining <= 0) return;
+  const now = new Date();
+  const month = now.getMonth(); // 0=Jan
+  if (month > 2) return; // Only Jan-Mar
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🧾 80C Tax Saving Reminder',
+        body: `₹${remaining.toLocaleString('en-IN')} ka 80C limit baaki hai! 31 March se pehle ELSS/PPF mein lagao.`,
+        data: { type: '80c_reminder', remaining },
+        sound: true,
+      },
+      trigger: { hour: 10, minute: 0, repeats: false } as any,
+    });
+  } catch (e) { console.error('[Notify] 80C reminder failed:', e); }
+}
+
+// ─── Freelancer Payment Reminder ─────────────────────────────────
+export async function schedulePaymentReminder(clientName: string, daysSinceLastPayment: number): Promise<void> {
+  if (daysSinceLastPayment < 30) return;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `💼 Payment Pending: ${clientName}`,
+        body: `${clientName} ka payment ${daysSinceLastPayment} din se pending hai. Follow up karo!`,
+        data: { type: 'payment_reminder', client: clientName },
+        sound: true,
+      },
+      trigger: null, // Immediate
+    });
+  } catch (e) { console.error('[Notify] Payment reminder failed:', e); }
+}
+
+export default {
+  initializeNotifications, scheduleFDMaturityAlert, scheduleBudgetAlert, scheduleMilestoneAlert,
+  scheduleWeeklySummary, cancelNotification, cancelAllNotifications, getPendingNotifications,
+  saveNotificationConfig, loadNotificationConfig, checkFDMaturities, checkBudgetStatus,
+  checkSavingsMilestones, scheduleAllNotifications,
+  // New feature notifications
+  scheduleIdleMoneyAlert, scheduleAdvanceTaxAlert, scheduleTDSThresholdAlert,
+  scheduleEMIReminder, schedule80CReminder, schedulePaymentReminder,
+};
+
