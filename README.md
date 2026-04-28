@@ -6,7 +6,9 @@
 
 > **Note:** Backend deployed on Render free tier — may take ~30s on first request (cold start). If it returns an error, refresh once.
 
-**Vaani** is a voice-first financial advisor that works in 22 Indian languages. No forms, no typing, no English required. Just speak and discover government schemes, compare FD rates, check eligibility, and get a personalized financial health score.
+**Vaani** is a voice-first financial advisor that works in 22 Indian languages. No forms, no typing, no English required. Just speak and discover government schemes, compare FD rates, manage your investments, track taxes, and get a personalized financial health score.
+
+---
 
 ## Mission
 
@@ -16,134 +18,239 @@ To bridge India's financial inclusion gap — reaching the 800 million+ Indians 
 - Financial advice should be free, not a bank product
 - Language should never be a barrier to financial literacy
 - The next billion users will access services by voice, not text
+- Simple Hindi/regional language — "aapki kul daulat kitni hai" not "net worth"
+
+---
 
 ## Features
 
-### Voice-First Chat
-- **22 Indian languages** with auto-detection from voice input
-- **Browser Web Speech API** for free unlimited TTS (no API key needed)
-- **ElevenLabs** premium voice option (saves API credits)
-- **Groq Whisper** for cloud STT — fast, accurate
-- **Local Whisper** (Xenova/transformers) — works offline, zero cost
-- Push-to-talk with 5-second countdown
-- Full-screen voice mode for accessibility
+### 💰 Idle Money Management
+- Detects idle balance across all connected accounts
+- Voice alert: "₹12,000 idle hai, liquid fund mein lagaein?"
+- One-voice-command deployment to liquid fund / T-bill
+- Calculates extra earnings potential from better investment
 
-### Government Schemes (22 schemes)
-- PM Kisan, Sukanya Samriddhi, Jan Dhan, PMJJBY, PMSBY, Atal Pension, PM Awas Yojana, MUDRA, Stand Up India, Kaushal Vikas, PM Vidyarthi, NPS, and more
-- Bilingual descriptions (Hindi + English), eligibility criteria, required documents, application modes, official websites, keyword tags for natural language search
+### 📊 Tax Intelligence
+- **Tax Harvesting**: "3 din ruko — LTCG ho jayega, ₹4,200 bachenge"
+- **80C Tracker**: Shows used/remaining from ₹1,50,000 limit
+- **Advance Tax Calculator**: 4 deadlines with balance due alerts
+- **TDS Auto-Detection**: Alerts when ₹30,000+ payment received
+- **Form 26AS Reconciliation**: Matches expected vs actual TDS
 
-### FD Rate Comparator
-- Compare rates from **SBI, HDFC, ICICI, PNB, Bank of Baroda, Axis, Kotak, India Post**
-- Senior citizen rates, tenure-specific rates (1yr, 2yr, 3yr, 5yr)
-- Post Office schemes: PPF, NSC, KVP, RD, Sukanya Samriddhi, SCSS, Mahila Samman
+### 🧾 Freelancer OS
+- Income logging by voice: "Rahul ne ₹25,000 bheja project ke liye"
+- Client-wise payment tagging with pending reminders
+- GST invoice generation by voice command
+- ITR data export for CA filing
+- TDS threshold detection with PAN reminder
 
-### Eligibility Checker
-- Conversational 2-3 question flows for insurance, pension, loan, and savings schemes
-- Auto-detects user profile from conversation (age, gender, occupation, income)
-- State-aware scheme matching
+### 🏦 Financial Command Center
+- Live net worth across all institutions (bank, FD, SIP, gold, crypto)
+- Voice: "Meri total daulat kitni hai?" → speaks in Hindi
+- Full debt picture (EMIs, credit cards, loans)
+- FIRE progress tracker with monthly savings needed
+- EMI burden alert if >40% of income
 
-### VAANI Score
-- Financial health score (0-100) computed from conversation history
-- 5 pillars: Emergency Fund, Insurance Coverage, Active Investments, Savings Rate, Debt Health
-- Level classification with Hindi advice
+### 🛒 Spend Awareness
+- Purchase intent check: "Kya aap sure hain?"
+- Opportunity cost shown: "₹3,000 = 10 saal mein ₹18,000"
+- Monthly spend summary by category (food, transport, shopping)
+- Wishlist with savings reminders
+- Budget vs actual tracking
 
-### Life-Event Investment Ladder
-- Detects: marriage, education, harvest, emergency, retirement
-- Generates contextual investment allocation with instruments and timelines
+### 💳 Credit Intelligence
+- Portfolio-backed loan explanation (LAMF)
+- "₹1,40,000 tak loan — 10.5% pe, credit card se 75% sasta"
+- Borrowing capacity calculator (EMI-based)
+- Interest rate comparison: CC 36% vs Personal 18% vs LAMF 10.5%
+- Savings calculator showing yearly interest difference
 
-### Micro-Nudge Savings
-- Detects idle balance, calculates savings potential
-- Suggests micro-SIP starting points (₹20-100)
+### 🎯 Core Features
+- **22 Indian languages** with auto-detection from voice
+- **FD/SIP Recommendations**: Multi-factor weighted scoring (goal fit 35%, liquidity 25%, return 20%, risk 10%, tenure 10%)
+- **Government Schemes**: 22 schemes with eligibility checker
+- **VAANI Score**: Financial health score 0-100 based on 5 pillars
+- **Life-Event Investment Ladder**: Marriage, education, retirement planning
 
-### Bank & CSC Locator
-- Find nearest banks and Common Service Centres by pincode
-- Returns phone numbers, websites, application instructions
+### 🔊 Voice Capabilities
+- Browser Web Speech API (free, unlimited TTS)
+- ElevenLabs premium voice option
+- Groq Whisper for cloud STT
+- Local Whisper (offline, zero cost)
+- Push-to-talk with visual countdown
 
-### Lead Capture
-- Phone validation, name sanitization, product interest detection
-- B2B financial product partnership pipeline
+---
 
-### OCR Document Scanner
-- Passbook/bank statement scanning via MiniMax OCR Pro (server-side proxy)
+## Architecture
 
-### Accessibility
-- Large text mode (explicit font sizes, no layout break)
-- High contrast mode (black bg, white text, green accents)
-- Vibration feedback on mobile
-- Keyboard navigation, ARIA labels
+### APK (React Native) — android-app/Vaani/
 
-### PWA & Offline
-- Installable on mobile/desktop
-- Service worker caches all assets
-- Offline-capable after first load
+```
+android-app/Vaani/src/
+├── screens/
+│   ├── CommandCenterScreen.tsx     # Net worth, FIRE, debt
+│   ├── FreelancerScreen.tsx        # Income, invoices, ITR
+│   ├── TaxIntelligenceScreen.tsx   # Harvesting, 80C, advance
+│   ├── SpendAwarenessScreen.tsx    # Budget, wishlist
+│   └── CreditIntelligenceScreen.tsx # LAMF, capacity
+├── services/
+│   ├── idleMoneyService.ts         # Idle balance detection
+│   ├── taxIntelligenceService.ts    # Tax harvesting, TDS
+│   ├── freelancerService.ts         # Income tracking, GST
+│   ├── commandCenterService.ts      # Net worth, FIRE
+│   ├── spendAwarenessService.ts     # Budget tracking
+│   ├── creditIntelligenceService.ts # LAMF, borrowing
+│   ├── recommendationEngine.ts      # FD/SIP scoring
+│   ├── amfiService.ts              # AMFI India API (10,000+ funds)
+│   └── fdScraperService.ts         # Bank rate scraping
+└── navigation/
+    └── AppNavigator.tsx            # Tab + Stack navigation
+```
+
+### Web (React/Vite) — src/
+
+```
+src/
+├── components/
+│   ├── dashboard/
+│   │   ├── CommandCenter.jsx        # Net worth, FIRE, debt
+│   │   ├── FreelancerOS.jsx        # Income, clients, ITR
+│   │   ├── TaxIntelligence.jsx      # Harvesting, 80C, advance
+│   │   ├── SpendAwareness.jsx       # Budget, wishlist
+│   │   ├── CreditIntelligence.jsx   # LAMF, capacity
+│   │   ├── Dashboard.jsx           # Main portfolio view
+│   │   ├── PortfolioChart.jsx      # Asset allocation
+│   │   ├── SIPTracker.jsx          # SIP monitoring
+│   │   ├── FDLadderTimeline.jsx    # FD maturity ladder
+│   │   └── CryptoWallet.jsx        # BTC/ETH live prices
+│   └── chat/
+│       ├── ChatWindow.jsx           # Message history
+│       ├── ChatInput.jsx            # Voice input
+│       ├── MessageBubble.jsx        # Chat messages
+│       └── InlineActionCard.jsx     # Action buttons
+├── context/
+│   ├── AuthContext.jsx             # Supabase auth
+│   ├── ChatContext.jsx             # Chat state
+│   └── LanguageContext.jsx         # 22 language support
+├── services/
+│   ├── minimaxService.js           # MiniMax M2.7 chat
+│   ├── recommendationService.js    # FD/SIP scoring
+│   └── ocrService.js               # Document scanning
+├── data/
+│   ├── schemes.js                  # 22 government schemes
+│   ├── fdRates.js                  # Bank FD rates
+│   └── languages.js               # 22 Indian languages
+└── pages/
+    ├── AppPage.jsx                 # Main app layout
+    ├── LandingPage.jsx             # Marketing page
+    └── AuthPage.jsx                # Auth flow
+```
+
+### Backend (Express.js) — server/
+
+```
+server/
+├── routes/
+│   ├── minimax.js     # MiniMax proxy
+│   ├── chat.js        # Streaming chat endpoint
+│   ├── stt.js         # Groq Whisper proxy
+│   ├── tts.js         # ElevenLabs proxy
+│   └── ocr.js         # Document scanning
+├── index.js
+└── socket.js          # Real-time updates
+```
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 18, Vite, Tailwind CSS, Framer Motion |
-| AI/ML | MiniMax M2.7 (chat), Groq Whisper (STT), Xenova/transformers (local Whisper) |
-| Voice | Browser Web Speech API, ElevenLabs, Franc (language detection) |
-| Backend | Express.js, Helmet, express-rate-limit, cors |
-| Data | React Context + hooks (no Redux) |
-| Deployment | Vercel (frontend), Render (backend) |
+| **APK Frontend** | React Native, TypeScript, React Navigation |
+| **Web Frontend** | React 18, Vite, Tailwind CSS |
+| **AI/ML** | MiniMax M2.7 (chat), Groq Whisper (STT), ElevenLabs (TTS) |
+| **Voice** | Browser Web Speech API, Franc (language detection) |
+| **Backend** | Express.js, Socket.IO, Helmet, rate-limiting |
+| **Database** | Supabase (PostgreSQL) |
+| **Deployment** | Vercel (web), APK builds |
 
-## Architecture
+---
 
-```
-Frontend (React/Vite)          Backend (Express.js)
-─────────────────────          ───────────────────
-src/
-├── components/          server/
-├── context/             ├── routes/
-├── hooks/              │   ├── minimax.js    # MiniMax proxy
-│   ├── useChat.js      │   ├── leads.js     # Lead capture
-│   ├── useVoice.js     │   ├── stt.js       # Groq Whisper proxy
-│   └── useLandingVoice │   ├── tts.js       # ElevenLabs proxy
-├── data/               │   ├── detect.js    # Language detection
-│   ├── schemes.js      │   └── ocr.js       # Document scanning
-│   ├── fdRates.js      └── index.js
-├── pages/
-└── services/
-    ├── minimaxService.js
-    ├── profileMatcher.js    # Proactive scheme matching
-    ├── vaaniScoreService.js # Financial health score
-    ├── lifeEventService.js  # Life-event detection
-    ├── microNudgeService.js # Savings nudges
-    ├── eligibilityService.js
-    ├── leadService.js
-    ├── locatorService.js     # Bank/CSC finder
-    └── languageDetector.js
-```
+## Getting Started
 
-## Quick Start (Local)
+### Web (Local)
 
 ```bash
-# Install frontend
+# Install dependencies
 npm install
 
-# Install backend
-cd server && npm install
+# Run development server
+npm run dev
+# Frontend: http://localhost:5173
 
-# Run both (two terminals)
-npm run dev          # Frontend: http://localhost:5173
-cd server && node index.js  # Backend: http://localhost:3001
+# Run backend
+cd server && npm install
+node index.js
+# Backend: http://localhost:3001
 ```
 
-## API Keys
+### APK (Android)
+
+```bash
+cd android-app/Vaani
+npm install
+npx expo start
+# Scan QR code with Expo Go app
+```
+
+---
+
+## API Keys Required
 
 - **MiniMax:** [platform.minimaxi.chat](https://platform.minimaxi.chat)
 - **Groq:** [console.groq.com/keys](https://console.groq.com/keys)
 - **ElevenLabs:** [elevenlabs.io](https://elevenlabs.io) (free tier: 10k chars/month)
+- **Supabase:** [supabase.com](https://supabase.com) (create project)
+
+---
+
+## Voice Commands Examples
+
+| Voice Command | Response |
+|---------------|----------|
+| " mera account mein 15,000 hain " | Logs balance, checks for idle money |
+| " ₹3,000 ka jacket kharidna hai " | "₹3,000 = 10 saal mein ₹18,000. Phir bhi?" |
+| " Rahul ne ₹50,000 bheja " | Logs income, tags to client |
+| " meri total daulat kitni hai " | Speaks net worth in Hindi |
+| " FD suggest karo " | Shows ranked FD recommendations |
+| " tax check karo " | Shows tax harvesting opportunities |
+| " invoice banao " | Generates GST invoice |
+
+---
 
 ## Security
 
 - API keys proxied through backend (never exposed in browser)
 - Helmet security headers (CSP, X-Frame, etc.)
 - Rate limiting on all API routes
-- Phone validation + name sanitization on lead capture
+- Supabase Row Level Security (RLS) enabled
 - Lead data requires admin auth header
+
+---
+
+## Database Schema (Supabase)
+
+```sql
+-- Core tables
+users, profiles, portfolios, transactions
+
+-- Feature tables
+idle_money_detections, tax_harvest_opportunities, freelancer_clients
+freelancer_invoices, investment_holdings, debt_tracker, fire_progress
+```
+
+---
 
 ## License
 
-MIT — Built for Bharat
+MIT — Built for Bharat 🇮🇳
