@@ -5,11 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /**
  * Freelancer OS — Income Tracking & Invoice Management
  */
 export default function FreelancerOS({ user }) {
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('income');
   
   // Mock data
@@ -29,11 +31,24 @@ export default function FreelancerOS({ user }) {
   const totalIncome = mockClients.reduce((sum, c) => sum + c.total_paid, 0);
   const totalTDS = mockClients.reduce((sum, c) => sum + c.tds_total, 0);
 
+  // Get text based on selected language
+  const t = (key) => {
+    const texts = {
+      hi: {
+        total_income: `Total income ${formatCurrency(totalIncome)}, ${mockClients.length} clients se. TDS total ${formatCurrency(totalTDS)}.`,
+        title: 'Freelancer OS',
+      },
+      en: {
+        total_income: `Total income is ${formatCurrency(totalIncome)} from ${mockClients.length} clients. TDS deducted: ${formatCurrency(totalTDS)}.`,
+        title: 'Freelancer OS',
+      },
+    };
+    return texts[language]?.[key] || texts.hi[key];
+  };
+
   const speakIncome = () => {
-    const msg = new SpeechSynthesisUtterance(
-      `Total income ${formatCurrency(totalIncome)}, ${mockClients.length} clients se. TDS total ${formatCurrency(totalTDS)}.`
-    );
-    msg.lang = 'hi-IN';
+    const msg = new SpeechSynthesisUtterance(t('total_income'));
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 

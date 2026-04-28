@@ -1,16 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════
 // VAANI Web Dashboard — Command Center Component
 // Financial Command Center for Web
-// Voice: "Meri total daulat kitni hai?"
+// Voice: "Meri total daulat kitni hai?" / "What's my net worth?"
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /**
  * Command Center — Financial Dashboard
  * Shows: Net Worth, FIRE Progress, Debt Summary, All Accounts
  */
 export default function CommandCenter({ user }) {
+  const { language } = useLanguage();
   const [netWorth, setNetWorth] = useState(null);
   const [debt, setDebt] = useState(null);
   const [fire, setFire] = useState(null);
@@ -62,11 +64,28 @@ export default function CommandCenter({ user }) {
   const formatCurrency = (amount) => '₹' + amount.toLocaleString('en-IN');
   const formatCrore = (amount) => (amount / 10000000).toFixed(2) + ' Cr';
 
+  // Get text based on selected language
+  const t = (key) => {
+    const texts = {
+      hi: {
+        net_worth_label: 'आपकी कुल दौलत',
+        net_worth_speech: `Aapki kul daulat ${formatCrore(mockNetWorth.net_worth)} hai. Assets ${formatCurrency(mockNetWorth.total_assets)}, liabilities ${formatCurrency(mockNetWorth.total_liabilities)}.`,
+        assets: 'Assets',
+        liabilities: 'Liabilities',
+      },
+      en: {
+        net_worth_label: 'Your Total Wealth',
+        net_worth_speech: `Your net worth is ${formatCrore(mockNetWorth.net_worth)}. Assets ${formatCurrency(mockNetWorth.total_assets)}, liabilities ${formatCurrency(mockNetWorth.total_liabilities)}.`,
+        assets: 'Assets',
+        liabilities: 'Liabilities',
+      },
+    };
+    return texts[language]?.[key] || texts.hi[key];
+  };
+
   const speakNetWorth = () => {
-    const msg = new SpeechSynthesisUtterance(
-      `Aapki kul daulat ${formatCrore(mockNetWorth.net_worth)} hai. Assets ${formatCurrency(mockNetWorth.total_assets)}, liabilities ${formatCurrency(mockNetWorth.total_liabilities)}.`
-    );
-    msg.lang = 'hi-IN';
+    const msg = new SpeechSynthesisUtterance(t('net_worth_speech'));
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 

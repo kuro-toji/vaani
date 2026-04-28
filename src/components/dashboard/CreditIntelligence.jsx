@@ -5,11 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /**
  * Credit Intelligence — LAMF, Borrowing Capacity, Rate Comparison
  */
 export default function CreditIntelligence({ user }) {
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('portfolio');
 
   // Mock data
@@ -40,11 +42,17 @@ export default function CreditIntelligence({ user }) {
 
   const formatCurrency = (amount) => '₹' + amount.toLocaleString('en-IN');
 
+  // Get text based on selected language
+  const getCreditLineText = () => {
+    if (language === 'en') {
+      return `You can get a loan of up to ₹${(mockPortfolio.total_value * 0.7).toLocaleString('en-IN')} against your ₹${mockPortfolio.total_value.toLocaleString('en-IN')} mutual funds at 10.5% interest. That's 75% cheaper than credit cards.`;
+    }
+    return `Aapke ₹${mockPortfolio.total_value.toLocaleString('en-IN')} ke mutual funds pe aap ₹${(mockPortfolio.total_value * 0.7).toLocaleString('en-IN')} tak loan le sakte ho at 10.5%. Credit card se 75% sasta.`;
+  };
+
   const speakCreditLine = () => {
-    const msg = new SpeechSynthesisUtterance(
-      `Aapke ₹${mockPortfolio.total_value.toLocaleString('en-IN')} ke mutual funds pe aap ₹${(mockPortfolio.total_value * 0.7).toLocaleString('en-IN')} tak loan le sakte ho at 10.5%. Credit card se 75% sasta.`
-    );
-    msg.lang = 'hi-IN';
+    const msg = new SpeechSynthesisUtterance(getCreditLineText());
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 

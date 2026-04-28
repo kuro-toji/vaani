@@ -5,11 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /**
  * Tax Intelligence — Tax Harvesting, 80C, Advance Tax
  */
 export default function TaxIntelligence({ user }) {
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('harvest');
 
   // Mock data
@@ -34,11 +36,22 @@ export default function TaxIntelligence({ user }) {
 
   const formatCurrency = (amount) => '₹' + amount.toLocaleString('en-IN');
 
+  // Get text based on selected language
+  const t = (key) => {
+    const texts = {
+      hi: {
+        80c_speech: `Aapka ₹${mock80C.remaining.toLocaleString('en-IN')} 80C limit baaki hai. ELSS fund mein invest karo — 3 saal lock-in, tax bhi bachega.`,
+      },
+      en: {
+        80c_speech: `You have ₹${mock80C.remaining.toLocaleString('en-IN')} remaining in your 80C limit. Invest in ELSS fund — 3 year lock-in, saves tax.`,
+      },
+    };
+    return texts[language]?.[key] || texts.hi[key];
+  };
+
   const speak80C = () => {
-    const msg = new SpeechSynthesisUtterance(
-      `Aapka ₹${mock80C.remaining.toLocaleString('en-IN')} 80C limit baaki hai. ELSS fund mein invest karo — 3 saal lock-in, tax bhi bachega.`
-    );
-    msg.lang = 'hi-IN';
+    const msg = new SpeechSynthesisUtterance(t('80c_speech'));
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 

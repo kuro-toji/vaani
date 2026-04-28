@@ -5,11 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 /**
  * Spend Awareness — Purchase Intent & Spending Analytics
  */
 export default function SpendAwareness({ user }) {
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('summary');
 
   // Mock data
@@ -34,19 +36,33 @@ export default function SpendAwareness({ user }) {
 
   const formatCurrency = (amount) => '₹' + amount.toLocaleString('en-IN');
 
+  // Get text based on selected language
+  const t = (key) => {
+    const texts = {
+      hi: {
+        summary: `Pichle mahine aapne ₹${mockMonthlySpending.total.toLocaleString('en-IN')} kharch kiye. Budget se ₹${mockMonthlySpending.exceeded.toLocaleString('en-IN')} zyada.`,
+        opportunity: `${item.item} ke ₹${item.amount.toLocaleString('en-IN')} agar 10 saal ke liye invest karo toh ₹${item.potential_return.toLocaleString('en-IN')} ho jaata at 20% yearly return. Phir bhi kharidna hai?`,
+      },
+      en: {
+        summary: `Last month you spent ₹${mockMonthlySpending.total.toLocaleString('en-IN')}. This is ₹${mockMonthlySpending.exceeded.toLocaleString('en-IN')} over budget.`,
+        opportunity: `₹${item.amount.toLocaleString('en-IN')} for ${item.item} invested for 10 years at 20% yearly return becomes ₹${item.potential_return.toLocaleString('en-IN')}. Still want to buy?`,
+      },
+    };
+    return texts[language]?.[key] || texts.hi[key];
+  };
+
   const speakSummary = () => {
-    const msg = new SpeechSynthesisUtterance(
-      `Pichle mahine aapne ₹${mockMonthlySpending.total.toLocaleString('en-IN')} kharch kiye. Budget se ₹${mockMonthlySpending.exceeded.toLocaleString('en-IN')} zyada.`
-    );
-    msg.lang = 'hi-IN';
+    const msg = new SpeechSynthesisUtterance(t('summary'));
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 
   const speakOpportunityCost = (item) => {
-    const msg = new SpeechSynthesisUtterance(
-      `${item.item} ke ₹${item.amount.toLocaleString('en-IN')} agar 10 saal ke liye invest karo toh ₹${item.potential_return.toLocaleString('en-IN')} ho jaata at 20% yearly return. Phir bhi kharidna hai?`
-    );
-    msg.lang = 'hi-IN';
+    const opportunityText = language === 'hi'
+      ? `${item.item} ke ₹${item.amount.toLocaleString('en-IN')} agar 10 saal ke liye invest karo toh ₹${item.potential_return.toLocaleString('en-IN')} ho jaata at 20% yearly return. Phir bhi kharidna hai?`
+      : `₹${item.amount.toLocaleString('en-IN')} for ${item.item} invested for 10 years at 20% yearly return becomes ₹${item.potential_return.toLocaleString('en-IN')}. Still want to buy?`;
+    const msg = new SpeechSynthesisUtterance(opportunityText);
+    msg.lang = language === 'en' ? 'en-IN' : 'hi-IN';
     speechSynthesis.speak(msg);
   };
 
