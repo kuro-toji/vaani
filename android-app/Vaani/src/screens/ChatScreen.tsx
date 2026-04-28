@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,42 +10,71 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
+import * as SpeechRecognition from 'expo-speech';
+import * as FileSystem from 'expo-file-system';
 import { COLORS } from '../constants';
 import { SCREEN } from '../navigation/AppNavigator';
 import type { ChatMessage } from '../types';
-import { getFDRecommendations, getSIPRecommendations, formatRecommendationForVoice } from '../services/recommendationEngine';
+import { sendChatMessage, handleFeatureIntent } from '../services/chatService';
+import { matchCommand, extractEntities } from '../services/voiceCommandService';
+import * as moneyService from '../services/moneyManagementService';
+import * as idleMoneyService from '../services/idleMoneyService';
+import * as taxIntelService from '../services/taxIntelligenceService';
+import * as freelancerService from '../services/freelancerService';
+import * as commandCenterService from '../services/commandCenterService';
+import * as spendAwarenessService from '../services/spendAwarenessService';
+import * as creditIntelService from '../services/creditIntelligenceService';
 
 const { width, height } = Dimensions.get('window');
-
-// Example conversation
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'assistant',
-    content: 'नमस्ते! मैं VAANI हूं, आपका वित्तीय सलाहकार। आज मैं आपकी कैसे मदद कर सकता हूं?',
-    created_at: new Date().toISOString(),
-  },
-];
 
 interface ChatScreenProps {
   navigation?: any;
 }
 
 export default function ChatScreen({ navigation }: ChatScreenProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [currentLanguage, setCurrentLanguage] = useState('hi');
   const flatListRef = useRef<FlatList>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const inputScaleAnim = useRef(new Animated.Value(1)).current;
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const userIdRef = useRef<string>('default_user');
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
+    initApp();
+    return () => {
+      if (recordingTimerRef.current) {
+        clearTimeout(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
+  const initApp = async () => {
+    try {
+      await moneyService.initDatabase();
+      const welcomeMessage: ChatMessage = {
+        id: '1',
+        role: 'assistant',
+        content: currentLanguage === 'hi' 
+          ? 'नमस्ते! मैं VAANI हूं, आपका वित्तीय सलाहकार। आज मैं आपकी कैसे मदद कर सकता हूं?'
+          : 'Hello! I am VAANI, your financial advisor. How can I help you today?',
+        created_at: new Date().toISOString(),
+      };
+      setMessages([welcomeMessage]);
+    } catch (error) {
+      console.error('Init error:', error);
+    }
+  };
+
+  useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -53,139 +82,202 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
     }
   }, [messages]);
 
+  const speakResponse = useCallback((text: string) => {
+    try {
+      Speech.speak(text, {
+        language: currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'bn' ? 'bn-IN' : 'en-IN',
+        rate: 0.9,
+        pitch: 1,
+      });
+    } catch (error) {
+      console.error('TTS error:', error);
+    }
+  }, [currentLanguage]);
+
+  const addMessage = useCallback((content: string, role: 'user' | 'assistant') => {
+    const msg: ChatMessage = {
+      id: Date.now().toString(),
+      role,
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, msg]);
+    return msg;
+  }, []);
+
+  const handleFeatureCommand = async (text: string): Promise<string | null> => {
+    try {
+      return await handleFeatureIntent(text, userIdRef.current, currentLanguage);
+    } catch (error) {
+      console.error('Feature intent error:', error);
+      return null;
+    }
+  };
+
+  const processUserMessage = async (text: string) => {
+    if (!text.trim()) return;
+
+    // Add user message
+    const userMsg = addMessage(text, 'user');
+    setIsTyping(true);
+
+    // First check for feature command (instant response)
+    const featureResponse = await handleFeatureCommand(text);
+    
+    if (featureResponse) {
+      const aiMsg = addMessage(featureResponse, 'assistant');
+      setIsTyping(false);
+      speakResponse(featureResponse);
+      return;
+    }
+
+    // Check for money/expense logging patterns
+    const expenseMatch = text.match(/(\d+)\s*(?:₹|rs\.?|rupay[ae]?|पैसे?)/i);
+    if (expenseMatch && (text.includes('kharch') || text.includes('खर्च') || text.includes('spent') || text.includes('दिया'))) {
+      const amount = parseInt(expenseMatch[1]);
+      const category = detectCategory(text);
+      await moneyService.addExpense(amount, category, text);
+      const response = currentLanguage === 'hi' 
+        ? `हो गया! ₹${amount} का खर्चा दर्ज कर दिया।`
+        : `Done! ₹${amount} expense logged.`;
+      const aiMsg = addMessage(response, 'assistant');
+      setIsTyping(false);
+      speakResponse(response);
+      return;
+    }
+
+    // Check for income logging patterns
+    const incomeMatch = text.match(/(?:client|se|ne)\s+(\w+).*?(\d+)\s*(?:₹|rs\.?|पैसे?)/i);
+    if (incomeMatch || text.includes('payment') || text.includes('aaya') || text.includes('आया')) {
+      const clientName = incomeMatch?.[1] || 'Unknown';
+      const amount = incomeMatch ? parseInt(incomeMatch[2]) : detectAmount(text);
+      if (amount > 0) {
+        const result = await freelancerService.logIncome(userIdRef.current, clientName, amount);
+        const aiMsg = addMessage(result.voiceConfirmation, 'assistant');
+        setIsTyping(false);
+        speakResponse(result.voiceConfirmation);
+        return;
+      }
+    }
+
+    // Fallback to AI chat
+    try {
+      let fullResponse = '';
+      await sendChatMessage(
+        messages,
+        text,
+        currentLanguage,
+        {
+          userName: 'User',
+          onToken: (token) => {
+            fullResponse += token;
+            setStreamingText(fullResponse);
+          },
+          onDone: (response) => {
+            const aiMsg = addMessage(response, 'assistant');
+            setIsTyping(false);
+            setStreamingText('');
+            speakResponse(response);
+          },
+          onError: (error) => {
+            const errorMsg = currentLanguage === 'hi'
+              ? 'Sorry, something went wrong. Please try again.'
+              : 'Sorry, something went wrong. Please try again.';
+            const aiMsg = addMessage(errorMsg, 'assistant');
+            setIsTyping(false);
+            setStreamingText('');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Chat error:', error);
+      const fallbackMsg = currentLanguage === 'hi'
+        ? 'माफ़ कीजिए, कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।'
+        : 'Sorry, something went wrong. Please try again.';
+      const aiMsg = addMessage(fallbackMsg, 'assistant');
+      setIsTyping(false);
+    }
+  };
+
+  const detectCategory = (text: string): string => {
+    const lower = text.toLowerCase();
+    if (/chai|khana|food|doodh|sabzi/i.test(lower)) return 'food';
+    if (/petrol|auto|uber|ola|bus|train/i.test(lower)) return 'transport';
+    if (/bijli|pani|gas|recharge|wifi|bill/i.test(lower)) return 'utilities';
+    if (/doctor|dawai|hospital|medical/i.test(lower)) return 'health';
+    if (/school|college|book|fees/i.test(lower)) return 'education';
+    if (/movie|game|netflix/i.test(lower)) return 'entertainment';
+    if (/cloth|amazon|flipkart|kapda/i.test(lower)) return 'shopping';
+    return 'other';
+  };
+
+  const detectAmount = (text: string): number => {
+    const match = text.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+
   const startRecording = async () => {
     try {
       const permission = await Audio.requestPermissionsAsync();
-      if (permission.status === 'granted') {
-        setIsRecording(true);
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulseAnim, {
-              toValue: 1.3,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseAnim, {
-              toValue: 1,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      if (permission.status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow microphone access for voice commands.');
+        return;
       }
+
+      setIsRecording(true);
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.3,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Auto-stop after 10 seconds
+      recordingTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, 10000);
     } catch (error) {
-      console.error('Recording error:', error);
+      console.error('Recording start error:', error);
+      setIsRecording(false);
     }
   };
 
   const stopRecording = async () => {
+    if (recordingTimerRef.current) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
     setIsRecording(false);
     pulseAnim.stopAnimation();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Add user's message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: 'आज मेरे खाते में कितना पैसा है?',
-      created_at: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, userMessage]);
-
-    // Simulate AI typing
-    setIsTyping(true);
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'आपके खाते में कुल ₹2,45,678 हैं। इसमें FD में ₹1,50,000, SIP में ₹80,000, और बचत खाते में ₹15,678 शामिल हैं।',
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-      
-      // Speak the response
-      Speech.speak(aiMessage.content, {
-        language: 'hi-IN',
-        rate: 0.9,
-        pitch: 1,
-      });
-    }, 1500);
+    // Simulate voice input for demo - in production, use expo-speech recognition
+    const voiceInput = inputText || generateDemoVoiceInput();
+    if (voiceInput.trim()) {
+      processUserMessage(voiceInput);
+    }
   };
 
-  // Check for recommendation intents
-  const checkRecommendationIntent = async (text: string): Promise<string | null> => {
-    const lower = text.toLowerCase();
-    
-    // FD recommendation patterns
-    if (lower.includes('fd') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('best') || lower.includes('konsa') || lower.includes('बताओ'))) {
-      const profile = { age: 30, incomeRange: 'medium' as const, investmentGoal: 'wealthBuild' as const, timeHorizon: 'medium' as const, liquidityNeed: 'medium' as const, riskAppetite: 'moderate' as const, isSenior: false };
-      const result = await getFDRecommendations(profile, { limit: 3 });
-      return formatRecommendationForVoice(result);
-    }
-    
-    // SIP recommendation patterns
-    if (lower.includes('sip') && (lower.includes('suggest') || lower.includes('recommend') || lower.includes('mutual fund') || lower.includes('निवेश'))) {
-      const profile = { age: 30, incomeRange: 'medium' as const, investmentGoal: 'wealthBuild' as const, timeHorizon: 'long' as const, liquidityNeed: 'low' as const, riskAppetite: 'moderate' as const, isSenior: false };
-      const result = await getSIPRecommendations(profile, { limit: 3 });
-      return formatRecommendationForVoice(result);
-    }
-    
-    return null;
-  };
-
-  const handleAIMessage = async (userText: string) => {
-    setIsTyping(true);
-    
-    // Check for recommendation intent first
-    const recommendationResponse = await checkRecommendationIntent(userText);
-    
-    if (recommendationResponse) {
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: recommendationResponse,
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-      Speech.speak(recommendationResponse, { language: 'hi-IN', rate: 0.9 });
-      return;
-    }
-    
-    // Default responses
-    setTimeout(() => {
-      const responses = [
-        'मैं समझ गया। आपके खर्चों का विश्लेषण करके बता रहा हूं।',
-        'आपका बजट इस महीने 80% खर्च हो चुका है। बाकी 20% में सावधानी से खर्च करें।',
-        'FD के बारे में और जानकारी चाहिए? मैं बता सकता हूं।',
-        'SIP के बारे में बताइए, मैं आपको सही फंड सुझा सकता हूं।',
-      ];
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsTyping(false);
-      Speech.speak(aiMessage.content, { language: 'hi-IN', rate: 0.9 });
-    }, 1200);
+  const generateDemoVoiceInput = (): string => {
+    // This simulates voice input for demo purposes
+    // In production, integrate with actual STT
+    return inputText;
   };
 
   const sendMessage = () => {
     if (!inputText.trim()) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: inputText,
-      created_at: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, userMessage]);
+    processUserMessage(inputText);
     setInputText('');
-    handleAIMessage(inputText);
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => (
@@ -196,10 +288,20 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
         </Text>
       </View>
       <Text style={styles.messageTime}>
-        {new Date(item.created_at).toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' })}
+        {new Date(item.created_at).toLocaleTimeString(currentLanguage === 'hi' ? 'hi-IN' : 'en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}
       </Text>
     </View>
   );
+
+  const quickActions = [
+    { icon: '💰', label: 'खर्चा', action: () => setInputText('खर्चा जोड़ो') },
+    { icon: '📊', label: 'नेट वर्थ', action: () => processUserMessage('net worth') },
+    { icon: '📈', label: 'SIP', action: () => processUserMessage('SIP suggest karo') },
+    { icon: '💳', label: 'EMI', action: () => processUserMessage('EMI kitna hai') },
+  ];
 
   return (
     <KeyboardAvoidingView
@@ -215,9 +317,23 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
           <Text style={styles.headerTitle}>VAANI AI</Text>
           <Text style={styles.headerSubtitle}>आपका वित्तीय सलाहकार</Text>
         </View>
-        <TouchableOpacity>
-          <Text style={styles.menuButton}>⋮</Text>
+        <TouchableOpacity onPress={() => setCurrentLanguage(currentLanguage === 'hi' ? 'en' : 'hi')}>
+          <Text style={styles.langButton}>{currentLanguage === 'hi' ? 'EN' : 'हि'}</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        {quickActions.map((action, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.quickActionBtn}
+            onPress={action.action}
+          >
+            <Text style={styles.quickActionIcon}>{action.icon}</Text>
+            <Text style={styles.quickActionLabel}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Messages */}
@@ -230,15 +346,22 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
         showsVerticalScrollIndicator={false}
       />
 
+      {/* Streaming indicator */}
+      {streamingText && (
+        <View style={styles.streamingContainer}>
+          <Text style={styles.streamingText}>{streamingText}</Text>
+        </View>
+      )}
+
       {/* Typing indicator */}
-      {isTyping && (
+      {isTyping && !streamingText && (
         <View style={styles.typingIndicator}>
           <View style={styles.typingDots}>
             {[0, 1, 2].map(i => (
-              <Animated.View key={i} style={styles.typingDot} />
+              <Animated.View key={i} style={[styles.typingDot, { opacity: 0.3 + i * 0.3 }]} />
             ))}
           </View>
-          <Text style={styles.typingText}>VAANI टाइप कर रहा है...</Text>
+          <Text style={styles.typingText}>VAANI सोच रहा है...</Text>
         </View>
       )}
 
@@ -260,7 +383,7 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
         {/* Text Input */}
         <TextInput
           style={styles.textInput}
-          placeholder="अपना संदेश लिखें..."
+          placeholder={currentLanguage === 'hi' ? 'अपना संदेश लिखें...' : 'Type your message...'}
           placeholderTextColor={COLORS.text_tertiary}
           value={inputText}
           onChangeText={setInputText}
@@ -279,7 +402,9 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
       </View>
 
       {/* Voice hint */}
-      <Text style={styles.voiceHint}>🎤 दबाए रखें बोलने के लिए</Text>
+      <Text style={styles.voiceHint}>
+        {isRecording ? '🔴 Recording...' : '🎤 दबाए रखें बोलने के लिए'}
+      </Text>
     </KeyboardAvoidingView>
   );
 }
