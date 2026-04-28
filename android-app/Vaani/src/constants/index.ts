@@ -61,6 +61,10 @@ export const API_CONFIG = {
   // Moralis - for Crypto prices
   MORALIS_API_KEY: process.env.EXPO_PUBLIC_MORALIS_API_KEY || '',
   MORALIS_URL: 'https://deep-index.moralis.io/api/v2.2',
+  
+  // Metals API - for Gold prices
+  METALS_API_KEY: process.env.EXPO_PUBLIC_METALS_API_KEY || 'demo',
+  METALS_API_URL: 'https://metals-api.com/api',
 };
 
 // Voice Settings
