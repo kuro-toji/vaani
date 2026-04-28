@@ -11,6 +11,12 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import AuthScreen from '../screens/AuthScreen';
 import MainScreen from '../screens/MainScreen';
 import ChatScreen from '../screens/ChatScreen';
+import CommandCenterScreen from '../screens/CommandCenterScreen';
+import FreelancerScreen from '../screens/FreelancerScreen';
+import TaxIntelligenceScreen from '../screens/TaxIntelligenceScreen';
+import SpendAwarenessScreen from '../screens/SpendAwarenessScreen';
+import CreditIntelligenceScreen from '../screens/CreditIntelligenceScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -120,6 +126,12 @@ export default function AppNavigator() {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="CommandCenter" component={CommandCenterScreen} />
+        <Stack.Screen name="Freelancer" component={FreelancerScreen} />
+        <Stack.Screen name="TaxIntelligence" component={TaxIntelligenceScreen} />
+        <Stack.Screen name="SpendAwareness" component={SpendAwarenessScreen} />
+        <Stack.Screen name="CreditIntelligence" component={CreditIntelligenceScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
