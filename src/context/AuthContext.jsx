@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
-// Development mode - accepts any 6-digit OTP without SMS
+// Development mode - instant login without real Supabase
 const DEV_MODE = import.meta.env.VITE_DEV_AUTH === 'true';
 
 const AuthContext = createContext(null);
@@ -14,8 +14,26 @@ export function AuthProvider({ children }) {
   // Load user session on mount
   useEffect(() => {
     async function initAuth() {
+      // DEV_MODE: Skip Supabase, create mock user immediately
+      if (DEV_MODE) {
+        console.log('[DEV_MODE] Skipping Supabase auth, creating mock user');
+        const mockUser = {
+          id: 'dev-user-001',
+          email: 'dev@vaani.app',
+          created_at: new Date().toISOString(),
+        };
+        setUser(mockUser);
+        setProfile({
+          id: mockUser.id,
+          preferred_lang: 'hi',
+          vaani_score: 0,
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Real Supabase flow
       try {
-        // Get current session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
@@ -31,7 +49,9 @@ export function AuthProvider({ children }) {
 
     initAuth();
 
-    // Listen for auth changes
+    // Only listen for auth changes in production (Supabase connected)
+    if (DEV_MODE) return;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
@@ -48,6 +68,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function loadProfile(userId) {
+    if (DEV_MODE) return; // No profile loading in dev mode
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -58,7 +80,6 @@ export function AuthProvider({ children }) {
       if (data) {
         setProfile(data);
       } else if (error?.code === 'PGRST116') {
-        // Profile doesn't exist, create one
         const newProfile = {
           id: userId,
           preferred_lang: 'hi',
@@ -86,13 +107,12 @@ export function AuthProvider({ children }) {
       return { message: 'OTP sent (mock)' };
     }
     
-    // Format phone number with +91 prefix
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     
     const { data, error } = await supabase.auth.signInWithOtp({
       phone: formattedPhone,
       options: {
-        channel: 'whatsapp', // Use WhatsApp instead of SMS
+        channel: 'whatsapp',
       },
     });
     
@@ -101,19 +121,16 @@ export function AuthProvider({ children }) {
   }
 
   async function verifyOTP(email, token) {
-    // Development mode - accept any 6-digit OTP
+    // DEV_MODE: Accept any OTP, create mock user
     if (DEV_MODE) {
-      console.log('[DEV MODE] OTP verified for:', email, 'Token:', token);
+      console.log('[DEV_MODE] OTP verified, creating mock user');
       
-      // Create a mock user for development
       const mockUser = {
-        id: 'dev-user-' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(-8),
-        email: email,
-        phone: null,
+        id: 'dev-user-' + btoa(email || 'default').replace(/[^a-zA-Z0-9]/g, '').slice(-8),
+        email: email || 'dev@vaani.app',
         created_at: new Date().toISOString(),
       };
       
-      // For development, create mock user and profile
       setUser(mockUser);
       setProfile({
         id: mockUser.id,
@@ -124,7 +141,7 @@ export function AuthProvider({ children }) {
       return { user: mockUser };
     }
     
-    // Verify email OTP with Supabase
+    // Real Supabase flow
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
       token: token,
@@ -133,7 +150,6 @@ export function AuthProvider({ children }) {
     
     if (error) throw error;
     
-    // Load profile after successful verification
     if (data.user) {
       await loadProfile(data.user.id);
     }
@@ -142,6 +158,10 @@ export function AuthProvider({ children }) {
   }
 
   async function signInWithEmail(email) {
+    if (DEV_MODE) {
+      return { message: 'OTP sent (mock)' };
+    }
+    
     const { data, error } = await supabase.auth.signInWithOtp({
       email: email,
     });
@@ -151,6 +171,12 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    if (DEV_MODE) {
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+    
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setUser(null);
@@ -158,6 +184,11 @@ export function AuthProvider({ children }) {
   }
 
   async function updateProfile(updates) {
+    if (DEV_MODE) {
+      setProfile(prev => ({ ...prev, ...updates }));
+      return profile;
+    }
+    
     if (!user) return null;
     
     const { data, error } = await supabase
