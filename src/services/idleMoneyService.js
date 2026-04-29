@@ -1,21 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════
-// VAANI Idle Money Service — Detect idle balance across accounts
-// Voice: "₹12,000 idle hai, liquid fund mein lagaein?"
+// VAANI Idle Money Service — Production Ready
+// Connects to Supabase for real user data
 // ═══════════════════════════════════════════════════════════════════
+import { supabase } from '../lib/supabase.js';
 
-// ─── Calculate Idle Money ───────────────────────────────────────
+// ─── Calculate Idle Money from User's Bank Balance ──────────────
 // idleMoney = totalBalance - emergencyFund - monthlyBudget - emiBuffer
 export function calculateIdleMoney(userData) {
   const {
     totalBankBalance = 0,
-    emergencyFundBuffer = 50000,  // Default ₹50k emergency fund
-    monthlyBudget = 30000,        // Default ₹30k monthly expenses
-    upcomingEMI = 0,              // Upcoming EMI payments
-    savingsGoals = 0,             // Money allocated to goals
-    lockedInvestments = 0,       // FDs, bonds, etc.
+    emergencyFundBuffer = 50000,
+    monthlyBudget = 30000,
+    upcomingEMI = 0,
+    savingsGoals = 0,
+    lockedInvestments = 0,
   } = userData;
 
-  // Calculate available balance
   const reservedAmount = emergencyFundBuffer + (monthlyBudget * 2) + upcomingEMI + savingsGoals + lockedInvestments;
   const idleAmount = Math.max(0, totalBankBalance - reservedAmount);
 
@@ -39,8 +39,68 @@ export function getLiquidFundRecommendation(idleAmount) {
     expectedReturn: 6.5,
     risk: 'Very Low',
     minAmount: 500,
-    link: 'https://groww.in/liquid-funds/sbi-liquid-fund-direct-growth',
+    link: 'https://groww.in/live-funds/sbi-liquid-fund-direct-growth',
   };
+}
+
+// ─── Save Idle Money Log to Supabase ────────────────────────────
+export async function saveIdleMoneyLog(userId, idleData, actionTaken = 'pending') {
+  try {
+    const { data, error } = await supabase
+      .from('idle_money_logs')
+      .insert({
+        user_id: userId,
+        total_balance: idleData.totalBalance,
+        reserved_amount: idleData.reservedAmount,
+        idle_amount: idleData.idleAmount,
+        suggestion_text: idleData.suggestion,
+        action_taken: actionTaken,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('[IdleMoney] Save error:', error);
+    return { success: false, error };
+  }
+}
+
+// ─── Get Idle Money History ─────────────────────────────────────
+export async function getIdleMoneyHistory(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('idle_money_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('[IdleMoney] Fetch error:', error);
+    return { success: false, data: [] };
+  }
+}
+
+// ─── Update Idle Money Action ────────────────────────────────────
+export async function updateIdleMoneyAction(logId, action) {
+  try {
+    const { data, error } = await supabase
+      .from('idle_money_logs')
+      .update({ action_taken: action })
+      .eq('id', logId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('[IdleMoney] Update error:', error);
+    return { success: false, error };
+  }
 }
 
 // ─── Format Idle Money Alert ─────────────────────────────────────
@@ -57,5 +117,8 @@ export function formatIdleMoneyAlert(idleData, lang = 'en') {
 export default {
   calculateIdleMoney,
   getLiquidFundRecommendation,
+  saveIdleMoneyLog,
+  getIdleMoneyHistory,
+  updateIdleMoneyAction,
   formatIdleMoneyAlert,
 };
