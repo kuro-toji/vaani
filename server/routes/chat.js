@@ -60,6 +60,75 @@ function checkRecommendationIntent(text) {
   return null;
 }
 
+// ─── Check Finance Intent (VAANI Features) ─────────────────────
+function checkFinanceIntent(text) {
+  const lower = text.toLowerCase();
+  
+  // Expense
+  if (lower.includes('kharch') || lower.includes('expense') || lower.includes('spent') || lower.includes('kharcha') || lower.includes('खर्च') || lower.includes('add expense')) {
+    return 'expense';
+  }
+  
+  // Idle Money
+  if (lower.includes('idle') || lower.includes('पैसा पड़ा') || lower.includes('free balance') || lower.includes('bikhar')) {
+    return 'idle';
+  }
+  
+  // Tax
+  if (lower.includes('tax') || lower.includes('कर') || lower.includes('tds') || lower.includes('ltcg') || lower.includes('tax intelligence')) {
+    return 'tax';
+  }
+  
+  // Freelancer / Income
+  if (lower.includes('income') || lower.includes('कमाई') || lower.includes('client') || lower.includes('bheja') || lower.includes('भेजा') || lower.includes('freelancer')) {
+    return 'freelance';
+  }
+  
+  // Net Worth / FIRE
+  if (lower.includes('daulat') || lower.includes('net worth') || lower.includes('total kitna') || lower.includes('wealth') || lower.includes('दौलत') || lower.includes('command center')) {
+    return 'networth';
+  }
+  
+  // Add investment
+  if (lower.includes('fd add') || lower.includes('sip add') || lower.includes('invest')) {
+    return 'invest';
+  }
+  
+  return null;
+}
+
+// ─── Format Finance Response ────────────────────────────────────
+function formatFinanceResponse(type, lang) {
+  const responses = {
+    expense: {
+      hi: '📝 Expense add karne ke liye simple bolo: "₹500 chai" ya "₹2000 rent" — main log kar dunga!',
+      en: '📝 Just say: "₹500 for chai" or "₹2000 rent" — I\'ll log it!',
+    },
+    idle: {
+      hi: '💰 Aapke bank mein idle paisa detect kar raha hoon. Main check karta hoon ki kya aapka Paisa zyada better jagah invest ho sakta hai!',
+      en: '💰 Checking for idle money in your accounts. Your money might be better invested somewhere!',
+    },
+    tax: {
+      hi: '📊 Aapka tax status check kar raha hoon. Advance tax deadline ya tax saving options bataunga!',
+      en: '📊 Checking your tax status. I\'ll tell you about advance tax deadlines and tax saving options!',
+    },
+    freelance: {
+      hi: '🧾 Aapke income ka record rakhna hai? Bolo "Rahul ne ₹25,000 bheja" — main log kar dunga!',
+      en: '🧾 Want to track income? Say "Rahul paid ₹25,000" — I\'ll log it!',
+    },
+    networth: {
+      hi: '🏦 Aapki kul daulat calculate kar raha hoon — FD, SIP, Crypto, Gold sab add kar raha hoon!',
+      en: '🏦 Calculating your total net worth — adding FD, SIP, Crypto, Gold all together!',
+    },
+    invest: {
+      hi: '📈 Naya investment add karna hai? FD ya SIP? Bolo bank ka naam aur amount!',
+      en: '📈 Want to add new investment? FD or SIP? Tell me the bank and amount!',
+    },
+  };
+  
+  return responses[type]?.[lang] || responses[type]?.en || 'Something went wrong!';
+}
+
 function formatRecommendationResponse(type, results, lang) {
   const label = type === 'fd' ? 'FD' : 'SIP';
   const top = results[0];
@@ -87,6 +156,21 @@ router.post('/', async (req, res) => {
       
       // Stream recommendation response
       const words = recResponse.split(' ');
+      for (const word of words) {
+        res.write(`data: ${word} \n`);
+        await new Promise(r => setTimeout(r, 15));
+      }
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+    
+    // Check for VAANI finance feature intents
+    const financeType = checkFinanceIntent(message);
+    if (financeType) {
+      const financeResponse = formatFinanceResponse(financeType, lang);
+      
+      const words = financeResponse.split(' ');
       for (const word of words) {
         res.write(`data: ${word} \n`);
         await new Promise(r => setTimeout(r, 15));
