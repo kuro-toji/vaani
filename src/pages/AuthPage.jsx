@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+// DEV_MODE - instant login without real Supabase
+const DEV_MODE = import.meta.env.VITE_DEV_AUTH === 'true';
+
 export default function AuthPage() {
-  const { signInWithEmail, verifyOTP, signOut, user, loading } = useAuth();
+  const { verifyOTP, signOut, user, loading } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -22,10 +25,21 @@ export default function AuthPage() {
     if (!email.includes('@')) { setError('Enter a valid email address'); return; }
     setError('');
     setSubmitting(true);
+    
     try {
-      await signInWithEmail(email);
-      setSent(true);
-      setStep('otp');
+      if (DEV_MODE) {
+        // DEV_MODE: Skip Supabase, go directly to OTP
+        console.log('[DEV MODE] Simulating OTP send to:', email);
+        await new Promise(r => setTimeout(r, 500)); // Simulate network delay
+        setSent(true);
+        setStep('otp');
+      } else {
+        // Real Supabase flow
+        const { signInWithEmail } = await import('../context/AuthContext.jsx').then(m => ({ signInWithEmail: m.useAuth().signInWithEmail }));
+        await signInWithEmail(email);
+        setSent(true);
+        setStep('otp');
+      }
     } catch (err) {
       setError(err.message || 'Failed to send OTP');
     } finally {
@@ -78,9 +92,19 @@ export default function AuthPage() {
           </div>
           <h1 className="font-semibold text-xl">Sign in to VAANI</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {step === 'email' ? 'Enter your email address' : 'Enter the OTP sent to your email'}
+            {DEV_MODE ? 'Development Mode (Instant Login)' : 
+             step === 'email' ? 'Enter your email address' : 'Enter the OTP sent to your email'}
           </p>
         </div>
+
+        {/* DEV_MODE Banner */}
+        {DEV_MODE && (
+          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #F59E0B' }}>
+            <p className="text-xs text-center" style={{ color: '#F59E0B' }}>
+              🚀 DEV_MODE: Any 6-digit OTP will work
+            </p>
+          </div>
+        )}
 
         {/* Email input */}
         {step === 'email' && (
@@ -107,11 +131,12 @@ export default function AuthPage() {
               className="btn btn-primary w-full"
               style={{ height: '48px', fontSize: '15px' }}
             >
-              {submitting ? 'Sending...' : 'Send OTP'}
+              {submitting ? 'Sending...' : DEV_MODE ? 'Continue (No OTP)' : 'Send OTP'}
             </button>
 
             <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              By continuing, you agree to VAANI's Terms of Service and Privacy Policy
+              {DEV_MODE ? 'Click Continue to skip email verification' : 
+               'By continuing, you agree to VAANI\'s Terms of Service and Privacy Policy'}
             </p>
           </div>
         )}
@@ -120,7 +145,7 @@ export default function AuthPage() {
         {step === 'otp' && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
-              OTP sent to <strong>{email}</strong>
+              {DEV_MODE ? 'Enter any 6 digits' : `OTP sent to ${email}`}
             </p>
             
             <div className="flex gap-2 justify-center">
@@ -167,23 +192,23 @@ export default function AuthPage() {
               {submitting ? 'Verifying...' : 'Verify & Continue'}
             </button>
 
-            <button
-              onClick={() => { setStep('email'); setOtp(''); setError(''); }}
-              className="btn btn-ghost text-sm"
-            >
-              ← Change email address
-            </button>
-
-            <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              Didn't receive OTP?{' '}
+            {!DEV_MODE && (
               <button
-                onClick={handleSendOTP}
-                className="underline"
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}
+                onClick={() => { setStep('email'); setOtp(''); setError(''); }}
+                className="btn btn-ghost text-sm"
               >
-                Resend
+                ← Change email address
               </button>
-            </p>
+            )}
+
+            {DEV_MODE && (
+              <button
+                onClick={() => { setStep('email'); setOtp(''); setError(''); }}
+                className="btn btn-ghost text-sm"
+              >
+                ← Back to email
+              </button>
+            )}
           </div>
         )}
       </div>
