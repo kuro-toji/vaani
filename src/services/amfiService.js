@@ -5,16 +5,15 @@
 
 const AMFI_API_BASE = 'https://api.mfapi.in/mf';
 
-// Cache for fund list (refreshes every hour)
+// Cache for fund list
 let fundListCache = null;
 let fundListCacheTime = 0;
-const CACHE_DURATION = 60 * 60 * 1000;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 // ─── Fetch All Funds ─────────────────────────────────────────────
 export async function fetchAllFunds() {
   const now = Date.now();
   
-  // Return cached list if still valid
   if (fundListCache && (now - fundListCacheTime) < CACHE_DURATION) {
     return fundListCache;
   }
@@ -26,6 +25,7 @@ export async function fetchAllFunds() {
     
     fundListCache = data;
     fundListCacheTime = now;
+    console.log('[AMFI] Fetched', data.length, 'funds');
     
     return data.sort((a, b) => a.schemeName.localeCompare(b.schemeName));
   } catch (error) {
@@ -42,7 +42,7 @@ export async function fetchNavByCode(schemeCode) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('[AMFI] Error fetching NAV:', error);
+    console.error('[AMFI] Error fetching NAV for code', schemeCode, ':', error);
     return null;
   }
 }
@@ -52,10 +52,17 @@ export async function getLatestNAV(schemeCode) {
   const data = await fetchNavByCode(schemeCode);
   if (!data || !data.data || data.data.length === 0) return null;
   
-  return {
-    nav: parseFloat(data.data[0].nav),
-    date: data.data[0].repDt,
-  };
+  // Find first entry with valid NAV
+  for (const entry of data.data) {
+    if (entry.nav && parseFloat(entry.nav) > 0) {
+      return {
+        nav: parseFloat(entry.nav),
+        date: entry.date || entry.repDt,
+      };
+    }
+  }
+  
+  return null;
 }
 
 // ─── Search Funds by Name ────────────────────────────────────────
@@ -70,7 +77,7 @@ export async function searchFunds(query) {
   ).slice(0, 20);
 }
 
-// ─── Get Top Funds by Category ───────────────────────────────────
+// ─── Get Top Funds by Category ──────────────────────────────────
 export async function getTopFundsByCategory(category, limit = 5) {
   const funds = await fetchAllFunds();
   const filtered = funds.filter(f => 
@@ -81,12 +88,12 @@ export async function getTopFundsByCategory(category, limit = 5) {
   
   for (const fund of filtered.slice(0, limit * 2)) {
     const navData = await fetchNavByCode(fund.schemeCode);
-    if (navData && navData.data && navData.data[0]?.nav) {
+    if (navData && navData.data && navData.data[0]?.nav && parseFloat(navData.data[0].nav) > 0) {
       results.push({
         schemeCode: fund.schemeCode,
-        schemeName: fund.schemeName,
+        schemeName: navData.meta?.schemeName || fund.schemeName,
         nav: parseFloat(navData.data[0].nav),
-        date: navData.data[0].repDt,
+        date: navData.data[0].date || navData.data[0].repDt,
       });
       if (results.length >= limit) break;
     }
@@ -97,28 +104,49 @@ export async function getTopFundsByCategory(category, limit = 5) {
 
 // ─── Get Popular SIP Funds (Large Cap) ───────────────────────────
 export async function getPopularSIPFunds() {
-  const popularCodes = [
-    119938, // HDFC Top 100
-    101714, // SBI Bluechip
-    101725, // ICICI Pru Bluechip
-    100023, // Axis Bluechip
-    119837, // Mirae Asset Large Cap
-  ];
+  const funds = await fetchAllFunds();
+  
+  // Search for large cap equity funds
+  const largeCapSearchTerms = ['large cap', 'blue chip', 'top 100', 'flexi cap', 'focus equity'];
+  
+  let largeCapFunds = [];
+  for (const term of largeCapSearchTerms) {
+    const found = funds.filter(f => 
+      f.schemeName.toLowerCase().includes(term) && 
+      !f.schemeName.toLowerCase().includes('direct') &&
+      !f.schemeName.toLowerCase().includes('dividend')
+    );
+    largeCapFunds = [...largeCapFunds, ...found];
+  }
+  
+  // Remove duplicates
+  const uniqueFunds = largeCapFunds.filter((f, i, arr) => 
+    arr.findIndex(x => x.schemeCode === f.schemeCode) === i
+  ).slice(0, 10);
   
   const results = [];
   
-  for (const code of popularCodes) {
-    const navData = await fetchNavByCode(code);
-    if (navData && navData.meta) {
-      results.push({
-        schemeCode: code,
-        schemeName: navData.meta.schemeName,
-        nav: parseFloat(navData.data?.[0]?.nav || 0),
-        date: navData.data?.[0]?.repDt,
-      });
+  for (const fund of uniqueFunds) {
+    try {
+      const navData = await fetchNavByCode(fund.schemeCode);
+      if (navData && navData.data && navData.data[0]?.nav) {
+        const nav = parseFloat(navData.data[0].nav);
+        if (nav > 0) {
+          results.push({
+            schemeCode: fund.schemeCode,
+            schemeName: navData.meta?.schemeName || fund.schemeName,
+            nav: nav,
+            date: navData.data[0].date || navData.data[0].repDt,
+          });
+          if (results.length >= 5) break;
+        }
+      }
+    } catch (e) {
+      console.log('[AMFI] Skipping fund', fund.schemeCode, 'due to error');
     }
   }
   
+  console.log('[AMFI] Found', results.length, 'valid SIP funds');
   return results;
 }
 
