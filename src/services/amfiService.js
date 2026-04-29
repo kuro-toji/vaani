@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // VAANI AMFI Service — Fetch SIP/NAV from official AMFI India API
 // API: https://api.mfapi.in/mf — Free, no API key, 10,000+ funds
+// FIXED: Deduplicate funds, filter Direct plans
 // ═══════════════════════════════════════════════════════════════════
 
 const AMFI_API_BASE = 'https://api.mfapi.in/mf';
@@ -23,15 +24,44 @@ export async function fetchAllFunds() {
     if (!response.ok) throw new Error('Failed to fetch funds');
     const data = await response.json();
     
-    fundListCache = data;
-    fundListCacheTime = now;
-    console.log('[AMFI] Fetched', data.length, 'funds');
+    // Filter out duplicates and Direct plans
+    const filtered = data.filter(f => {
+      const name = (f.schemeName || '').toLowerCase();
+      // Only keep Regular plans (exclude Direct plans)
+      // Keep only first occurrence of each scheme base name
+      return !name.includes('direct plan');
+    });
     
-    return data.sort((a, b) => a.schemeName.localeCompare(b.schemeName));
+    // Deduplicate by normalized name
+    const seen = new Set();
+    const unique = filtered.filter(f => {
+      const baseName = getBaseName(f.schemeName);
+      if (seen.has(baseName)) return false;
+      seen.add(baseName);
+      return true;
+    });
+    
+    fundListCache = unique;
+    fundListCacheTime = now;
+    console.log('[AMFI] Fetched', data.length, 'funds, filtered to', unique.length, 'unique regular plans');
+    
+    return unique.sort((a, b) => a.schemeName.localeCompare(b.schemeName));
   } catch (error) {
     console.error('[AMFI] Error fetching funds:', error);
     return [];
   }
+}
+
+// ─── Get Base Name (remove Regular/Growth/Dividend suffixes) ────
+function getBaseName(name) {
+  if (!name) return '';
+  return name
+    .replace(/\s*-\s*Regular\s*/gi, ' - ')
+    .replace(/\s*-\s*Growth\s*/gi, '')
+    .replace(/\s*-\s*Dividend\s*/gi, '')
+    .replace(/\s*Direct\s*/gi, '')
+    .trim()
+    .toLowerCase();
 }
 
 // ─── Fetch NAV by Scheme Code ───────────────────────────────────
@@ -106,23 +136,25 @@ export async function getTopFundsByCategory(category, limit = 5) {
 export async function getPopularSIPFunds() {
   const funds = await fetchAllFunds();
   
-  // Search for large cap equity funds
+  // Search for large cap equity funds (Regular plans only)
   const largeCapSearchTerms = ['large cap', 'blue chip', 'top 100', 'flexi cap', 'focus equity'];
   
   let largeCapFunds = [];
   for (const term of largeCapSearchTerms) {
     const found = funds.filter(f => 
-      f.schemeName.toLowerCase().includes(term) && 
-      !f.schemeName.toLowerCase().includes('direct') &&
-      !f.schemeName.toLowerCase().includes('dividend')
+      f.schemeName.toLowerCase().includes(term)
     );
     largeCapFunds = [...largeCapFunds, ...found];
   }
   
-  // Remove duplicates
-  const uniqueFunds = largeCapFunds.filter((f, i, arr) => 
-    arr.findIndex(x => x.schemeCode === f.schemeCode) === i
-  ).slice(0, 10);
+  // Remove duplicates by base name
+  const seen = new Set();
+  const uniqueFunds = largeCapFunds.filter(f => {
+    const base = getBaseName(f.schemeName);
+    if (seen.has(base)) return false;
+    seen.add(base);
+    return true;
+  }).slice(0, 10);
   
   const results = [];
   
@@ -134,7 +166,7 @@ export async function getPopularSIPFunds() {
         if (nav > 0) {
           results.push({
             schemeCode: fund.schemeCode,
-            schemeName: navData.meta?.schemeName || fund.schemeName,
+            schemeName: formatFundName(navData.meta?.schemeName || fund.schemeName),
             nav: nav,
             date: navData.data[0].date || navData.data[0].repDt,
           });
@@ -146,17 +178,30 @@ export async function getPopularSIPFunds() {
     }
   }
   
-  console.log('[AMFI] Found', results.length, 'valid SIP funds');
+  console.log('[AMFI] Found', results.length, 'valid SIP funds (deduplicated)');
   return results;
 }
 
 // ─── Format Fund Name for Display ────────────────────────────────
 export function formatFundName(name) {
-  const parts = name.split(' - ');
-  if (parts.length >= 2) {
-    return parts.slice(0, 2).join(' - ');
+  if (!name) return '';
+  
+  // Remove common suffixes
+  let formatted = name
+    .replace(/\s*-\s*Regular\s*/gi, ' - ')
+    .replace(/\s*-\s*Growth\s*/gi, '')
+    .replace(/\s*-\s*Dividend\s*/gi, '')
+    .replace(/\s*Direct\s*/gi, '')
+    .replace(/\s*Monthly\s*/gi, '')
+    .replace(/\s*Half-Yearly\s*/gi, '')
+    .trim();
+  
+  // Shorten if too long
+  if (formatted.length > 40) {
+    formatted = formatted.split(' - ')[0] || formatted;
   }
-  return name;
+  
+  return formatted;
 }
 
 export default {
