@@ -119,8 +119,48 @@ router.post('/', async (req, res) => {
 
     let fullResponse = '';
 
-    // Try Groq first (free tier, faster)
-    if (GROQ_API_KEY) {
+    // Try MiniMax M2.7 first (user's preferred model)
+    if (MINIMAX_API_KEY) {
+      try {
+        const response = await fetch(MINIMAX_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${MINIMAX_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'MiniMax-M2.7',
+            messages: messages,
+            max_tokens: 512,
+            temperature: 0.8,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          fullResponse = data?.choices?.[0]?.message?.content || '';
+          
+          if (fullResponse) {
+            // Stream word by word
+            const words = fullResponse.split(' ');
+            for (const word of words) {
+              res.write(`data: ${word} \n`);
+              await new Promise(r => setTimeout(r, 20));
+            }
+            res.write('data: [DONE]\n\n');
+            res.end();
+            return;
+          }
+        } else {
+          console.error('[chat] MiniMax M2.7 error:', response.status, await response.text());
+        }
+      } catch (apiErr) {
+        console.error('[chat] MiniMax API error:', apiErr.message);
+      }
+    }
+
+    // Try Groq as fallback (free tier)
+    if (!fullResponse && GROQ_API_KEY) {
       try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -153,74 +193,6 @@ router.post('/', async (req, res) => {
         }
       } catch (apiErr) {
         console.error('[chat] Groq error:', apiErr.message);
-      }
-    }
-
-    // Try MiniMax if Groq failed
-    if (!fullResponse && MINIMAX_API_KEY) {
-      try {
-        const response = await fetch(MINIMAX_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${MINIMAX_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'MiniMax-M2.7',
-            messages: messages,
-            stream: true,
-            max_tokens: 512,
-            temperature: 0.8,
-          }),
-        });
-
-        if (response.ok && response.body) {
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = '';
-
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                if (!line.trim() || line.startsWith(':')) continue;
-
-                let parsed;
-                try {
-                  parsed = JSON.parse(line);
-                } catch {
-                  const match = line.match(/^data:\s*(.+)/);
-                  if (match) {
-                    try { parsed = JSON.parse(match[1]); } catch { continue; }
-                  } else { continue; }
-                }
-
-                const content = parsed?.choices?.[0]?.delta?.content
-                  || parsed?.choices?.[0]?.message?.content
-                  || parsed?.choices?.[0]?.messages?.[0]?.content
-                  || '';
-
-                if (content) {
-                  res.write(`data: ${content}\n`);
-                }
-              }
-            }
-          } catch (streamErr) {
-            console.error('[chat] Stream read error:', streamErr.message);
-          }
-
-          res.write('data: [DONE]\n');
-          res.end();
-          return;
-        }
-      } catch (apiErr) {
-        console.error('[chat] MiniMax API error:', apiErr.message);
       }
     }
 
