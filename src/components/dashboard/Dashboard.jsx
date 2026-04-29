@@ -48,7 +48,8 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [vaaniScore, setVaaniScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showExample, setShowExample] = useState(!SUPABASE_CONFIGURED);
+  // Always show example data by default (real Supabase data requires tables to exist)
+  const [showExample, setShowExample] = useState(true);
 
   // Load portfolio + transactions from Supabase
   useEffect(() => {
