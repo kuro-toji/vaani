@@ -10,7 +10,7 @@ import TransactionList from './TransactionList.jsx';
 import QuickActions from './QuickActions.jsx';
 import { getTopFDs } from '../../services/fdRatesService.js';
 import { getPopularSIPFunds } from '../../services/amfiService.js';
-import { getMultiplePrices, POPULAR_SYMBOLS } from '../../services/binanceService.js';
+import { getMultiplePrices } from '../../services/binanceService.js';
 
 // DEV_MODE - show example data without Supabase
 const DEV_MODE = import.meta.env.VITE_DEV_AUTH === 'true';
@@ -30,6 +30,10 @@ const EXAMPLE_DATA = {
     { id: '7', type: 'crypto', coin: 'Bitcoin', symbol: 'BTC', amount: 0.0021, current_value: 8400, buy_price: 7350, blockchain: 'bitcoin', start_date: '2024-01-01' },
     { id: '8', type: 'crypto', coin: 'Ethereum', symbol: 'ETH', amount: 0.05, current_value: 5200, buy_price: 4800, blockchain: 'ethereum', start_date: '2024-02-01' },
   ],
+  transactions: [
+    { id: 101, date: new Date().toISOString(), description: 'FD Deposit — Suryoday', amount: -15000, type: 'debit', category: 'investment' },
+    { id: 102, date: new Date().toISOString(), description: 'SIP — Mirae Asset', amount: -2000, type: 'debit', category: 'investment' },
+  ],
 };
 
 export default function Dashboard() {
@@ -47,12 +51,12 @@ export default function Dashboard() {
       setLiveLoading(true);
       try {
         // Fetch FD rates (real from our service)
-        const fdRates = getTopFDs();
+        const fdRates = getTopFDs() || [];
         
         // Fetch SIP NAV from AMFI (real mutual fund prices)
         let sipNav = [];
         try {
-          sipNav = await getPopularSIPFunds();
+          sipNav = await getPopularSIPFunds() || [];
         } catch (e) {
           console.log('[Dashboard] AMFI fetch failed, using fallback');
         }
@@ -61,7 +65,7 @@ export default function Dashboard() {
         let cryptoPrices = [];
         try {
           const topCrypto = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT'];
-          cryptoPrices = await getMultiplePrices(topCrypto);
+          cryptoPrices = await getMultiplePrices(topCrypto) || [];
         } catch (e) {
           console.log('[Dashboard] Binance fetch failed, using fallback');
         }
@@ -69,6 +73,7 @@ export default function Dashboard() {
         setLiveData({ fdRates, sipNav, cryptoPrices });
       } catch (error) {
         console.error('[Dashboard] Error fetching live data:', error);
+        setLiveData({ fdRates: [], sipNav: [], cryptoPrices: [] });
       }
       setLiveLoading(false);
     }
@@ -96,20 +101,24 @@ export default function Dashboard() {
 
     async function load() {
       setLoading(true);
-      const [pfRes, txRes] = await Promise.all([
-        supabase.from('portfolios').select('*').eq('user_id', user.id),
-        supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
-      ]);
+      try {
+        const [pfRes, txRes] = await Promise.all([
+          supabase.from('portfolios').select('*').eq('user_id', user.id),
+          supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
+        ]);
 
-      if (pfRes.data && pfRes.data.length > 0) {
-        setPortfolio({
-          fd: pfRes.data.filter(p => p.type === 'fd'),
-          sip: pfRes.data.filter(p => p.type === 'sip'),
-          crypto: pfRes.data.filter(p => p.type === 'crypto'),
-        });
-      }
-      if (txRes.data && txRes.data.length > 0) {
-        setTransactions(txRes.data);
+        if (pfRes.data && pfRes.data.length > 0) {
+          setPortfolio({
+            fd: pfRes.data.filter(p => p.type === 'fd'),
+            sip: pfRes.data.filter(p => p.type === 'sip'),
+            crypto: pfRes.data.filter(p => p.type === 'crypto'),
+          });
+        }
+        if (txRes.data && txRes.data.length > 0) {
+          setTransactions(txRes.data);
+        }
+      } catch (e) {
+        console.error('[Dashboard] Supabase load error:', e);
       }
       setLoading(false);
     }
@@ -140,6 +149,11 @@ export default function Dashboard() {
     );
   }
 
+  // Safe access to liveData
+  const fdRates = liveData?.fdRates || [];
+  const sipNav = liveData?.sipNav || [];
+  const cryptoPrices = liveData?.cryptoPrices || [];
+
   return (
     <div className="flex flex-col gap-6 p-6" style={{ maxWidth: '100%' }}>
       <div className="flex items-center justify-between">
@@ -159,7 +173,7 @@ export default function Dashboard() {
       </div>
 
       {/* Live Market Data Banner */}
-      {liveData.fdRates.length > 0 && (
+      {fdRates.length > 0 && (
         <div className="card p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--primary-muted)' }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">📈 Live Market Rates</h3>
@@ -170,9 +184,9 @@ export default function Dashboard() {
           <div className="mb-3">
             <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>🏦 Top FD Rates (1 Year)</p>
             <div className="flex gap-2 overflow-x-auto">
-              {liveData.fdRates.slice(0, 4).map((fd, i) => (
+              {fdRates.slice(0, 4).map((fd, i) => (
                 <div key={i} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-base)', minWidth: '120px' }}>
-                  <p className="font-bold text-sm">{fd.bankName.split(' ').slice(0, 2).join(' ')}</p>
+                  <p className="font-bold text-sm">{fd.bankName?.split(' ').slice(0, 2).join(' ') || fd.bankName}</p>
                   <p className="text-lg font-bold" style={{ color: 'var(--primary)' }}>{fd.displayRate}%</p>
                   <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{fd.tenureLabel}</p>
                 </div>
@@ -181,14 +195,14 @@ export default function Dashboard() {
           </div>
           
           {/* SIP NAV */}
-          {liveData.sipNav.length > 0 && (
+          {sipNav.length > 0 && (
             <div className="mb-3">
               <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>📊 SIP Fund NAV</p>
               <div className="flex gap-2 overflow-x-auto">
-                {liveData.sipNav.slice(0, 4).map((sip, i) => (
+                {sipNav.slice(0, 4).map((sip, i) => (
                   <div key={i} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-base)', minWidth: '140px' }}>
-                    <p className="font-medium text-xs truncate" style={{ maxWidth: '130px' }}>{sip.schemeName.split(' - ')[0]}</p>
-                    <p className="text-lg font-bold" style={{ color: 'var(--success)' }}>₹{sip.nav.toFixed(2)}</p>
+                    <p className="font-medium text-xs truncate" style={{ maxWidth: '130px' }}>{sip.schemeName?.split(' - ')[0] || sip.schemeName}</p>
+                    <p className="text-lg font-bold" style={{ color: 'var(--success)' }}>₹{sip.nav?.toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -196,16 +210,16 @@ export default function Dashboard() {
           )}
           
           {/* Crypto Prices */}
-          {liveData.cryptoPrices.length > 0 && (
+          {cryptoPrices.length > 0 && (
             <div>
               <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>₿ Crypto Prices</p>
               <div className="flex gap-2 overflow-x-auto">
-                {liveData.cryptoPrices.slice(0, 5).map((crypto, i) => (
+                {cryptoPrices.slice(0, 5).map((crypto, i) => (
                   <div key={i} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-base)', minWidth: '100px' }}>
                     <p className="font-bold text-sm">{crypto.coinName}</p>
-                    <p className="text-sm font-bold">₹{crypto.priceInINR.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    <p className="text-xs" style={{ color: crypto.change24h >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                      {crypto.change24h >= 0 ? '▲' : '▼'} {Math.abs(crypto.change24h).toFixed(2)}%
+                    <p className="text-sm font-bold">₹{crypto.priceInINR?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p className="text-xs" style={{ color: (crypto.change24h || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                      {(crypto.change24h || 0) >= 0 ? '▲' : '▼'} {Math.abs(crypto.change24h || 0).toFixed(2)}%
                     </p>
                   </div>
                 ))}
