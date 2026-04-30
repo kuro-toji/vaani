@@ -6,22 +6,7 @@ import ChatWindow from '../components/chat/ChatWindow.jsx';
 import Dashboard from '../components/dashboard/Dashboard.jsx';
 
 export default function AppPage() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !user) navigate('/auth');
-  }, [user, loading, navigate]);
-
-  if (loading || !user) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--gold)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Loading VAANI...</span>
-      </div>
-    </div>
-  );
 
   return (
     <ChatProvider>
