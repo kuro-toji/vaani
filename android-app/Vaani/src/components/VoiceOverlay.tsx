@@ -149,9 +149,16 @@ export default function VoiceOverlay({ navigation, language = 'hi', accessibilit
           onPress={isListening ? stopListening : startListening}
           activeOpacity={0.7}
           accessibilityLabel={language === 'en' ? 'Tap to speak to VAANI' : 'VAANI से बात करने के लिए टैप करें'}
+          accessibilityHint={language === 'en' ? 'Double tap to start voice recording' : 'डबल टैप करें वॉइस रिकॉर्डिंग शुरू करने के लिए'}
           accessibilityRole="button"
+          accessibilityState={{ expanded: isListening, disabled: false }}
         >
           <Text style={[styles.fabIcon, isLargeMode && { fontSize: 32 }]}>{isListening ? '⏹️' : '🎤'}</Text>
+          {isLargeMode && (
+            <Text style={styles.accessibilityLabel}>
+              {isListening ? (language === 'en' ? 'Recording' : 'रिकॉर्डिंग') : (language === 'en' ? 'Voice' : 'आवाज़')}
+            </Text>
+          )}
         </TouchableOpacity>
       </Animated.View>
 
@@ -245,4 +252,7 @@ const styles = StyleSheet.create({
   responseLabel: { fontSize: 10, color: COLORS.gold, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   responseText: { fontSize: 16, color: COLORS.text_primary, lineHeight: 22 },
   hint: { fontSize: 12, color: COLORS.text_tertiary, marginTop: 8 },
+  accessibilityLabel: {
+    fontSize: 10, color: COLORS.text_inverse, marginTop: 4, textAlign: 'center', fontWeight: '600',
+  },
 });
