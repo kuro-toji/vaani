@@ -2,7 +2,7 @@
 
 > Financial inclusion for India's next 800 million — in your language, by your voice.
 
-**Live Demo:** [https://vaani-gold-theta.vercel.app](https://vaani-gold-theta.vercel.app)
+**Live Demo:** [https://vaani-amber.vercel.app](https://vaani-amber.vercel.app)
 
 > **Note:** Backend deployed on Render free tier — may take ~30s on first request (cold start). If it returns an error, refresh once.
 
@@ -101,8 +101,7 @@ android-app/Vaani/src/
 │   ├── spendAwarenessService.ts     # Budget tracking
 │   ├── creditIntelligenceService.ts # LAMF, borrowing
 │   ├── recommendationEngine.ts      # FD/SIP scoring
-│   ├── amfiService.ts              # AMFI India API (10,000+ funds)
-│   └── fdScraperService.ts         # Bank rate scraping
+│   └── amfiService.ts              # AMFI India API (10,000+ funds)
 └── navigation/
     └── AppNavigator.tsx            # Tab + Stack navigation
 ```
@@ -172,7 +171,7 @@ server/
 | **Voice** | Browser Web Speech API, Franc (language detection) |
 | **Backend** | Express.js, Socket.IO, Helmet, rate-limiting |
 | **Database** | Supabase (PostgreSQL) |
-| **Deployment** | Vercel (web), APK builds |
+| **Deployment** | Vercel (web), Render (backend) |
 
 ---
 
@@ -202,6 +201,34 @@ npm install
 npx expo start
 # Scan QR code with Expo Go app
 ```
+
+---
+
+## Deployment
+
+### Backend (Render)
+
+1. Create account at [render.com](https://render.com)
+2. Connect your GitHub repository
+3. Create a new **Web Service** pointing to `server/`
+4. Add environment variables from `.env.example`:
+   - `PORT=3001`
+   - `CORS_ORIGINS=https://your-frontend.vercel.app`
+   - `MINIMAX_API_KEY`
+   - `GROQ_API_KEY`
+   - `ELEVENLABS_API_KEY`
+   - `GEMINI_API_KEY`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+5. Deploy (auto-deploys on push to `server/`)
+
+### Frontend (Vercel)
+
+1. Create account at [vercel.com](https://vercel.com)
+2. Import your GitHub repository
+3. Set environment variable:
+   - `VITE_API_URL=https://your-backend.onrender.com`
+4. Deploy (auto-deploys on push to `main`)
 
 ---
 
