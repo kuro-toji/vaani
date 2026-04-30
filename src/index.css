@@ -191,6 +191,13 @@ body {
 }
 .btn-outline:hover:not(:disabled) { background: var(--gold); color: var(--ink); }
 
+.link-gold {
+  background: none; border: none; color: var(--gold); cursor: pointer;
+  font-size: 14px; padding: 0; text-decoration: none;
+  transition: opacity 0.2s;
+}
+.link-gold:hover { opacity: 0.7; }
+
 .btn-ghost {
   background: transparent; color: var(--text-secondary);
   border: none; padding: 8px 16px;
