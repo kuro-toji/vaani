@@ -15,13 +15,13 @@ import {
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import * as SpeechRecognition from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { COLORS } from '../constants';
 import { SCREEN } from '../navigation/AppNavigator';
 import type { ChatMessage } from '../types';
 import { sendChatMessage, handleFeatureIntent } from '../services/chatService';
 import { matchCommand, extractEntities } from '../services/voiceCommandService';
+import { transcribeAudio } from '../services/sttService';
 import * as moneyService from '../services/moneyManagementService';
 import * as idleMoneyService from '../services/idleMoneyService';
 import * as taxIntelService from '../services/taxIntelligenceService';
@@ -46,6 +46,7 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
   const flatListRef = useRef<FlatList>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recording = useRef<Audio.Recording | null>(null);
   const userIdRef = useRef<string>('default_user');
 
   useEffect(() => {
@@ -224,7 +225,17 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
         return;
       }
 
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recording.current = rec;
       setIsRecording(true);
+
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -261,17 +272,33 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
     pulseAnim.stopAnimation();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Simulate voice input for demo - in production, use expo-speech recognition
-    const voiceInput = inputText || generateDemoVoiceInput();
-    if (voiceInput.trim()) {
-      processUserMessage(voiceInput);
-    }
-  };
+    // Get recorded audio URI and transcribe
+    if (recording.current) {
+      try {
+        await recording.current.stopAndUnloadAsync();
+        const uri = recording.current.getURI();
+        recording.current = null;
 
-  const generateDemoVoiceInput = (): string => {
-    // This simulates voice input for demo purposes
-    // In production, integrate with actual STT
-    return inputText;
+        if (uri) {
+          setIsTyping(true);
+          const result = await transcribeAudio(uri, currentLanguage);
+          
+          if (result && result.text && result.text.trim().length > 0) {
+            processUserMessage(result.text);
+          } else {
+            const fallbackMsg = currentLanguage === 'hi'
+              ? 'समझ नहीं आया, फिर से बोलिए।'
+              : 'Could not understand. Please try again.';
+            const aiMsg = addMessage(fallbackMsg, 'assistant');
+            speakResponse(fallbackMsg);
+          }
+          setIsTyping(false);
+        }
+      } catch (error) {
+        console.error('[ChatScreen] Recording stop error:', error);
+        setIsTyping(false);
+      }
+    }
   };
 
   const sendMessage = () => {
