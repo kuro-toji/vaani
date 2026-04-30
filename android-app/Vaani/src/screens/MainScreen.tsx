@@ -3,7 +3,9 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   ScrollView, Dimensions, Platform, StatusBar, RefreshControl,
 } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 import { COLORS, RADIUS } from '../constants';
 import { fetchCryptoPrices, getFDRates, fetchSIPNav, formatPrice, formatChange, formatMarketCap, CryptoData, FDRate, SIPFund } from '../services/marketDataService';
 import { announceScreen } from '../services/voiceNavService';
@@ -32,16 +34,98 @@ export default function MainScreen({ navigation }: MainScreenProps) {
     } catch (e) { console.error('[Main] Load error:', e); }
   }, []);
 
+  // Voice summary ref for tracking significant price changes
+  const prevPricesRef = useRef<Record<string, number>>({});
+  const lastAnnouncementRef = useRef<number>(0);
+
+  // Voice summary when app comes to foreground
+  const announceMarketSummary = useCallback(async (cryptoData: CryptoData[]) => {
+    if (cryptoData.length === 0) return;
+    
+    // Throttle announcements to every 5 minutes
+    const now = Date.now();
+    if (now - lastAnnouncementRef.current < 300000) return;
+    lastAnnouncementRef.current = now;
+
+    const btc = cryptoData.find(c => c.symbol === 'BTC');
+    const eth = cryptoData.find(c => c.symbol === 'ETH');
+    
+    if (btc && eth) {
+      const btcChange = btc.change24h >= 0 ? `up ${btc.change24h.toFixed(1)} percent` : `down ${Math.abs(btc.change24h).toFixed(1)} percent`;
+      const ethChange = eth.change24h >= 0 ? `up ${eth.change24h.toFixed(1)} percent` : `down ${Math.abs(eth.change24h).toFixed(1)} percent`;
+      
+      const summary = `Welcome back! Bitcoin is ${btcChange} today. Ethereum is ${ethChange}. Say hey Vaani for any question.`;
+      
+      try {
+        Speech.speak(summary, { language: 'en-IN', rate: 0.9 });
+      } catch (e) {
+        console.warn('[Main] TTS error:', e);
+      }
+    }
+  }, []);
+
+  // Check for significant price changes and announce
+  const checkPriceAlerts = useCallback((newCrypto: CryptoData[]) => {
+    const prevPrices = prevPricesRef.current;
+    
+    newCrypto.forEach(coin => {
+      const prevPrice = prevPrices[coin.symbol];
+      if (prevPrice && prevPrice > 0) {
+        const change = ((coin.price - prevPrice) / prevPrice) * 100;
+        
+        // Alert if price changed by more than 5%
+        if (Math.abs(change) >= 5) {
+          const direction = change >= 0 ? 'up' : 'down';
+          const summary = `${coin.name} is ${direction} ${Math.abs(change).toFixed(1)} percent!`;
+          
+          try {
+            Speech.speak(summary, { language: 'en-IN', rate: 0.9 });
+          } catch (e) {
+            console.warn('[Main] Price alert TTS error:', e);
+          }
+        }
+      }
+      prevPricesRef.current[coin.symbol] = coin.price;
+    });
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
       await loadData();
       setLoading(false);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+      
+      // Initial voice summary
+      setTimeout(() => announceMarketSummary(crypto), 1500);
     })();
-    const interval = setInterval(loadData, 60000);
-    return () => clearInterval(interval);
-  }, [loadData]);
+
+    // 60 second auto-refresh
+    const interval = setInterval(async () => {
+      await loadData();
+    }, 60000);
+
+    // AppState listener for foreground refresh + voice summary
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        loadData();
+        setTimeout(() => announceMarketSummary(crypto), 1000);
+      }
+    };
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
+  }, [loadData, announceMarketSummary]);
+
+  // Check price alerts when crypto data updates
+  useEffect(() => {
+    if (crypto.length > 0) {
+      checkPriceAlerts(crypto);
+    }
+  }, [crypto, checkPriceAlerts]);
 
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
