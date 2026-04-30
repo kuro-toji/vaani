@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import rateLimit from 'express-rate-limit';
 
 const connectedUsers = new Map();
 
@@ -39,6 +40,16 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
+// ─── VALIDATION HELPERS ─────────────────────────────────────────────────────
+
+// Validate userId format (UUID or alphanumeric string)
+function isValidUserId(userId) {
+  if (!userId || typeof userId !== 'string') return false;
+  if (userId.length < 3 || userId.length > 100) return false;
+  // Allow alphanumeric, hyphens, underscores (typical for user IDs)
+  return /^[a-zA-Z0-9_-]+$/.test(userId);
+}
+
 // ─── SOCKET.IO INIT ──────────────────────────────────────────────────────────
 
 export function initSocket(httpServer) {
@@ -52,11 +63,23 @@ export function initSocket(httpServer) {
     pingInterval: 25000,
   });
 
+  // Track message rate per socket for basic DDoS protection
+  const messageRates = new Map();
+  const RATE_WINDOW = 60000; // 1 minute
+  const MAX_MESSAGES = 30; // max 30 messages per minute
+
   io.on('connection', (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
+    messageRates.set(socket.id, { count: 0, resetTime: Date.now() + RATE_WINDOW });
 
     socket.on('auth:join', ({ userId }) => {
-      if (!userId) return;
+      // Validate userId format
+      if (!isValidUserId(userId)) {
+        console.warn(`[Socket] Invalid userId format from ${socket.id}:`, userId);
+        socket.emit('auth:error', { message: 'Invalid user ID format' });
+        return;
+      }
+
       socket.userId = userId;
       connectedUsers.set(socket.id, { userId });
       socket.join(`user:${userId}`);
@@ -73,7 +96,22 @@ export function initSocket(httpServer) {
 
         // Auth check
         if (!userId) {
-          return socket.emit('chat:error', { message: 'Not authenticated' });
+          return socket.emit('chat:error', { message: 'Not authenticated. Please join first.' });
+        }
+
+        // Rate limit check
+        const rateData = messageRates.get(socket.id);
+        if (rateData) {
+          if (Date.now() > rateData.resetTime) {
+            rateData.count = 0;
+            rateData.resetTime = Date.now() + RATE_WINDOW;
+          }
+          if (rateData.count >= MAX_MESSAGES) {
+            console.warn(`[Socket] Rate limit exceeded for ${socket.id}`);
+            socket.emit('chat:error', { message: 'Rate limit exceeded. Please wait.' });
+            return;
+          }
+          rateData.count++;
         }
 
         const lang = language || 'hi';
@@ -282,6 +320,7 @@ export function initSocket(httpServer) {
         connectedUsers.delete(socket.id);
         console.log(`[Socket] Disconnected: ${socket.id} (user: ${user.userId})`);
       }
+      messageRates.delete(socket.id);
     });
   });
 

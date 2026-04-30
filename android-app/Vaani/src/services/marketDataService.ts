@@ -76,6 +76,7 @@ export async function fetchCryptoPrices(): Promise<CryptoData[]> {
     
     const res = await fetch(url, {
       headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000), // 10s timeout
     });
 
     if (!res.ok) {
@@ -168,7 +169,9 @@ export async function fetchSIPNav(): Promise<SIPFund[]> {
   
   for (const scheme of SIP_SCHEME_CODES) {
     try {
-      const res = await fetch(`https://api.mfapi.in/mf/${scheme.code}/latest`);
+      const res = await fetch(`https://api.mfapi.in/mf/${scheme.code}/latest`, {
+        signal: AbortSignal.timeout(8000), // 8s timeout per fund
+      });
       if (!res.ok) continue;
       const data = await res.json();
       const latest = data?.data?.[0];

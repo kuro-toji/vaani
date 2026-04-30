@@ -7,14 +7,24 @@ import express from 'express';
 
 const router = express.Router();
 
-// Hardcoded Supabase credentials (same as frontend)
-const SUPABASE_URL = 'https://dqdievbkvakaptxhzxft.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxZGlldmJrdmFrYXB0eGh6eGZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDQxNjMsImV4cCI6MjA5MzAyMDE2M30.J-bBpt8Dy9QQoXlWufDo95uT7kmdMwOca_pg7saDKLI';
+// Supabase credentials from environment variables — NEVER hardcode
+const getSupabaseConfig = () => {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    console.warn('[MarketData] Supabase env vars not set — using placeholder (data will not persist)');
+    return { url: 'https://placeholder.supabase.co', key: 'placeholder-key' };
+  }
+  
+  return { url, key };
+};
 
 // ─── Supabase Helper ──────────────────────────────────────────────
 async function supabase() {
   const { createClient } = await import('@supabase/supabase-js');
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const config = getSupabaseConfig();
+  return createClient(config.url, config.key);
 }
 
 // ─── FD Rates from Database (LIVE from Supabase) ──────────────────
