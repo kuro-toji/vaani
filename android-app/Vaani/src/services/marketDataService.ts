@@ -1,7 +1,9 @@
-// ═══════════════════════════════════════════════════════════════════
+ // ═══════════════════════════════════════════════════════════════════
 // VAANI Live Market Data Service — Real Binance+CoinGecko+AMFI+FD
 // Fetches real prices continuously with caching & auto-refresh
 // ═══════════════════════════════════════════════════════════════════
+
+import { setCryptoCache, getCryptoCache, setSIPCache, getSIPCache } from './cacheService';
 
 export interface CryptoData {
   symbol: string;
@@ -77,7 +79,12 @@ export async function fetchCryptoPrices(): Promise<CryptoData[]> {
     });
 
     if (!res.ok) {
-      console.warn(`[Market] CoinGecko ${res.status}, using cache`);
+      console.warn(`[Market] CoinGecko ${res.status}, trying offline cache`);
+      const cached = await getCryptoCache();
+      if (cached && cached.length > 0) {
+        console.log('[Market] Using offline crypto cache');
+        return cached;
+      }
       return cryptoCache;
     }
 
@@ -95,10 +102,20 @@ export async function fetchCryptoPrices(): Promise<CryptoData[]> {
       rank: coin.market_cap_rank,
     }));
     cryptoCacheTime = now;
+    
+    // Persist to AsyncStorage for offline access
+    await setCryptoCache(cryptoCache);
+    
     console.log(`[Market] Crypto: ${cryptoCache.length} coins loaded`);
     return cryptoCache;
   } catch (e) {
     console.error('[Market] Crypto fetch error:', e);
+    // Try offline cache on network error
+    const cached = await getCryptoCache();
+    if (cached && cached.length > 0) {
+      console.log('[Market] Network error - using offline crypto cache');
+      return cached;
+    }
     return cryptoCache;
   }
 }
@@ -174,7 +191,16 @@ export async function fetchSIPNav(): Promise<SIPFund[]> {
   if (results.length > 0) {
     sipCache = results;
     sipCacheTime = now;
+    // Persist to AsyncStorage for offline access
+    await setSIPCache(sipCache);
     console.log(`[Market] SIP: ${results.length} funds loaded`);
+  } else {
+    // Try offline cache on fetch failure
+    const cached = await getSIPCache();
+    if (cached && cached.length > 0) {
+      sipCache = cached;
+      console.log('[Market] SIP fetch failed - using offline cache');
+    }
   }
   return sipCache;
 }
