@@ -141,6 +141,20 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface ActionCard {
+  type: string;
+  title: string;
+  data: Record<string, any>;
+}
+
+// Transcription Result
+export interface TranscriptionResult {
+  text: string;
+  language: string;
+  confidence: number;
+  duration: number;
+}
+
 // Language Types
 export interface Language {
   code: string;
@@ -148,21 +162,22 @@ export interface Language {
   nativeName: string;
   script: string;
   direction: 'ltr' | 'rtl';
+  groqCode: string;
 }
 
 export const SUPPORTED_LANGUAGES: Language[] = [
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', script: 'devanagari', direction: 'ltr' },
-  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', script: 'bengali', direction: 'ltr' },
-  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', script: 'tamil', direction: 'ltr' },
-  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', script: 'telugu', direction: 'ltr' },
-  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', script: 'devanagari', direction: 'ltr' },
-  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', script: 'gujarati', direction: 'ltr' },
-  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', script: 'kannada', direction: 'ltr' },
-  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', script: 'malayalam', direction: 'ltr' },
-  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', script: 'gurmukhi', direction: 'ltr' },
-  { code: 'or', name: 'Odia', nativeName: 'ଓଡ଼ିଆ', script: 'oriya', direction: 'ltr' },
-  { code: 'ur', name: 'Urdu', nativeName: 'اردو', script: 'arabic', direction: 'rtl' },
-  { code: 'en', name: 'English', nativeName: 'English', script: 'latin', direction: 'ltr' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', script: 'devanagari', direction: 'ltr', groqCode: 'hi' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', script: 'bengali', direction: 'ltr', groqCode: 'bn' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', script: 'tamil', direction: 'ltr', groqCode: 'ta' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', script: 'telugu', direction: 'ltr', groqCode: 'te' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', script: 'devanagari', direction: 'ltr', groqCode: 'mr' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', script: 'gujarati', direction: 'ltr', groqCode: 'gu' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', script: 'kannada', direction: 'ltr', groqCode: 'kn' },
+  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', script: 'malayalam', direction: 'ltr', groqCode: 'ml' },
+  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', script: 'gurmukhi', direction: 'ltr', groqCode: 'pa' },
+  { code: 'or', name: 'Odia', nativeName: 'ଓଡ଼ିଆ', script: 'oriya', direction: 'ltr', groqCode: 'or' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو', script: 'arabic', direction: 'rtl', groqCode: 'ur' },
+  { code: 'en', name: 'English', nativeName: 'English', script: 'latin', direction: 'ltr', groqCode: 'en' },
 ];
 
 // Dialect Metaphors

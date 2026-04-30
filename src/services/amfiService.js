@@ -1,15 +1,60 @@
 // ═══════════════════════════════════════════════════════════════════
 // VAANI AMFI Service — Fetch SIP/NAV from official AMFI India API
 // API: https://api.mfapi.in/mf — Free, no API key, 10,000+ funds
-// FIXED: Deduplicate funds, filter Direct plans
+// LIVE DATA: Fetches real NAV from AMFI India every request
 // ═══════════════════════════════════════════════════════════════════
 
 const AMFI_API_BASE = 'https://api.mfapi.in/mf';
+const SUPABASE_URL = 'https://dqdievbkvakaptxhzxft.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxZGlldmJrdmFrYXB0eGh6eGZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDQxNjMsImV4cCI6MjA5MzAyMDE2M30.J-bBpt8Dy9QQoXlWufDo95uT7kmdMwOca_pg7saDKLI';
 
 // Cache for fund list
 let fundListCache = null;
 let fundListCacheTime = 0;
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
+// ─── Popular Fund Codes (hardcoded for speed) ─────────────────────
+const POPULAR_FUNDS = [
+  { code: 134336, name: 'HDFC Focused Equity', house: 'HDFC' },
+  { code: 108467, name: 'ICICI Bluechip', house: 'ICICI' },
+  { code: 118826, name: 'Mirae Large Cap', house: 'Mirae' },
+  { code: 140813, name: 'Groww Largecap', house: 'Groww' },
+  { code: 154154, name: 'Parag Parikh Large Cap', house: 'PPFAS' },
+];
+
+// ─── Sync to Supabase ─────────────────────────────────────────────
+async function syncToSupabase(funds) {
+  try {
+    for (const fund of funds) {
+      const payload = {
+        scheme_code: String(fund.code),
+        scheme_name: fund.name,
+        nav: parseFloat(fund.nav) || 0,
+        nav_date: fund.date || new Date().toISOString().slice(0, 10),
+        updated_at: new Date().toISOString()
+      };
+      
+      // Use PATCH to update existing rows, or POST with on_conflict
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/nav_cache?on_conflict=scheme_code`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      // 409 = conflict (already exists, that's fine), 400 = schema mismatch (skip silently)
+      if (!response.ok && response.status !== 409 && response.status !== 400) {
+        console.warn('[AMFI] Sync warning for fund', fund.code, response.status);
+      }
+    }
+  } catch (e) {
+    // Non-critical — market data still works from AMFI API directly
+  }
+}
 
 // ─── Fetch All Funds ─────────────────────────────────────────────
 export async function fetchAllFunds() {
@@ -132,53 +177,47 @@ export async function getTopFundsByCategory(category, limit = 5) {
   return results;
 }
 
-// ─── Get Popular SIP Funds (Large Cap) ───────────────────────────
-export async function getPopularSIPFunds() {
-  const funds = await fetchAllFunds();
-  
-  // Search for large cap equity funds (Regular plans only)
-  const largeCapSearchTerms = ['large cap', 'blue chip', 'top 100', 'flexi cap', 'focus equity'];
-  
-  let largeCapFunds = [];
-  for (const term of largeCapSearchTerms) {
-    const found = funds.filter(f => 
-      f.schemeName.toLowerCase().includes(term)
-    );
-    largeCapFunds = [...largeCapFunds, ...found];
+async function fetchNavLive(code) {
+  try {
+    const response = await fetch(`${AMFI_API_BASE}/${code}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.data || data.data.length === 0) return null;
+    return {
+      nav: parseFloat(data.data[0].nav),
+      date: data.data[0].date,
+      name: data.meta?.scheme_name || 'Unknown',
+    };
+  } catch (e) {
+    return null;
   }
-  
-  // Remove duplicates by base name
-  const seen = new Set();
-  const uniqueFunds = largeCapFunds.filter(f => {
-    const base = getBaseName(f.schemeName);
-    if (seen.has(base)) return false;
-    seen.add(base);
-    return true;
-  }).slice(0, 10);
-  
+}
+
+// ─── Get Popular SIP Funds (LIVE from AMFI API) ───────────────────
+export async function getPopularSIPFunds() {
+  // Fetch NAV for popular funds directly from AMFI API
   const results = [];
+  const supabaseResults = [];
   
-  for (const fund of uniqueFunds) {
-    try {
-      const navData = await fetchNavByCode(fund.schemeCode);
-      if (navData && navData.data && navData.data[0]?.nav) {
-        const nav = parseFloat(navData.data[0].nav);
-        if (nav > 0) {
-          results.push({
-            schemeCode: fund.schemeCode,
-            schemeName: formatFundName(navData.meta?.schemeName || fund.schemeName),
-            nav: nav,
-            date: navData.data[0].date || navData.data[0].repDt,
-          });
-          if (results.length >= 5) break;
-        }
-      }
-    } catch (e) {
-      console.log('[AMFI] Skipping fund', fund.schemeCode, 'due to error');
+  for (const fund of POPULAR_FUNDS) {
+    const navData = await fetchNavLive(fund.code);
+    if (navData && navData.nav > 0) {
+      results.push({
+        schemeCode: fund.code,
+        schemeName: navData.name,
+        nav: navData.nav,
+        date: navData.date,
+      });
+      supabaseResults.push({ code: fund.code, name: fund.name, nav: navData.nav, date: navData.date });
     }
   }
   
-  console.log('[AMFI] Found', results.length, 'valid SIP funds (deduplicated)');
+  // Sync to Supabase in background
+  if (supabaseResults.length > 0) {
+    syncToSupabase(supabaseResults).catch(() => {});
+  }
+  
+  console.log('[AMFI] Live NAV fetched for', results.length, 'funds');
   return results;
 }
 

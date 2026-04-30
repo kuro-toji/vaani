@@ -140,8 +140,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingBottom: 12,
   },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '500' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text_primary },
+  backBtn: { fontSize: 14, color: COLORS.gold, fontWeight: '400' },
+  headerTitle: { fontSize: 18, fontWeight: '300', color: COLORS.text_primary, letterSpacing: 1 },
   content: { paddingHorizontal: 24, paddingTop: 20 },
 
   typeRow: { flexDirection: 'row', gap: 10, marginBottom: 30 },
@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
   catLabel: { fontSize: 13, fontWeight: '500', color: COLORS.text_primary },
 
   saveBtn: {
-    backgroundColor: COLORS.primary, paddingVertical: 18, borderRadius: RADIUS.lg,
-    alignItems: 'center', shadowColor: COLORS.primary,
+    backgroundColor: COLORS.gold, paddingVertical: 18, borderRadius: RADIUS.lg,
+    alignItems: 'center', shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
-  saveBtnText: { fontSize: 18, fontWeight: '700', color: COLORS.text_inverse },
+  saveBtnText: { fontSize: 18, fontWeight: '600', color: COLORS.text_inverse },
 });

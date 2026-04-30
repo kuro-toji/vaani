@@ -12,6 +12,17 @@ import commandCenter from './commandCenterService';
 import spendAwareness from './spendAwarenessService';
 import creditIntel from './creditIntelligenceService';
 
+// ─── Strip Think Tags (MiniMax M2.7 internal reasoning) ─────────
+function stripThinkTags(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<\|think\|>[\s\S]*?<\|\/think\|>/g, '')
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/g, '')
+    .replace(/<\|start_think\|>[\s\S]*?<\|end_think\|>/g, '')
+    .trim();
+}
+
 // ─── System Prompt ──────────────────────────────────────────────
 function getSystemPrompt(language: string, userName?: string, region?: string): string {
   const dialectMap = DIALECT_METAPHORS[language] || DIALECT_METAPHORS.hi;
@@ -152,8 +163,8 @@ export async function sendChatMessage(
       }
     }
 
-    // Clean response (remove action tags)
-    const cleanResponse = cleanActionTags(fullResponse);
+    // Clean response (remove action tags + think tags)
+    const cleanResponse = stripThinkTags(cleanActionTags(fullResponse));
     options?.onDone?.(cleanResponse);
     return cleanResponse;
   } catch (error: any) {
@@ -308,8 +319,9 @@ async function simulateResponse(
     options?.onToken?.(word + ' ');
   }
 
-  options?.onDone?.(response);
-  return response;
+  const cleanedResponse = stripThinkTags(response);
+  options?.onDone?.(cleanedResponse);
+  return cleanedResponse;
 }
 
 // ═══════════════════════════════════════════════════════════════════

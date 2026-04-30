@@ -138,7 +138,7 @@ export default function AddSIPScreen({ navigation }: any) {
               </View>
               <View style={styles.projItem}>
                 <Text style={styles.projLabel}>कुल</Text>
-                <Text style={[styles.projValue, { fontSize: 20, color: COLORS.primary }]}>{formatCurrency(projection.totalValue, true)}</Text>
+                <Text style={[styles.projValue, { fontSize: 20, color: COLORS.gold }]}>{formatCurrency(projection.totalValue, true)}</Text>
               </View>
             </View>
           </Animated.View>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingBottom: 12,
   },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '500' },
+  backBtn: { fontSize: 16, color: COLORS.gold, fontWeight: '400' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text_primary },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 60 },
 
@@ -192,12 +192,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg_surface, alignItems: 'center',
     borderWidth: 1, borderColor: COLORS.border_subtle,
   },
-  returnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  returnActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
   returnText: { fontSize: 14, fontWeight: '600', color: COLORS.text_primary },
 
   projCard: {
     backgroundColor: COLORS.bg_surface, borderRadius: RADIUS.xl, padding: 20,
-    borderWidth: 1, borderColor: COLORS.primary + '40', marginBottom: 24, marginTop: 8,
+    borderWidth: 1, borderColor: COLORS.gold + '40', marginBottom: 24, marginTop: 8,
   },
   projTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text_primary, marginBottom: 16 },
   projRow: { flexDirection: 'row', gap: 12 },
@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
   projValue: { fontSize: 16, fontWeight: '700', color: COLORS.text_primary },
 
   saveBtn: {
-    backgroundColor: COLORS.primary, paddingVertical: 18, borderRadius: RADIUS.lg,
-    alignItems: 'center', shadowColor: COLORS.primary,
+    backgroundColor: COLORS.gold, paddingVertical: 18, borderRadius: RADIUS.lg,
+    alignItems: 'center', shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   saveBtnText: { fontSize: 18, fontWeight: '700', color: COLORS.text_inverse },

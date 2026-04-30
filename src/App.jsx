@@ -6,14 +6,15 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import AppPage from './pages/AppPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import DemoPage from './pages/DemoPage.jsx';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--primary-muted)' }} />
-        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading...</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--gold)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Loading...</span>
       </div>
     </div>
   );
@@ -29,6 +30,7 @@ function AppRoutes() {
       <Route path="/" element={appStarted ? <Navigate to="/app" /> : <LandingPage onStart={handleStart} />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/app" element={<PrivateRoute><AppPage /></PrivateRoute>} />
+      <Route path="/demo" element={<DemoPage />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

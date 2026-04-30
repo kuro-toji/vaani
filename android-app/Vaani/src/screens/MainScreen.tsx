@@ -265,10 +265,13 @@ export default function MainScreen({ navigation }: MainScreenProps) {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>नमस्ते! 🙏</Text>
+          <Text style={styles.headerBrand}>VA<Text style={{ color: COLORS.gold }}>A</Text>NI</Text>
           <Text style={styles.headerSubtext}>आज आपकी वित्तीय स्थिति कैसी है?</Text>
         </View>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => navigation?.navigate('Settings')}
+        >
           <Text style={styles.profileEmoji}>👤</Text>
         </TouchableOpacity>
       </View>
@@ -317,13 +320,14 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 20,
   },
-  headerGreeting: {
-    fontSize: SCREEN.isSmall ? 20 : 24,
-    fontWeight: '700',
+  headerBrand: {
+    fontSize: SCREEN.isSmall ? 22 : 26,
+    fontWeight: '300',
     color: COLORS.text_primary,
+    letterSpacing: 3,
   },
   headerSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text_secondary,
     marginTop: 4,
   },
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border_subtle,
+    borderColor: COLORS.gold_dim,
   },
   profileEmoji: {
     fontSize: 22,
@@ -345,20 +349,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   netWorthCard: {
-    backgroundColor: COLORS.primary_muted,
+    backgroundColor: COLORS.gold_dim,
     borderRadius: 20,
     padding: 25,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.gold,
   },
   netWorthLabel: {
-    fontSize: 14,
-    color: COLORS.text_secondary,
+    fontSize: 12,
+    color: COLORS.gold,
     marginBottom: 8,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   netWorthAmount: {
     fontSize: SCREEN.isSmall ? 32 : 40,
-    fontWeight: '800',
+    fontWeight: '300',
     color: COLORS.text_primary,
   },
   netWorthChange: {
@@ -450,10 +456,11 @@ const styles = StyleSheet.create({
     marginTop: 25,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text_primary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.gold,
     marginBottom: 15,
+    letterSpacing: 1,
   },
   actionGrid: {
     flexDirection: 'row',
@@ -574,10 +581,10 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
+    shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 20,

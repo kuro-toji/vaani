@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   profileAvatar: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: COLORS.primary_muted, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.gold_muted, alignItems: 'center', justifyContent: 'center',
   },
   profileWave: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   profileName: { fontSize: 16, fontWeight: '600', color: COLORS.text_primary },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
     backgroundColor: COLORS.bg_surface, borderWidth: 1, borderColor: COLORS.border_subtle,
   },
-  langChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  langChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
   langChipText: { fontSize: 14, fontWeight: '500', color: COLORS.text_primary },
 
   visualRow: { flexDirection: 'row', gap: 10 },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg_surface, alignItems: 'center',
     borderWidth: 1.5, borderColor: COLORS.border_subtle,
   },
-  visualCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary_muted },
+  visualCardActive: { borderColor: COLORS.gold, backgroundColor: COLORS.gold_dim },
   visualLabel: { fontSize: 14, fontWeight: '600', color: COLORS.text_primary },
   visualEn: { fontSize: 10, color: COLORS.text_secondary, marginTop: 2 },
 

@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.gold,
     fontWeight: '500',
   },
   headerTitle: {
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
   },
   tabText: {
     fontSize: 13,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     color: COLORS.text_primary,
   },
   summaryCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submitBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
   },
   submitBtnText: {
     color: COLORS.text_primary,

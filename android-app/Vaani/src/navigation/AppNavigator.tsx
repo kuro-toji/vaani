@@ -27,12 +27,12 @@ const NavigationTheme = {
   dark: true,
   colors: {
     ...DefaultTheme.colors,
-    primary: COLORS.primary,
+    primary: COLORS.gold,
     background: COLORS.bg_base,
     card: COLORS.bg_surface,
     text: COLORS.text_primary,
     border: COLORS.border_subtle,
-    notification: COLORS.orange,
+    notification: COLORS.gold,
   },
 };
 
@@ -71,7 +71,7 @@ function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.gold,
         tabBarInactiveTintColor: COLORS.text_tertiary,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarItemStyle: styles.tabBarItem,
@@ -162,6 +162,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   tabIconFocused: {
-    backgroundColor: COLORS.primary_muted,
+    backgroundColor: COLORS.gold_dim,
   },
 });

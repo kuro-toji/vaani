@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingBottom: 12,
   },
-  backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '500' },
+  backBtn: { fontSize: 16, color: COLORS.gold, fontWeight: '400' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text_primary },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 60 },
 
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20,
     backgroundColor: COLORS.bg_surface, borderWidth: 1, borderColor: COLORS.border_subtle,
   },
-  bankChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  bankChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
   bankText: { fontSize: 14, fontWeight: '600', color: COLORS.text_primary },
 
   inputRow: { flexDirection: 'row', alignItems: 'center' },
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg_surface, alignItems: 'center',
     borderWidth: 1, borderColor: COLORS.border_subtle,
   },
-  tenureActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tenureActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
   tenureText: { fontSize: 14, fontWeight: '600', color: COLORS.text_primary },
 
   projectionCard: {
     backgroundColor: COLORS.bg_surface, borderRadius: RADIUS.xl, padding: 20,
-    borderWidth: 1, borderColor: COLORS.primary + '40', marginBottom: 24,
+    borderWidth: 1, borderColor: COLORS.gold + '40', marginBottom: 24,
   },
   projTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text_primary, marginBottom: 16 },
   projRow: { flexDirection: 'row', gap: 12 },
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
   projDivider: { height: 1, backgroundColor: COLORS.border_subtle, marginVertical: 12 },
 
   saveBtn: {
-    backgroundColor: COLORS.primary, paddingVertical: 18, borderRadius: RADIUS.lg,
-    alignItems: 'center', shadowColor: COLORS.primary,
+    backgroundColor: COLORS.gold, paddingVertical: 18, borderRadius: RADIUS.lg,
+    alignItems: 'center', shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   saveBtnText: { fontSize: 18, fontWeight: '700', color: COLORS.text_inverse },

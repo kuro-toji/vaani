@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.gold,
     fontWeight: '500',
   },
   headerTitle: {
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   netWorthValue: {
     fontSize: 36,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.gold,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   },
   progressNeeded: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.gold,
     marginTop: 4,
   },
   fireDetails: {
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   setGoalButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,

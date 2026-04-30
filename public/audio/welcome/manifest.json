@@ -1,0 +1,93 @@
+{
+  "hi": {
+    "name": "Hindi",
+    "file": "/audio/welcome/welcome_hi.mp3",
+    "text": "नमस्ते! वाणी में आपका स्वागत है। मैं आपकी निजी वित्तीय सलाहकार हूं। बचत, निवेश, टैक्स — सब कुछ आपकी अपनी भाषा में। आइए शुरू करते हैं!",
+    "exists": true,
+    "size": 168063
+  },
+  "en": {
+    "name": "English",
+    "file": "/audio/welcome/welcome_en.mp3",
+    "text": "Welcome to VAANI! I am your personal financial advisor. Savings, investments, taxes — everything in your own language. Let us get started!",
+    "exists": true,
+    "size": 151763
+  },
+  "bn": {
+    "name": "Bengali",
+    "file": "/audio/welcome/welcome_bn.mp3",
+    "text": "নমস্কার! VAANI-তে আপনাকে স্বাগতম। আমি আপনার ব্যক্তিগত আর্থিক উপদেষ্টা। সঞ্চয়, বিনিয়োগ, কর — সবকিছু আপনার নিজের ভাষায়।",
+    "exists": true,
+    "size": 252073
+  },
+  "te": {
+    "name": "Telugu",
+    "file": "/audio/welcome/welcome_te.mp3",
+    "text": "నమస్కారం! VAANI కి స్వాగతం. నేను మీ వ్యక్తిగత ఆర్థిక సలహాదారిని. పొదుపు, పెట్టుబడులు, పన్నులు — అన్నీ మీ భాషలో.",
+    "exists": true,
+    "size": 181438
+  },
+  "ta": {
+    "name": "Tamil",
+    "file": "/audio/welcome/welcome_ta.mp3",
+    "text": "வணக்கம்! VAANI க்கு வரவேற்கிறோம். நான் உங்கள் தனிப்பட்ட நிதி ஆலோசகர். சேமிப்பு, முதலீடு, வரி — அனைத்தும் உங்கள் மொழியில்.",
+    "exists": true,
+    "size": 127939
+  },
+  "mr": {
+    "name": "Marathi",
+    "file": "/audio/welcome/welcome_mr.mp3",
+    "text": "नमस्कार! VAANI मध्ये आपले स्वागत आहे. मी तुमचा वैयक्तिक आर्थिक सल्लागार आहे. बचत, गुंतवणूक, कर — सगळं तुमच्या भाषेत.",
+    "exists": true,
+    "size": 150509
+  },
+  "gu": {
+    "name": "Gujarati",
+    "file": "/audio/welcome/welcome_gu.mp3",
+    "text": "નમસ્કાર! VAANI માં આપનું સ્વાગત છે. હું તમારો વ્યક્તિગત નાણાકીય સલાહકાર છું. બચત, રોકાણ, કર — બધું તમારી ભાષામાં.",
+    "exists": true,
+    "size": 159286
+  },
+  "kn": {
+    "name": "Kannada",
+    "file": "/audio/welcome/welcome_kn.mp3",
+    "text": "ನಮಸ್ಕಾರ! VAANI ಗೆ ಸ್ವಾಗತ. ನಾನು ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಆರ್ಥಿಕ ಸಲಹೆಗಾರ. ಉಳಿತಾಯ, ಹೂಡಿಕೆ, ತೆರಿಗೆ — ಎಲ್ಲವೂ ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ.",
+    "exists": true,
+    "size": 122088
+  },
+  "ml": {
+    "name": "Malayalam",
+    "file": "/audio/welcome/welcome_ml.mp3",
+    "text": "നമസ്കാരം! VAANI ലേക്ക് സ്വാഗതം. ഞാൻ നിങ്ങളുടെ സ്വകാര്യ സാമ്പത്തിക ഉപദേഷ്ടാവാണ്. സേവിങ്സ്, നിക്ഷേപം, നികുതി — എല്ലാം നിങ്ങളുടെ ഭാഷയിൽ.",
+    "exists": true,
+    "size": 172661
+  },
+  "pa": {
+    "name": "Punjabi",
+    "file": "/audio/welcome/welcome_pa.mp3",
+    "text": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ! VAANI ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ਤੁਹਾਡਾ ਨਿੱਜੀ ਵਿੱਤੀ ਸਲਾਹਕਾਰ ਹਾਂ। ਬੱਚਤ, ਨਿਵੇਸ਼, ਟੈਕਸ — ਸਭ ਤੁਹਾਡੀ ਭਾਸ਼ਾ ਵਿੱਚ।",
+    "exists": true,
+    "size": 238280
+  },
+  "or": {
+    "name": "Odia",
+    "file": "/audio/welcome/welcome_or.mp3",
+    "text": "ନମସ୍କାର! VAANI ରେ ଆପଣଙ୍କୁ ସ୍ୱାଗତ। ମୁଁ ଆପଣଙ୍କ ବ୍ୟକ୍ତିଗତ ଆର୍ଥିକ ପରାମର୍ଶଦାତା। ସଞ୍ଚୟ, ନିବେଶ, କର — ସବୁ ଆପଣଙ୍କ ଭାଷାରେ।",
+    "exists": true,
+    "size": 204008
+  },
+  "as": {
+    "name": "Assamese",
+    "file": "/audio/welcome/welcome_as.mp3",
+    "text": "নমস্কাৰ! VAANI লৈ আপোনাক স্বাগতম। মই আপোনাৰ ব্যক্তিগত বিত্তীয় উপদেষ্টা। সঞ্চয়, বিনিয়োগ, কৰ — সকলো আপোনাৰ ভাষাত।",
+    "exists": true,
+    "size": 209023
+  },
+  "bho": {
+    "name": "Bhojpuri",
+    "file": "/audio/welcome/welcome_bho.mp3",
+    "text": "प्रणाम! वाणी में रउआ के स्वागत बा। हम रउआ के निजी पइसा सलाहकार बानी। बचत, निवेश, टैक्स — सब कुछ रउआ अपना भाषा में। चलीं शुरू करीं!",
+    "exists": true,
+    "size": 189797
+  }
+}

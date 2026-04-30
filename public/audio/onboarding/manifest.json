@@ -1,0 +1,86 @@
+{
+  "location_detected_hi": {
+    "file": "/audio/onboarding/location_detected_hi.mp3",
+    "text": "नमस्ते! मैंने आपकी लोकेशन पता लगाई है। क्या आप यहीं से हैं? अगर हां तो बोलिए \"हां\", वरना \"नहीं\" बोलिए।",
+    "desc": "Location detected - Hindi",
+    "exists": true
+  },
+  "location_detected_en": {
+    "file": "/audio/onboarding/location_detected_en.mp3",
+    "text": "Hello! I have detected your location. Are you from this place? Say \"Yes\" to confirm, or \"No\" to change.",
+    "desc": "Location detected - English",
+    "exists": true
+  },
+  "choose_language_hi": {
+    "file": "/audio/onboarding/choose_language_hi.mp3",
+    "text": "अब बताइए, आप किस भाषा में बात करना चाहते हैं? आप स्क्रीन से भाषा चुन सकते हैं, या बस अपनी भाषा में कुछ बोलिए — मैं समझ जाऊंगी!",
+    "desc": "Choose language - Hindi",
+    "exists": true
+  },
+  "choose_language_en": {
+    "file": "/audio/onboarding/choose_language_en.mp3",
+    "text": "Now tell me, which language would you like to speak in? You can pick from the screen, or just speak in your language — I will understand!",
+    "desc": "Choose language - English",
+    "exists": true
+  },
+  "mic_permission_hi": {
+    "file": "/audio/onboarding/mic_permission_hi.mp3",
+    "text": "VAANI को आपकी आवाज़ सुनने के लिए माइक्रोफ़ोन की ज़रूरत है। कृपया माइक एक्सेस दीजिए।",
+    "desc": "Mic permission - Hindi",
+    "exists": true
+  },
+  "mic_permission_en": {
+    "file": "/audio/onboarding/mic_permission_en.mp3",
+    "text": "VAANI needs microphone access to hear your voice. Please allow microphone access.",
+    "desc": "Mic permission - English",
+    "exists": true
+  },
+  "accessibility_hi": {
+    "file": "/audio/onboarding/accessibility_hi.mp3",
+    "text": "अब मुझे बताइए, क्या आपको कोई खास मदद चाहिए? क्या आपकी आंखें कमज़ोर हैं, सुनने में दिक्कत है, या आपको बड़े अक्षरों में दिखाना है? बस बोलिए या स्क्रीन से चुनिए।",
+    "desc": "Accessibility question - Hindi",
+    "exists": true
+  },
+  "accessibility_en": {
+    "file": "/audio/onboarding/accessibility_en.mp3",
+    "text": "Now tell me, do you need any special assistance? Do you have difficulty seeing, hearing, or reading? Just speak or choose from the screen.",
+    "desc": "Accessibility question - English",
+    "exists": true
+  },
+  "setup_complete_hi": {
+    "file": "/audio/onboarding/setup_complete_hi.mp3",
+    "text": "बहुत बढ़िया! आपकी सेटिंग्स सेव हो गई हैं। अब VAANI आपकी अपनी भाषा में, आपके तरीके से काम करेगी। चलिए शुरू करते हैं!",
+    "desc": "Setup complete - Hindi",
+    "exists": true
+  },
+  "setup_complete_en": {
+    "file": "/audio/onboarding/setup_complete_en.mp3",
+    "text": "Excellent! Your settings are saved. VAANI will now work in your language, your way. Let us get started!",
+    "desc": "Setup complete - English",
+    "exists": true
+  },
+  "option_visual_hi": {
+    "file": "/audio/onboarding/option_visual_hi.mp3",
+    "text": "आंखें कमज़ोर हैं — बड़े अक्षर और आवाज़ से चलाएंगे",
+    "desc": "Visual impairment option - Hindi",
+    "exists": true
+  },
+  "option_hearing_hi": {
+    "file": "/audio/onboarding/option_hearing_hi.mp3",
+    "text": "सुनने में दिक्कत — बड़े टेक्स्ट और कंपन से बताएंगे",
+    "desc": "Hearing impairment option - Hindi",
+    "exists": true
+  },
+  "option_illiterate_hi": {
+    "file": "/audio/onboarding/option_illiterate_hi.mp3",
+    "text": "पढ़ना मुश्किल है — चिंता मत करो, सब कुछ आवाज़ से होगा",
+    "desc": "Illiterate option - Hindi",
+    "exists": true
+  },
+  "option_none_hi": {
+    "file": "/audio/onboarding/option_none_hi.mp3",
+    "text": "कोई ज़रूरत नहीं — सामान्य मोड में चलते हैं",
+    "desc": "No accessibility needed - Hindi",
+    "exists": true
+  }
+}

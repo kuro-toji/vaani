@@ -12,6 +12,9 @@ import detectRoute from './routes/detect.js';
 import sttRoute from './routes/stt.js';
 import ocrRoute from './routes/ocr.js';
 import leadsRoute from './routes/leads.js';
+import marketDataRoute from './routes/market-data.js';
+import taxEngineRoute from './routes/tax-engine.js';
+import subscriptionsRoute from './routes/subscriptions.js';
 
 dotenv.config();
 
@@ -20,6 +23,28 @@ const PORT = process.env.PORT || 3001;
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:4173'];
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+
+// ── Supabase Helper ──
+async function logAPI(req, res, provider = null) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    await supabase.from('api_logs').insert({
+      endpoint: req.path,
+      user_id_hash: req.body?.userId?.slice(0, 20) || null,
+      response_time_ms: Date.now() - (req._startTime || Date.now()),
+      ai_provider: provider,
+      success: res.statusCode < 400,
+      error_code: res.statusCode >= 400 ? res.statusCode.toString() : null,
+    });
+  } catch (e) {
+    console.warn('[API Log] Failed to log:', e.message);
+  }
+}
 
 // ── Security Headers ──
 app.use(helmet({
@@ -75,13 +100,18 @@ app.use('/api/stt', aiLimiter);
 // ── Body parsing ──
 app.use(express.json({ limit: '2mb' }));
 
-// ── Request logging ──
+// ── Request logging + observability ──
 app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
+  req._startTime = Date.now();
+  res.on('finish', async () => {
+    const duration = Date.now() - req._startTime;
     if (req.path.startsWith('/api/')) {
       console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+      
+      // Log to API logs table for observability (Layer 10)
+      if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+        await logAPI(req, res, null);
+      }
     }
   });
   next();
@@ -100,6 +130,15 @@ app.use('/api/detect', detectRoute);
 app.use('/api/stt', sttRoute);
 app.use('/api/ocr', ocrRoute);
 app.use('/api/leads', leadsRoute);
+
+// ── Layer 1: Market Data (FD rates, NAV cache, crypto prices) ──
+app.use('/api/market', marketDataRoute);
+
+// ── Layer 4: Tax Engine (real computation) ──
+app.use('/api/tax', taxEngineRoute);
+
+// ── Layer 9: Subscriptions (Razorpay) ──
+app.use('/api/subscriptions', subscriptionsRoute);
 
 // ── Error handler ──
 app.use((err, req, res, next) => {
@@ -120,4 +159,5 @@ initSocket(httpServer);
 httpServer.listen(PORT, () => {
   console.log(`VAANI Server + Socket.io running on port ${PORT}`);
   console.log(`Rate limits: 100 req/15min (general), 10 req/min (AI endpoints)`);
+  console.log(`Routes: /api/chat, /api/market, /api/tax, /api/subscriptions`);
 });

@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.gold,
     fontWeight: '500',
   },
   headerTitle: {
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
   },
   tabText: {
     fontSize: 11,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   progressFill: {
     width: '15%',
     height: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     borderRadius: 4,
   },
   progressText: {
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     color: COLORS.text_tertiary,
   },
   limitCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     borderRadius: 16,
     padding: 20,
     flexDirection: 'row',
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   npsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.gold,
     marginBottom: 8,
   },
   npsText: {
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     color: COLORS.text_primary,
   },
   form26asButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     borderRadius: 24,
     paddingVertical: 14,
     alignItems: 'center',

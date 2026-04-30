@@ -2,9 +2,45 @@ import { Server } from 'socket.io';
 
 const connectedUsers = new Map();
 
-/**
- * Initialize Socket.io server on top of Express.
- */
+// ─── SHARED SECURITY & SESSION MANAGEMENT ────────────────────────────────────
+
+// Import from shared security module
+import { sanitizeInput, isOffTopicRequest, stripThinkTags, VAANI_SYSTEM_PROMPT } from './utils/security.js';
+
+// Server-side session store — keyed by userId
+// In production, replace with Redis
+const chatSessions = new Map();
+
+function getSession(userId) {
+  if (!chatSessions.has(userId)) {
+    chatSessions.set(userId, {
+      history: [],
+      lastActivity: Date.now(),
+    });
+  }
+  return chatSessions.get(userId);
+}
+
+function addToSession(userId, role, content) {
+  const session = getSession(userId);
+  session.history.push({ role, content, ts: Date.now() });
+  session.lastActivity = Date.now();
+  // Keep only last 10 exchanges (20 messages)
+  if (session.history.length > 20) {
+    session.history = session.history.slice(-20);
+  }
+}
+
+// Clean up old sessions every 30 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [userId, session] of chatSessions.entries()) {
+    if (session.lastActivity < cutoff) chatSessions.delete(userId);
+  }
+}, 30 * 60 * 1000);
+
+// ─── SOCKET.IO INIT ──────────────────────────────────────────────────────────
+
 export function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -35,15 +71,45 @@ export function initSocket(httpServer) {
         const GROQ_API_KEY = process.env.GROQ_API_KEY;
         const MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/text/chatcompletion_v2';
 
+        // Auth check
+        if (!userId) {
+          return socket.emit('chat:error', { message: 'Not authenticated' });
+        }
+
         const lang = language || 'hi';
         
-        // Build system prompt based on language
-        const systemPrompts = {
-          hi: `आप VAANI हैं, भारत के ग्रामीण क्षेत्रों के लिए एक भरोसेमंद वित्तीय सलाहकार। आप हिंदी में बात करते हैं। FD = "गल्ला बंध" (fixed deposit), SIP = "हर महीने निवेश"। villages के स्तर के उदाहरण दें। 150 शब्दों से कम जवाब दें।`,
-          en: `You are VAANI, a trusted voice-first financial advisor for India. Speak in the user's language. Use village-level analogies. Keep responses under 150 words. FD = "galla band" (fixed deposit), SIP = "monthly investment".`,
-          default: `You are VAANI, a trusted financial advisor. Keep responses under 150 words.`,
-        };
-        const systemPrompt = systemPrompts[lang] || systemPrompts.default;
+        // Guard 1: Sanitize input
+        const rawText = text?.trim() || '';
+        const cleanText = sanitizeInput(rawText);
+        
+        if (!cleanText) {
+          socket.emit('chat:error', { message: 'Message required' });
+          return;
+        }
+        
+        // Guard 2: Off-topic block
+        if (isOffTopicRequest(cleanText)) {
+          const block = lang === 'hi'
+            ? 'Main sirf aapka financial advisor hoon. Paisa, bachat, nivesh — yahi mere kaam ki baatein hain. Koi financial sawaal hai?'
+            : 'I am only a financial advisor. I can help with savings, investments, taxes, and budgeting. What financial question can I help with?';
+          
+          for (const char of block) {
+            socket.emit('chat:token', { token: char, id: `asst-${Date.now()}` });
+            await new Promise(r => setTimeout(r, 15));
+          }
+          socket.emit('chat:done', { id: `asst-${Date.now()}`, fullResponse: block, fromVoice });
+          return;
+        }
+
+        // Get server-side session
+        const session = getSession(userId);
+        
+        // Build messages from SERVER-SIDE history (never trust client-sent history)
+        const messages = [
+          { role: 'system', content: VAANI_SYSTEM_PROMPT },
+          ...session.history.slice(-10),  // last 5 exchanges
+          { role: 'user', content: cleanText },
+        ];
 
         const assistantId = `asst-${Date.now()}`;
         let fullResponse = '';
@@ -58,11 +124,8 @@ export function initSocket(httpServer) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`,
               },
               body: JSON.stringify({
-                model: 'llama-3.1-70b-versatile',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: text },
-                ],
+                model: 'llama-3.3-70b-versatile',
+                messages,
                 max_tokens: 200,
                 temperature: 0.7,
               }),
@@ -70,7 +133,18 @@ export function initSocket(httpServer) {
 
             if (response.ok) {
               const data = await response.json();
-              const content = data?.choices?.[0]?.message?.content || '';
+              let content = 
+                data?.choices?.[0]?.message?.content ||
+                data?.choices?.[0]?.messages?.[0]?.content ||
+                '';
+              
+              if (!content) {
+                console.error('[Groq] Empty response. Raw:', JSON.stringify(data).slice(0, 300));
+              }
+              
+              // Strip think tags
+              content = stripThinkTags(content);
+              
               if (content) {
                 fullResponse = content;
                 // Stream token by token
@@ -99,10 +173,7 @@ export function initSocket(httpServer) {
               },
               body: JSON.stringify({
                 model: 'MiniMax-M2.7',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: text },
-                ],
+                messages,
                 stream: true,
                 max_tokens: 512,
                 temperature: 0.8,
@@ -153,19 +224,28 @@ export function initSocket(httpServer) {
           }
         }
 
+        // Strip think tags from accumulated response
+        fullResponse = stripThinkTags(fullResponse);
+
+        // Store in server-side session AFTER getting response
+        if (fullResponse) {
+          addToSession(userId, 'user', cleanText);
+          addToSession(userId, 'assistant', fullResponse);
+        }
+
         // Final fallback with language-specific responses
         if (!fullResponse) {
           const fallbacks = {
             hi: 'Namaskar! Main VAANI hoon, aapka financial advisor. Aap mujhse FD rates, SIP, ya koi bhi financial question puchh sakte hain. Main aapki madad ke liye hoon!',
             en: 'Namaste! I am VAANI, your financial assistant. You can ask me about FD rates, SIP investments, or any financial topic. I am here to help!',
             bn: 'নমস্কার! আমি VAANI, আপনার আর্থিক উপদেষ্টা। আপনি FD রেট, SIP বা যেকোনো আর্থিক বিষয়ে জিজ্ঞাসা করতে পারেন।',
-            te: 'Namaste! Na VAANI, mee financial advisor. FD rates, SIP, ela chesthunna financial question济चेसतु न्नु.',
-            ta: 'வணக்கம்! நான் VAANI, உங்கள் நிதி ஆலோசகர். FD விகிதங்கள், SIP முதலீடு அல்லது நிதி தொடர்பான ஏதேனும் கேள்ளி கேட்கலாம',
+            te: 'Namaste! Na VAANI, mee financial advisor. FD rates, SIP, ela chesthunna financial question.',
+            ta: 'வணக்கம்! நான் VAANI, உங்கள் financial advisor. FD விகிதங்கள், SIP அல்லது நிதி தொடர்பான ஏதேனும் கேள்ளி கேட்கலாம',
             mr: 'नमस्कार! मी VAANI, तुमचा financial advisor. तुम्ही मला FD rates, SIP किंवा कोणत्याही financial विषयाबद्दल विचारू शकता.',
-            gu: 'નમસ્���ા��! હું VAANI, તમારો financial advisor. તમે મને FD rates, SIP કે કોઈપણ financial વિષે પૂછી શકો છો.',
+            gu: 'નમસ્કાર! હું VAANI, તમારો financial advisor. તમે મને FD rates, SIP કે કોઈપણ financial વિષે પૂછી શકો છો.',
             kn: 'ನಮಸ್ಕಾರ! ನಾನು VAANI, ನಿಮ್ಮ financial advisor. ನೀವು FD rates, SIP ಅಥವಾ ಯಾವುದೇ financial ವಿಷಯದ ಬಗ್ಗೆ ಕೇಳಬಹುದು.',
-            ml: 'നമസ്കാരം! ഞാന്‍ VAANI, നിങ്ങളുടെ സാമ്പത്തിക ഉപദেষ്ടാവ്. നിങ്ങള്‍ക്ക് FD നിരക്ക്, SIP അല്ലെങ്കില്‍ ഏതെങ്കിലും സാമ്പത്തിക ചോദ്യം ചോദ്യം ചെയ്യാം.',
-            pa: 'ਨਮਸਕਾਰ! ਮੈਂ VAANI, ਤੁਹਾਡਾ ਵਿੱਤੀ ਸਲਾਹਕਾਰ। ਤੁਸੀਂ ਮੈਨੂੰ FD ਦਰਾਂ, SID ਜਾਂ ਕਿਸੇ ਵੀ ਵਿੱਤੀ ਵਿਸ਼ੇ ਬਾਰੇ ਪੁੱਛ ਸਕਦੇ ਹੋ।',
+            ml: 'നമസ്കാരം! ഞാന്‍ VAANI, നിങ്ങളുടെ financial advisor. നിങ്ങള്‍ക്ക് FD നിരക്ക്, SIP അല്ലെങ്കില്‍ ഏതെങ്കിലും സാമ്പത്തിക ചോദ്യം ചോദ്യം ചെയ്യാം.',
+            pa: 'ਨਮਸਕਾਰ! ਮੈਂ VAANI, ਤੁਹਾਡਾ ਵਿੱਤੀ ਸਲਾਹਕਾਰ। ਤੁਸੀਂ ਮੈਨੂੰ FD ਦਰਾਂ, SIP ਜਾਂ ਕਿਸੇ ਵੀ ਵਿੱਤੀ ਵਿਸ਼ੇ ਬਾਰੇ ਪੁੱਛ ਸਕਦੇ ਹੋ।',
             ur: 'السلام علیکم! میں VAANI، آپ کا مالی مشیر ہوں۔ آپ مجھ سے FD کی شرحوں، SIP یا کسی بھی مالی موضوع کے بارے میں پوچھ سکتے ہیں۔',
           };
           fullResponse = fallbacks[lang] || fallbacks.default;
@@ -176,6 +256,10 @@ export function initSocket(httpServer) {
             socket.emit('chat:token', { token: char, id: assistantId });
             await new Promise(r => setTimeout(r, 15));
           }
+          
+          // Store fallback in session too
+          addToSession(userId, 'user', cleanText);
+          addToSession(userId, 'assistant', fullResponse);
         }
 
         // Send completion

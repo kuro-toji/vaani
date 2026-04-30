@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.primary_muted,
+    backgroundColor: COLORS.gold_muted,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.gold,
   },
   logoEmoji: {
     fontSize: 36,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   otpBoxActive: {
-    borderColor: COLORS.primary,
+    borderColor: COLORS.gold,
   },
   otpDigit: {
     fontSize: 24,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 15,
-    color: COLORS.primary,
+    color: COLORS.gold,
     fontWeight: '600',
     marginTop: 20,
   },

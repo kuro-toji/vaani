@@ -1,14 +1,21 @@
-// Color Palette - OLED Dark Theme
+// Color Palette - OLED Dark + Gold Accent Theme (matching web Aldrich design)
 export const COLORS = {
   // Background
   bg_base: '#080808',
-  bg_surface: '#111111',
-  bg_elevated: '#1A1A1A',
+  bg_surface: '#111113',
+  bg_elevated: '#1A1A1E',
+  bg_card: '#161619',
   
   // Borders
-  border_subtle: 'rgba(255,255,255,0.06)',
-  border_active: 'rgba(255,255,255,0.12)',
-  border_focus: 'rgba(255,255,255,0.20)',
+  border_subtle: 'rgba(201,168,76,0.10)',
+  border_active: 'rgba(201,168,76,0.25)',
+  border_focus: 'rgba(201,168,76,0.35)',
+  
+  // Gold accent (Aldrich-style)
+  gold: '#C9A84C',
+  gold_light: '#E8C97A',
+  gold_dim: 'rgba(201,168,76,0.15)',
+  gold_glow: 'rgba(201,168,76,0.25)',
   
   // Primary - Green
   primary: '#1D9E75',
@@ -25,19 +32,31 @@ export const COLORS = {
   orange: '#FF6B00',
   
   // Text
-  text_primary: '#FFFFFF',
-  text_secondary: '#A1A1AA',
-  text_tertiary: '#52525B',
-  text_inverse: '#080808',
+  text_primary: '#F5F0E8',
+  text_secondary: 'rgba(245,240,232,0.55)',
+  text_tertiary: 'rgba(245,240,232,0.30)',
+  text_inverse: '#0C0C0E',
   
   // Status
   success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',
+  danger_muted: 'rgba(239,68,68,0.15)',
+  success_muted: 'rgba(16,185,129,0.15)',
   
   // Glass
-  glass_bg: 'rgba(255,255,255,0.04)',
-  glass_border: 'rgba(255,255,255,0.06)',
+  glass_bg: 'rgba(26,26,30,0.85)',
+  glass_border: 'rgba(201,168,76,0.12)',
+};
+
+// Border Radius
+export const RADIUS = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 9999,
 };
 
 // API Configuration
@@ -46,7 +65,11 @@ export const API_CONFIG = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
   
-  // Groq - for Whisper STT
+  // Gemini - Primary STT/TTS
+  GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY || '',
+  GEMINI_URL: 'https://generativelanguage.googleapis.com/v1beta',
+  
+  // Groq - Failover STT (Whisper)
   GROQ_API_KEY: process.env.EXPO_PUBLIC_GROQ_API_KEY || '',
   GROQ_WHISPER_URL: 'https://api.groq.com/openai/v1/audio/transcriptions',
   
@@ -82,6 +105,9 @@ export const VOICE_CONFIG = {
   // Voice Activity Detection
   vadSilenceThreshold: 500, // ms of silence to stop
   vadEnergyThreshold: 0.01,
+  
+  // Hallucination guard
+  hallucination_max_length: 2, // text shorter than this is likely garbage
   
   // Wake word
   wake_word: 'hey vaani',
@@ -186,5 +212,17 @@ export const NOTIFICATION_CHANNELS = {
 };
 
 // Supported Languages (also exported from types)
-import { SUPPORTED_LANGUAGES } from '../types';
-export { SUPPORTED_LANGUAGES };
+import { SUPPORTED_LANGUAGES, DIALECT_METAPHORS } from '../types';
+export { SUPPORTED_LANGUAGES, DIALECT_METAPHORS };
+
+// Government Schemes for AI system prompt
+export const GOVERNMENT_SCHEMES = [
+  { name: 'Pradhan Mantri Jan Dhan Yojana', short: 'PMJDY', desc: 'Zero balance bank account' },
+  { name: 'Sukanya Samriddhi Yojana', short: 'SSY', desc: 'Girl child savings scheme' },
+  { name: 'Atal Pension Yojana', short: 'APY', desc: 'Pension for unorganized sector' },
+  { name: 'PM Kisan Samman Nidhi', short: 'PM-KISAN', desc: 'Direct income support for farmers' },
+  { name: 'PM Mudra Yojana', short: 'MUDRA', desc: 'Loans for small businesses' },
+  { name: 'Senior Citizens Savings Scheme', short: 'SCSS', desc: 'High interest for seniors' },
+  { name: 'National Pension System', short: 'NPS', desc: 'Retirement pension with tax benefits' },
+  { name: 'Public Provident Fund', short: 'PPF', desc: 'Long-term tax-free savings' },
+];

@@ -5,14 +5,10 @@ import { ChatProvider } from '../context/ChatContext.jsx';
 import ChatWindow from '../components/chat/ChatWindow.jsx';
 import Dashboard from '../components/dashboard/Dashboard.jsx';
 
-/**
- * AppPage — Main authenticated view.
- * Desktop: 40% chat (left) + 60% dashboard (right), side by side.
- * Mobile: Tab bar at bottom — [Chat] [Dashboard].
- */
 export default function AppPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate('/auth');
@@ -20,114 +16,106 @@ export default function AppPage() {
 
   if (loading || !user) return (
     <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--primary-muted)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--gold)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Loading VAANI...</span>
+      </div>
     </div>
   );
 
   return (
     <ChatProvider>
-      <div
-        style={{ height: '100dvh', display: 'flex', overflow: 'hidden' }}
-      >
-        {/* Desktop: Side-by-side split */}
-        <div className="hidden lg:flex flex-1 overflow-hidden"
-          style={{ height: '100%', alignItems: 'stretch' }}>
-          {/* Chat panel — 40% */}
-          <div
-            className="flex flex-col overflow-hidden"
-            style={{
-              width: '40%',
-              minWidth: '340px',
-              maxWidth: '520px',
-              height: '100%',
-              borderRight: '1px solid var(--border-subtle)',
-            }}
-          >
-            <ChatWindow />
+      <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-base)' }}>
+
+        {/* ─── TOP BAR ─── */}
+        <header style={{
+          height: '56px', flexShrink: 0, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 24px',
+          background: 'rgba(12,12,14,0.95)', backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--border-subtle)', zIndex: 50,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 300, letterSpacing: '0.1em' }}>
+              VA<span style={{ color: 'var(--gold)' }}>A</span>NI
+            </span>
+            <span style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-tertiary)', borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
+              Dashboard
+            </span>
           </div>
 
-          {/* Dashboard panel — 60% */}
-          <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-base)', height: '100%', minHeight: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Demo Button */}
+            <button onClick={() => navigate('/demo')} style={{
+              background: 'transparent', border: '1px solid var(--line)', color: 'var(--gold)',
+              padding: '6px 16px', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase',
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold)'; e.currentTarget.style.color = 'var(--ink)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gold)'; }}
+            >
+              Demo
+            </button>
+
+            {/* Chat Toggle */}
+            <button onClick={() => setChatOpen(!chatOpen)} style={{
+              width: '40px', height: '40px', borderRadius: '50%',
+              background: chatOpen ? 'var(--gold)' : 'rgba(201,168,76,0.12)',
+              border: '1px solid var(--line)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.3s', position: 'relative',
+            }}>
+              {chatOpen ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              )}
+              {!chatOpen && (
+                <div style={{
+                  position: 'absolute', top: '-2px', right: '-2px', width: '10px', height: '10px',
+                  borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--bg-base)',
+                  animation: 'pulse 2s ease-in-out infinite',
+                }} />
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* ─── MAIN CONTENT ─── */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+
+          {/* Dashboard — full width */}
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
             <Dashboard />
           </div>
-        </div>
 
-        {/* Mobile: Tab-based navigation */}
-        <MobileApp />
+          {/* Chat Drawer — slides from right */}
+          <div style={{
+            position: 'fixed', top: '56px', right: 0, bottom: 0,
+            width: chatOpen ? '400px' : '0px',
+            maxWidth: '100vw',
+            overflow: 'hidden',
+            transition: 'width 0.35s cubic-bezier(0.25, 1, 0.5, 1)',
+            zIndex: 40,
+            borderLeft: chatOpen ? '1px solid var(--border-subtle)' : 'none',
+            background: 'var(--bg-base)',
+          }}>
+            {chatOpen && (
+              <div style={{ width: '400px', height: '100%' }}>
+                <ChatWindow onClose={() => setChatOpen(false)} />
+              </div>
+            )}
+          </div>
+
+          {/* Backdrop on mobile */}
+          {chatOpen && (
+            <div onClick={() => setChatOpen(false)} style={{
+              position: 'fixed', inset: 0, top: '56px',
+              background: 'rgba(0,0,0,0.5)', zIndex: 35,
+              display: 'none',
+            }} className="md-backdrop" />
+          )}
+        </div>
       </div>
     </ChatProvider>
-  );
-}
-
-/** Mobile layout: full-screen with bottom tab bar */
-function MobileApp() {
-  const [activeTab, setActiveTab] = useState('chat');
-
-  return (
-    <div className="flex flex-col lg:hidden flex-1 overflow-hidden">
-      <div className="flex-1 overflow-hidden">
-        {activeTab === 'chat' ? (
-          <div className="flex flex-col h-full">
-            <ChatWindow onClose={() => setActiveTab('dashboard')} />
-          </div>
-        ) : (
-          <div className="h-full overflow-y-auto">
-            <Dashboard />
-          </div>
-        )}
-      </div>
-
-      {/* Bottom tab bar */}
-      <div
-        className="flex"
-        style={{
-          borderTop: '1px solid var(--border-subtle)',
-          background: 'rgba(8,8,8,0.95)',
-          backdropFilter: 'blur(20px)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
-        <TabButton
-          active={activeTab === 'chat'}
-          onClick={() => setActiveTab('chat')}
-          icon={
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          }
-          label="Chat"
-        />
-        <TabButton
-          active={activeTab === 'dashboard'}
-          onClick={() => setActiveTab('dashboard')}
-          icon={
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/>
-              <rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
-            </svg>
-          }
-          label="Dashboard"
-        />
-      </div>
-    </div>
-  );
-}
-
-function TabButton({ active, onClick, icon, label }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex-1 flex flex-col items-center gap-1 py-3 touch-target"
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: active ? 'var(--primary)' : 'var(--text-tertiary)',
-        transition: 'color 0.2s',
-      }}
-    >
-      {icon}
-      <span className="text-xs font-medium">{label}</span>
-    </button>
   );
 }

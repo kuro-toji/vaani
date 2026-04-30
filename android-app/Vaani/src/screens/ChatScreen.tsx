@@ -311,10 +311,10 @@ export default function ChatScreen({ navigation }: ChatScreenProps) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation?.goBack()}>
-          <Text style={styles.backButton}>← वापस</Text>
+          <Text style={styles.backButton}>← <Text style={{ color: COLORS.gold }}>Back</Text></Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>VAANI AI</Text>
+          <Text style={styles.headerTitle}>VA<Text style={{ color: COLORS.gold }}>A</Text>NI</Text>
           <Text style={styles.headerSubtitle}>आपका वित्तीय सलाहकार</Text>
         </View>
         <TouchableOpacity onPress={() => setCurrentLanguage(currentLanguage === 'hi' ? 'en' : 'hi')}>
@@ -426,25 +426,72 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border_subtle,
   },
   backButton: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: '500',
+    fontSize: 14,
+    color: COLORS.text_secondary,
+    fontWeight: '400',
   },
   headerCenter: {
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '300',
     color: COLORS.text_primary,
+    letterSpacing: 3,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.text_secondary,
+    marginTop: 2,
+  },
+  langButton: {
+    fontSize: 13,
+    color: COLORS.gold,
+    fontWeight: '600',
+    padding: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gold_dim,
+    borderRadius: 8,
   },
   menuButton: {
     fontSize: 24,
     color: COLORS.text_primary,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border_subtle,
+  },
+  quickActionBtn: {
+    backgroundColor: COLORS.gold_dim,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.gold_glow,
+  },
+  quickActionIcon: {
+    fontSize: 16,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    color: COLORS.gold,
+    fontWeight: '500',
+  },
+  streamingContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  streamingText: {
+    fontSize: 14,
+    color: COLORS.text_secondary,
+    lineHeight: 20,
   },
   messagesList: {
     padding: 20,
@@ -522,13 +569,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primary_muted,
+    backgroundColor: COLORS.gold_dim,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: COLORS.gold_glow,
   },
   voiceButtonRecording: {
     backgroundColor: COLORS.danger,
+    borderColor: COLORS.danger,
   },
   voiceButtonIcon: {
     fontSize: 22,
@@ -542,12 +592,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text_primary,
     maxHeight: 100,
+    borderWidth: 1,
+    borderColor: COLORS.border_subtle,
   },
   sendButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
@@ -557,7 +609,7 @@ const styles = StyleSheet.create({
   },
   sendButtonIcon: {
     fontSize: 22,
-    color: COLORS.text_primary,
+    color: COLORS.text_inverse,
     fontWeight: '700',
   },
   voiceHint: {
