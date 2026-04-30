@@ -8,19 +8,6 @@ import AppPage from './pages/AppPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import DemoPage from './pages/DemoPage.jsx';
 
-function PrivateRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--gold)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Loading...</span>
-      </div>
-    </div>
-  );
-  return user ? children : <Navigate to="/auth" />;
-}
-
 function AppRoutes() {
   const [appStarted, setAppStarted] = useState(false);
   const handleStart = () => setAppStarted(true);
@@ -28,8 +15,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={appStarted ? <Navigate to="/app" /> : <LandingPage onStart={handleStart} />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/app" element={<PrivateRoute><AppPage /></PrivateRoute>} />
+      <Route path="/auth" element={<AppPage />} />
+      <Route path="/app" element={<AppPage />} />
       <Route path="/demo" element={<DemoPage />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

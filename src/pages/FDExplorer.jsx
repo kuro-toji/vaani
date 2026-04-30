@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BANKS, getBestFDRates, getBankDetail, calculateFDMaturity, formatFDRate } from '../../services/fdRatesService.js';
+import { BANKS, getBestFDRates, getBankDetail, calculateFDMaturity, formatFDRate } from '../services/fdRatesService.js';
 
 const TENURES = ['7d','30d','90d','180d','1y','2y','3y','5y'];
 const TENURE_LABELS = { '7d':'7 Days','30d':'30 Days','90d':'3 Months','180d':'6 Months','1y':'1 Year','2y':'2 Years','3y':'3 Years','5y':'5 Years' };

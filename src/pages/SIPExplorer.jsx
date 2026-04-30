@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getPopularSIPFunds } from '../../services/amfiService.js';
+import { getPopularSIPFunds } from '../services/amfiService.js';
 
 // Top mutual fund categories with scheme codes for AMFI API
 const FUND_CATEGORIES = {

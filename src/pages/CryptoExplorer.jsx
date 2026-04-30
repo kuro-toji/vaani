@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMultiplePrices, POPULAR_SYMBOLS, formatCryptoPrice, formatMarketCap, formatChange } from '../../services/binanceService.js';
+import { getMultiplePrices, POPULAR_SYMBOLS, formatCryptoPrice, formatMarketCap, formatChange } from '../services/binanceService.js';
 
 const TABS = ['All', 'Layer 1', 'Layer 2', 'DeFi', 'Meme', 'Payments', 'Exchange', 'Oracle'];
 
