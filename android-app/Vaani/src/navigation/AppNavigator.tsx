@@ -17,6 +17,9 @@ import TaxIntelligenceScreen from '../screens/TaxIntelligenceScreen';
 import SpendAwarenessScreen from '../screens/SpendAwarenessScreen';
 import CreditIntelligenceScreen from '../screens/CreditIntelligenceScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AddExpenseScreen from '../screens/AddExpenseScreen';
+import AddFDScreen from '../screens/AddFDScreen';
+import AddSIPScreen from '../screens/AddSIPScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -132,6 +135,9 @@ export default function AppNavigator() {
         <Stack.Screen name="SpendAwareness" component={SpendAwarenessScreen} />
         <Stack.Screen name="CreditIntelligence" component={CreditIntelligenceScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
+        <Stack.Screen name="AddFD" component={AddFDScreen} />
+        <Stack.Screen name="AddSIP" component={AddSIPScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
